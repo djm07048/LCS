@@ -173,6 +173,8 @@ class DatabaseManager(QMainWindow):
         self.export_json_btn = QPushButton('EXPORT JSON to DB')
         self.build_weekly_paper_by_gui_btn = QPushButton('BUILD WEEKLY from DB')
         self.rasterize_pdf_btn = QPushButton('RASTERIZE PDF from DB')
+        self.open_naive_pdf_btn = QPushButton('OPEN NAIVE PDF')
+        self.open_rasterized_pdf_btn = QPushButton('OPEN RASTERIZED PDF')
         self.log_window = QTextEdit()
         self.log_window.setReadOnly(True)
 
@@ -181,6 +183,9 @@ class DatabaseManager(QMainWindow):
         right_button_layout.addWidget(self.export_json_btn)
         right_button_layout.addWidget(self.build_weekly_paper_by_gui_btn)
         right_button_layout.addWidget(self.rasterize_pdf_btn)
+        right_button_layout.addWidget(self.open_naive_pdf_btn)
+        right_button_layout.addWidget(self.open_rasterized_pdf_btn)
+
         right_button_layout.addStretch()
 
         right_button_layout.addWidget(self.log_window)
@@ -226,6 +231,9 @@ class DatabaseManager(QMainWindow):
         self.export_json_btn.clicked.connect(self.export_to_json)
         self.build_weekly_paper_by_gui_btn.clicked.connect(self.build_weekly_paper_by_gui)
         self.rasterize_pdf_btn.clicked.connect(self.rasterize_pdf_by_gui)
+        self.open_naive_pdf_btn.clicked.connect(self.open_naive_pdf)
+        self.open_rasterized_pdf_btn.clicked.connect(self.open_rasterized_pdf)
+
 
     def log_message(self, message):
         self.log_window.append(message)
@@ -566,18 +574,21 @@ class DatabaseManager(QMainWindow):
     def renumber_list_items(self):
         if not self.show_warning_dialog("Are you sure you want to renumber the list items?"):
             return
-        next_number = 1
+        next_item_number = 1
+        next_main_number = 1
         for i in range(self.list_table.rowCount()):
-            item = self.list_table.item(i, 1)
-            current_text = str(item.text())
+            section = parse_code(self.list_table.item(i, 0).text())["section"]
+            item_num = self.list_table.item(i, 1)
+            main_num = self.list_table.item(i, 3)
 
-            # -1이나 0이 아닌 경우에만 번호 매기기
-            if current_text != '-1' and current_text != '0':
-                self.list_table.setItem(i, 1, QTableWidgetItem(str(next_number)))
-                next_number += 1
+            # 비어있지 않은 경우에만 번호 매기기
+            if section == "KC":
+                self.list_table.setItem(i, 1, QTableWidgetItem(str(next_item_number)))
+                next_item_number += 1
             # -1과 0은 그대로 유지
-            else:
-                self.list_table.setItem(i, 1, QTableWidgetItem(current_text))
+            if section != "KC":
+                self.list_table.setItem(i, 3, QTableWidgetItem(chr(next_main_number+64)))
+                next_main_number += 1
 
     def create_pdfs_gui(self):
         if not self.show_warning_dialog("Are you sure you want to create PDFs?"):
@@ -707,6 +718,28 @@ class DatabaseManager(QMainWindow):
             self.log_message("PDF rasterization completed successfully.")
         except Exception as e:
             self.log_message(f"Error during PDF rasterization: {e}")
+
+    def open_naive_pdf(self):
+        book_name = self.book_name_input.currentText()
+        pdf_path = os.path.join(OUTPUT_PATH, book_name.replace('.json', '.pdf'))
+        if os.path.exists(pdf_path):
+            try:
+                subprocess.run(['start', pdf_path], check=True)
+            except subprocess.CalledProcessError as e:
+                self.log_message(f"Error opening PDF: {e}")
+        else:
+            self.log_message(f"PDF not found: {pdf_path}")
+
+    def open_rasterized_pdf(self):
+        book_name = self.book_name_input.currentText()
+        pdf_path = os.path.join(OUTPUT_PATH, book_name.split('.')[0] + '_R.pdf')
+        if os.path.exists(pdf_path):
+            try:
+                subprocess.run(['start', pdf_path], check=True)
+            except subprocess.CalledProcessError as e:
+                self.log_message(f"Error opening PDF: {e}")
+        else:
+            self.log_message(f"PDF not found: {pdf_path}")
 
     def add_context_menu(self):
         self.pool_table.setContextMenuPolicy(Qt.CustomContextMenu)

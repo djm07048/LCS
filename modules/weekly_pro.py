@@ -180,7 +180,7 @@ class ProblemBuilder:
         for page_num in range(self.overlayer.doc.page_count):
             self.add_unit_title(page_num, self.get_unit_title(self.topic))
         
-        if self.overlayer.doc.page_count % 2 != self.page:
+        if self.overlayer.doc.page_count % 2 == self.page:
             self.overlayer.add_page(self.get_component_on_resources(4))
 
         self.resources_doc.close()

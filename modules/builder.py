@@ -123,7 +123,7 @@ class Builder:
 
         if log_callback:
             log_callback("Building Solutions...")
-        ab = AnswerBuilder(self.proitems.items(), self.mainitems.items()) #TODO mainitems도 넣어줘야힘
+        ab = AnswerBuilder(self.proitems.items(), self.mainitems.items())
         new_doc = ab.build()
         total.insert_pdf(new_doc)
 
