@@ -31,9 +31,9 @@ def get_unit_title(unit_code):
     return topic_data[unit_code]
 
 class ProblemBuilder:
-    def __init__(self, topic, items, page):
+    def __init__(self, topic, proitems, page):
         self.topic = topic
-        self.items = items
+        self.proitems = proitems
         self.page = page
 
     def get_component_on_resources(self, page_num):
@@ -130,7 +130,7 @@ class ProblemBuilder:
                 problem_object = ComponentOverlayObject(0, Coord(0, problem.height, 0), component)
                 problem.add_child(problem_object)
                 problem.height += problem_object.get_height()
-            problem.height += Ratio.mm_to_px(10)    #minimal space between kice problems
+                problem.height += Ratio.mm_to_px(70)
             pass
         else:                               #item problem
             problem_title = self.bake_problem_title(problem_num)
@@ -170,7 +170,7 @@ class ProblemBuilder:
 
         paragraph = ParagraphOverlayObject()
         paragraph_cnt = 0
-        for item in self.items:
+        for item in self.proitems:
             problem_object = self.bake_problem(item['item_code'], item['item_num'])
             paragraph_cnt = self.add_child_to_paragraph(paragraph, problem_object, paragraph_cnt)
             pass

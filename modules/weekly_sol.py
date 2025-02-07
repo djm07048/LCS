@@ -15,8 +15,8 @@ def get_problem_list(file_path):
         return file.readline().split(',')
 
 class SolutionBuilder:
-    def __init__(self, items):
-        self.items = items
+    def __init__(self, proitems):
+        self.proitems = proitems
 
     def get_component_on_resources(self, page_num):
         return Component(self.resources_pdf, page_num, self.resources_doc.load_page(page_num).rect)
@@ -81,7 +81,7 @@ class SolutionBuilder:
         problem_title = AreaOverlayObject(0, Coord(0,0,0), Ratio.mm_to_px(7))
         problem_title.add_child(TextOverlayObject(0, Coord(Ratio.mm_to_px(1), Ratio.mm_to_px(5.5), 1), "Montserrat-Bold.ttf", 17, f"{num:02d}", (0.75, 0.4, 0, 0), fitz.TEXT_ALIGN_LEFT))
         problem_title.add_child(TextOverlayObject(0, Coord(Ratio.mm_to_px(12), Ratio.mm_to_px(5.5), 1), "Pretendard-Bold.ttf", 11, "정답", (0.75, 0.4, 0, 0), fitz.TEXT_ALIGN_LEFT))
-        problem_title.add_child(TextOverlayObject(0, Coord(Ratio.mm_to_px(19.5), Ratio.mm_to_px(5.5), 1), "NanumSquareB.ttf", 11, f"{answer}", (0.75, 0.4, 0, 0), fitz.TEXT_ALIGN_LEFT))
+        problem_title.add_child(TextOverlayObject(0, Coord(Ratio.mm_to_px(20), Ratio.mm_to_px(5.5), 1), "NanumSquareB.ttf", 15, f"{answer}", (0, 0, 0, 0), fitz.TEXT_ALIGN_LEFT))
 
         return problem_title
 
@@ -144,7 +144,7 @@ class SolutionBuilder:
 
         paragraph_cnt = 0
         unit_num = 0
-        for topic_set in self.items:
+        for topic_set in self.proitems:
             self.append_new_list_to_paragraph(paragraph, paragraph_cnt, self.overlayer, base)
             paragraph_cnt += 1
             unit_num += 1
@@ -164,7 +164,7 @@ class SolutionBuilder:
 
                 for problem_object in problem_objects:
                     paragraph_cnt = self.add_child_to_paragraph(paragraph, problem_object, paragraph_cnt, self.overlayer, base)  
-                paragraph.add_child(AreaOverlayObject(0, Coord(0,0,0), Ratio.mm_to_px(5)))
+                paragraph.add_child(AreaOverlayObject(0, Coord(0,0,0), Ratio.mm_to_px(20))) #minimal space between problems
 
         paragraph.overlay(self.overlayer, Coord(0,0,0))
         self.resources_doc.close()

@@ -28,3 +28,6 @@ def parse_item_caption_path(item_code: str) -> str:
 
 def parse_item_original_path(item_code: str) -> str:
     return f"{parse_item_folder_path(item_code)}/{item_code}_original.pdf"
+
+def parse_item_Main_path(item_code: str) -> str:
+    return f"{parse_item_folder_path(item_code)}/{item_code}_Main.pdf"

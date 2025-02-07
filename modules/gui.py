@@ -16,7 +16,7 @@ from hwp2pdf import *
 from rasterizer import *
 from utils.path import *
 from utils.parse_code import *
-
+import traceback
 
 def suppress_qt_warnings():
     environ["QT_DEVICE_PIXEL_RATIO"] = "0"
@@ -249,6 +249,8 @@ class DatabaseManager(QMainWindow):
                 self.list_table.removeRow(row)
 
     def remove_selected_rows(self):
+        if not self.show_warning_dialog("Are you sure you want to remove these rows?"):
+            return
         selected_rows = sorted(set(item.row() for item in self.list_table.selectedItems()), reverse=True)
         for row in selected_rows:
             self.list_table.removeRow(row)
@@ -691,7 +693,8 @@ class DatabaseManager(QMainWindow):
         try:
             build_weekly_paper(input=input_path, output=output_path, log_callback=self.log_message)
         except Exception as e:
-            self.log_message(f"Error during weekly paper build: {e}")
+            error_message = f"Error during weekly paper build: {e}\n{traceback.format_exc()}"
+            self.log_message(error_message)
 
     def rasterize_pdf_by_gui(self):
         if not self.show_warning_dialog("Are you sure you want to rasterize the PDF?"):

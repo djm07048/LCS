@@ -16,6 +16,8 @@ class Builder:
     def __init__(self, items):
         self.topics = []
         self.items = dict()
+        self.proitems = dict()
+        self.mainitems = dict()
         for item in items:
             topic = item['topic_in_book']
             if topic in self.items:
@@ -24,6 +26,22 @@ class Builder:
                 self.topics.append(topic)
                 self.items[topic] = []
                 self.items[topic].append(item)
+
+            if item['mainsub']:
+                if topic in self.mainitems:
+                    self.mainitems[topic].append(item)
+                else:
+                    self.mainitems[topic] = []
+                    self.mainitems[topic].append(item)
+
+            if item['item_num']:
+                if topic in self.proitems:
+                    self.proitems[topic].append(item)
+                else:
+                    self.proitems[topic] = []
+                    self.proitems[topic].append(item)
+
+
 
     def bake_topic_list(self, page_num, topic_num):
         resources_pdf = RESOURCES_PATH + "/weekly_main_resources.pdf"
@@ -52,7 +70,14 @@ class Builder:
         total = fitz.open()
         fc_pages = []
         index = 1
+
         for topic_set in self.items.items():
+            # topic_set은 (topic, items:list of self.items which matches the topic)의 형태
+
+            # Find the corresponding pro_topic_set
+            pro_topic_set = next((pro_set for pro_set in self.proitems.items() if pro_set[0] == topic_set[0]), None)
+            main_topic_set = next((main_set for main_set in self.mainitems.items() if main_set[0] == topic_set[0]), None)
+
             if log_callback:
                 log_callback(f"Building topic {topic_set[0]}")
 
@@ -68,7 +93,7 @@ class Builder:
 
             if log_callback:
                 log_callback("  (2) Building Main Solution...")
-            mb = MainsolBuilder(topic_set[0], topic_set[1])
+            mb = MainsolBuilder(main_topic_set[0], main_topic_set[1])
             new_doc = mb.build()
             flag = 0
             if new_doc is not None:
@@ -85,7 +110,7 @@ class Builder:
 
             if log_callback:
                 log_callback("  (3) Building Problems...")
-            pb = ProblemBuilder(topic_set[0], topic_set[1], flag)
+            pb = ProblemBuilder(pro_topic_set[0], pro_topic_set[1], flag)
             new_doc = pb.build()
             if log_callback:
                 log_callback("Done!")
@@ -98,11 +123,11 @@ class Builder:
 
         if log_callback:
             log_callback("Building Solutions...")
-        ab = AnswerBuilder(self.items.items())
+        ab = AnswerBuilder(self.proitems.items(), self.mainitems.items()) #TODO mainitems도 넣어줘야힘
         new_doc = ab.build()
         total.insert_pdf(new_doc)
 
-        sb = SolutionBuilder(self.items.items())
+        sb = SolutionBuilder(self.proitems.items())
         new_doc = sb.build()
         total.insert_pdf(new_doc)
         if log_callback:

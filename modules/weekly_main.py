@@ -8,7 +8,12 @@ from utils.solution_info import SolutionInfo
 from utils.overlay_object import *
 from utils.coord import Coord
 from utils.path import *
+from utils.parse_code import *
+from item_cropper import ItemCropper
 import json
+# KC이면 문항은 original, 해설은 Main에서 가져옴
+# KC가 아니면 문항은 pdf, 해설도 pdf에서 가져옴
+
 
 def get_problem_dict(path):
     folder_path = Path(path)
@@ -27,33 +32,47 @@ def get_item_json():
     return item_data
 
 class MainsolBuilder:
-    def __init__(self, topic, items):
+    def __init__(self, topic, mainitems):
         self.topic = topic
-        self.items = items
+        self.mainitems = mainitems
+
 
     def get_component_on_resources(self, page_num):
         return Component(self.resources_pdf, page_num, self.resources_doc.load_page(page_num).rect)
 
     def get_item_list(self):
         item_list = []
-        for item in self.items:
+        for item in self.mainitems:
             if item['mainsub'] is not None:
                 item_list.append(item)
         
         return item_list
 
+    def get_problem_component(self, item_code):
+        ic = ItemCropper()
+        item_pdf = parse_item_original_path(item_code) if item_code[5:7] == 'KC' else parse_item_pdf_path(item_code)
+        with fitz.open(item_pdf) as file:
+            page = file.load_page(0)
+            component = Component(item_pdf, 0, page.rect) if item_code[5:7] == 'KC'\
+                else Component(item_pdf, 0, ic.get_problem_rect_from_file(file, accuracy = 1))
+        return component
+
     def bake_origin(self, item_code):
         if item_code[5:7] == 'KC':
             source = self.code_to_text(item_code)
-            to = TextOverlayObject(0, Coord(0,0,0), "Pretendard-Regular.ttf", 12, source, (1,1,1), fitz.TEXT_ALIGN_CENTER)
+            to = TextOverlayObject(0, Coord(0, 0, 0), "Pretendard-Regular.ttf", 12, source, (1, 1, 1),
+                                   fitz.TEXT_ALIGN_CENTER)
             to.get_width()
-            box = ShapeOverlayObject(0, Coord(0, 0, 0), Rect(0,0,Ratio.mm_to_px(4)+to.get_width(),Ratio.mm_to_px(5.5)), (0,0,0,0.5), 0.5/5.5)
-            to.coord = Coord(box.rect.width/2, Ratio.mm_to_px(4.3), 0)
+            box = ShapeOverlayObject(0, Coord(0, 0, 0),
+                                     Rect(0, 0, Ratio.mm_to_px(4) + to.get_width(), Ratio.mm_to_px(5.5)),
+                                     (0, 0, 0, 0.5), 0.5 / 5.5)
+            to.coord = Coord(box.rect.width / 2, Ratio.mm_to_px(4.3), 0)
             box.add_child(to)
         else:
             with fitz.open(RESOURCES_PATH + "/weekly_pro_resources.pdf") as file:
                 compo = Component(RESOURCES_PATH + "/weekly_pro_resources.pdf", 6, file.load_page(6).rect)
-                box = ComponentOverlayObject(0, Coord(0,0,0), compo)
+                box = ComponentOverlayObject(0, Coord(0, 0, 0), compo)
+                box.rect = compo.src_rect  # Ensure the rect attribute is set
         return box
 
     def code_to_text(self, problem_code):
@@ -76,21 +95,21 @@ class MainsolBuilder:
         return f"20{problem_code[7:9]}학년도 {month_text[problem_code[9:11]]} {int(problem_code[11:13])}번 {subject_text[problem_code[0:2]]}"
 
     def build_right(self, item_code, page_num):
+        # Main Solution 우수 Page: 문항 번호, 문제 이미지, 원본 이미지, 해설 조각
+
         for item in self.get_item_list():
             if item['item_code'] == item_code:
                 item_num = item['mainsub']
         right_page = AreaOverlayObject(page_num, Coord(0,0,0), Ratio.mm_to_px(371))
         origin = self.bake_origin(item_code)
-        item_pdf = get_item_path(item_code) + f"/{item_code[2:5]}/{item_code}/{item_code}_original.pdf"
-        with fitz.open(item_pdf) as file:
-            page = file.load_page(0)
-            component = Component(item_pdf, 0, page.rect)
+
+        component = self.get_problem_component(item_code)
         right_page.add_child(ComponentOverlayObject(0, Coord(Ratio.mm_to_px(118), Ratio.mm_to_px(46), 0), component))
         right_page.add_child(TextOverlayObject(0, Coord(Ratio.mm_to_px(108), Ratio.mm_to_px(59), 0), "Montserrat-Bold.ttf", 48, item_num, (0.75, 0.4, 0, 0), fitz.TEXT_ALIGN_RIGHT))
         origin.coord = Coord(Ratio.mm_to_px(108)-origin.rect.width, Ratio.mm_to_px(64), 0)
         right_page.add_child(origin)
-
         y_end = 46 + Ratio.px_to_mm(component.src_rect.height)
+
         # 최대 사이즈를 기본 값으로 설정
         memo_component = self.get_component_on_resources(43)
         if y_end < 180: memo_component = self.get_component_on_resources(39)
@@ -116,6 +135,8 @@ class MainsolBuilder:
             "EA" : 25,
             "EB" : 26,
             "EC" : 27,
+
+            "answer": 28, #TODO 정답 pdf는 추후 수정
             "arrow" : 28,
             "clip" : 29,
             "check" : 30,
@@ -157,19 +178,24 @@ class MainsolBuilder:
         for item in self.get_item_list():
             if item['item_code'] == item_code:
                 item_num = item['mainsub']
-        left_page = AreaOverlayObject(page_num, Coord(0,0,0), Ratio.mm_to_px(371))
-        left_page.add_child(TextOverlayObject(0, Coord(Ratio.mm_to_px(18), Ratio.mm_to_px(59), 0), "Montserrat-Bold.ttf", 48, item_num, (0.75, 0.4, 0, 0), fitz.TEXT_ALIGN_LEFT))
+        left_page = AreaOverlayObject(page_num, Coord(0, 0, 0), Ratio.mm_to_px(371))
+        left_page.add_child(
+            TextOverlayObject(0, Coord(Ratio.mm_to_px(18), Ratio.mm_to_px(59), 0), "Montserrat-Bold.ttf", 48, item_num,
+                              (0.75, 0.4, 0, 0), fitz.TEXT_ALIGN_LEFT))
         origin = self.bake_origin(item_code)
-        origin.coord = Coord(Ratio.mm_to_px(38), Ratio.mm_to_px(59)-origin.rect.height, 0)
+        origin.coord = Coord(Ratio.mm_to_px(38), Ratio.mm_to_px(59) - origin.rect.height, 0)
         left_page.add_child(origin)
-        item_pdf = get_item_path(item_code) + f"/{item_code[2:5]}/{item_code}/{item_code}_original.pdf"
-        with fitz.open(item_pdf) as file:
-            page = file.load_page(0)
-            component = Component(item_pdf, 0, page.rect)
+
+        component = self.get_problem_component(item_code)
+        if isinstance(component, str):
+            component = Component(component, 0, fitz.Rect(0, 0, 0, 0))  # Create a Component object if it's a string
+
+        if not hasattr(component, 'src_pdf'):
+            raise AttributeError(f"Component does not have 'src_pdf' attribute: {component}")
+
         left_page.add_child(ComponentOverlayObject(0, Coord(Ratio.mm_to_px(18), Ratio.mm_to_px(65.5), 0), component))
 
-        #TODO 경로 받기
-        main_pdf = get_item_path(item_code) + f"/{item_code[2:5]}/{item_code}/{item_code}_Main.pdf"
+        main_pdf = parse_item_Main_path(item_code) if item_code[5:7] == 'KC' else parse_item_pdf_path(item_code)
         with fitz.open(main_pdf) as file:
             ic = ItemCropper()
             solutions_info = ic.get_solution_infos_from_file(file, 10)
@@ -178,18 +204,14 @@ class MainsolBuilder:
         linking = ListOverlayObject(0, Coord(Ratio.mm_to_px(134), Ratio.mm_to_px(59), 0), Ratio.mm_to_px(347), 0)
         solving = ListOverlayObject(0, Coord(Ratio.mm_to_px(134), Ratio.mm_to_px(347), 0), Ratio.mm_to_px(347), 0)
         for solution_info in solutions_info:
-            sol_commentary_data = self.get_commentary_data()[solution_info.hexcode]
-            if sol_commentary_data == "answer": continue
-            if sol_commentary_data == "fact_check":
-                fc_component = Component(main_pdf, 0, solution_info.rect)
-                fco = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(22), Ratio.mm_to_px(347)-fc_component.src_rect.height, 0), fc_component)
-                left_page.add_child(fco)
-                fc_bar_component = self.get_component_on_resources(37)
-                fc_bar = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(18), Ratio.mm_to_px(347)-fc_bar_component.src_rect.height-fco.get_height(), 0), fc_bar_component)
-                left_page.add_child(fc_bar)
+            sol_commentary_data = self.get_commentary_data()
+            if solution_info.hexcode not in sol_commentary_data:
                 continue
             so = self.bake_solution_object(solution_info, sTF[solution_info.hexcode], main_pdf)
-            if sol_commentary_data[:1] == 'S':
+            if so is None:
+                continue
+
+            if sol_commentary_data[solution_info.hexcode][:1] == 'S':
                 linking.add_child(so)
             else:
                 solving.add_child(so)
@@ -197,7 +219,8 @@ class MainsolBuilder:
         left_page.add_child(linking)
         solving.coord.y -= solving.get_height()
         solving_bar_component = self.get_component_on_resources(38)
-        solving_bar = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(134), Ratio.mm_to_px(347)-solving_bar_component.src_rect.height-solving.get_height(), 0), solving_bar_component)
+        solving_bar = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(134), Ratio.mm_to_px(
+            347) - solving_bar_component.src_rect.height - solving.get_height(), 0), solving_bar_component)
         left_page.add_child(solving)
         left_page.add_child(solving_bar)
 

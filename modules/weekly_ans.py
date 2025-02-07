@@ -8,6 +8,7 @@ from utils.solution_info import SolutionInfo
 from utils.overlay_object import *
 from utils.coord import Coord
 from utils.path import *
+from utils.parse_code import *
 import json
 
 def get_problem_dict(path):
@@ -26,9 +27,9 @@ def get_problem_list(file_path):
         return file.readline().split(',')
 
 class AnswerBuilder:
-    def __init__(self, items):
-        self.items = items
-
+    def __init__(self, proitems, mainitems):
+        self.proitems = proitems
+        self.mainitems = mainitems
     def get_component_on_resources(self, page_num):
         return Component(self.resources_pdf, page_num, self.resources_doc.load_page(page_num).rect)
     
@@ -36,7 +37,9 @@ class AnswerBuilder:
         if num % 2 == 0:
             overlayer.add_page(base)
             #append left area
+            #TODO : Lt 시작 위치 바꾸고 처음에 AtoZ 추가
             paragraph_list = ListOverlayObject(num//2, Coord(Ratio.mm_to_px(25.5), Ratio.mm_to_px(34), 0), Ratio.mm_to_px(303), 0)
+            #paragraph_list = ListOverlayObject(num//2, Coord(Ratio.mm_to_px(25.5), Ratio.mm_to_px(34), 0), Ratio.mm_to_px(303), 0)
             paragraph.add_paragraph_list(paragraph_list=paragraph_list)
             pass
         else:
@@ -51,6 +54,7 @@ class AnswerBuilder:
         self.append_new_list_to_paragraph(paragraph, num, overlayer, base)
         paragraph.add_child(child)
         return num+1
+
     def get_problem_answer(self, item_pdf):
         with fitz.open(item_pdf) as file:
             ic = ItemCropper()
@@ -67,7 +71,8 @@ class AnswerBuilder:
         component = self.get_component_on_resources(2+(num-1)%3)
         unit_cover = AreaOverlayObject(0, Coord(0,0,0), Ratio.mm_to_px(20))
         unit_cover.add_child(ComponentOverlayObject(0, Coord(0,0,0), component))
-        unit_cover.add_child(TextOverlayObject(0, Coord(Ratio.mm_to_px(49), Ratio.mm_to_px(6), 1), "Pretendard-Bold.ttf", 13, f"{num}. {self.get_unit_title(unit_code)}", tuple([int(num%3 == 1)]*3), fitz.TEXT_ALIGN_CENTER))
+        unit_title = f'{num}. {self.get_unit_title(unit_code)}' if unit_code != 'Main' else '주요 문항 A to Z'
+        unit_cover.add_child(TextOverlayObject(0, Coord(Ratio.mm_to_px(49), Ratio.mm_to_px(6), 1), "Pretendard-Bold.ttf", 13, f"{unit_title}", tuple([int(num%3 == 1)]*3), fitz.TEXT_ALIGN_CENTER))
         return unit_cover
 
     def bake_unit(self, unit_code, num, problem_num, unit_problem_answers):
@@ -96,6 +101,8 @@ class AnswerBuilder:
             unit.add_child(TextOverlayObject(0, Coord(default_ans_x+Ratio.mm_to_px(19.6)*(i%5), default_y+Ratio.mm_to_px(10)*(i//5), 1), "NanumSquareNeo-cBd.ttf", 13, f"{unit_problem_answers[i]}", tuple([0]), fitz.TEXT_ALIGN_CENTER))
         return unit
 
+
+
     def build(self):
         new_doc = fitz.open()
         
@@ -105,19 +112,40 @@ class AnswerBuilder:
         self.overlayer = Overlayer(new_doc)
         base = self.get_component_on_resources(1)
         paragraph = ParagraphOverlayObject()
+
         paragraph_cnt = 0
         unit_problem_answers = []
         unit_num = 0
-        for topic_set in self.items:
+
+        print(self.mainitems)
+        mainitems_whole = []
+        for topic_set in self.mainitems:
+            mainitems_whole.extend(topic_set[1])
+        mainitems_whole.sort(key=lambda x: x[0]['mainsub'])
+
+        print(mainitems_whole)
+
+        for item in mainitems_whole:
+            item_code = item["item_code"]
+            item_pdf = parse_item_pdf_path(item_code)
+            unit_problem_answers.append(self.get_problem_answer(item_pdf))
+
+        unit = self.bake_unit('Main', unit_num, topic_set[1][0]['item_num'], unit_problem_answers)
+        unit_problem_answers = []
+        paragraph_cnt = self.add_child_to_paragraph(paragraph, unit, paragraph_cnt, self.overlayer, base)
+        paragraph.add_child(AreaOverlayObject(0, Coord(0,0,0), Ratio.mm_to_px(15)))
+
+        for topic_set in self.proitems:
             for item in topic_set[1]:
                 item_code = item["item_code"]
-                item_pdf = get_item_path(item_code) + f"/{item_code[2:5]}/{item_code}/{item_code}.pdf"
+                item_pdf = parse_item_pdf_path(item_code)
                 unit_problem_answers.append(self.get_problem_answer(item_pdf))
             unit_num += 1
             unit = self.bake_unit(topic_set[0], unit_num, topic_set[1][0]['item_num'], unit_problem_answers)
             unit_problem_answers = []
             paragraph_cnt = self.add_child_to_paragraph(paragraph, unit, paragraph_cnt, self.overlayer, base)
             paragraph.add_child(AreaOverlayObject(0, Coord(0,0,0), Ratio.mm_to_px(15)))
+
 
         paragraph.overlay(self.overlayer, Coord(0,0,0))
         #new_doc.save("output/weekly_ans_test.pdf")
