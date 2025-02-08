@@ -14,7 +14,7 @@ class ItemCropper:
         pass
 
     def get_problem_area(self) -> Rect:
-        rect = Rect(26.6, 13, 135.6, 420)
+        rect = Rect(26.5, 13, 135.5, 420)
         return Ratio.rect_mm_to_px(rect)
     
     def get_problem_rect(self, page: Page, accuracy = 1) -> Rect:

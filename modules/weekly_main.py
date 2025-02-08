@@ -135,8 +135,6 @@ class MainsolBuilder:
             "EA" : 25,
             "EB" : 26,
             "EC" : 27,
-
-            "answer": 28, #TODO 정답 pdf는 추후 수정
             "arrow" : 28,
             "clip" : 29,
             "check" : 30,
@@ -146,6 +144,8 @@ class MainsolBuilder:
             "SC" : 34,
             "SD" : 35,
             "SE" : 36,
+
+            "answer": 44,
         }
         return sol_type_dict
 

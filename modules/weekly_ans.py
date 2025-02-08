@@ -72,7 +72,7 @@ class AnswerBuilder:
         unit_cover = AreaOverlayObject(0, Coord(0,0,0), Ratio.mm_to_px(20))
         unit_cover.add_child(ComponentOverlayObject(0, Coord(0,0,0), component))
         unit_title = f'{num-1}. {self.get_unit_title(unit_code)}' if unit_code != 'Main' else '주요 문항 A to Z'
-        unit_cover.add_child(TextOverlayObject(0, Coord(Ratio.mm_to_px(49), Ratio.mm_to_px(6), 1), "Pretendard-Bold.ttf", 13, f"{unit_title}", tuple([int(num%3 == 1)]*3), fitz.TEXT_ALIGN_CENTER))
+        unit_cover.add_child(TextOverlayObject(0, Coord(Ratio.mm_to_px(49), Ratio.mm_to_px(6), 1), "Pretendard-ExtraBold.ttf", 13, f"{unit_title}", tuple([int(num%3 == 1)]*3), fitz.TEXT_ALIGN_CENTER))
         return unit_cover
 
     def bake_unit(self, unit_code, num, problem_num, unit_problem_answers):
@@ -120,12 +120,13 @@ class AnswerBuilder:
         self.resources_doc = fitz.open(self.resources_pdf)
 
         self.overlayer = Overlayer(new_doc)
+
         base = self.get_component_on_resources(1)
         paragraph = ParagraphOverlayObject()
 
         paragraph_cnt = 0
         unit_problem_answers = []
-        unit_num = 0 #due to mainitems
+        unit_num = 0
 
         mainitems_whole = []
         for topic_set in self.mainitems:
@@ -135,6 +136,8 @@ class AnswerBuilder:
             if not item['item_num']:
                 item['item_num'] = item['mainsub']
         mainitems_whole = [('Main', mainitems_whole)]
+
+
 
         if isinstance(self.proitems, dict):
             proitems_list = list(self.proitems.items())

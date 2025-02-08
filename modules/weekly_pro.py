@@ -128,9 +128,11 @@ class ProblemBuilder:
                 page = file.load_page(0)
                 component = Component(item_pdf, 0, page.rect)
                 problem_object = ComponentOverlayObject(0, Coord(0, problem.height, 0), component)
+                white_box = ShapeOverlayObject(0, Coord(0,0,0), Rect(0,0,Ratio.mm_to_px(2.5),Ratio.mm_to_px(5)), (1,1,1))
+                problem_object.add_child(white_box)
                 problem.add_child(problem_object)
                 problem.height += problem_object.get_height()
-                problem.height += Ratio.mm_to_px(70)
+                problem.height += Ratio.mm_to_px(280) - problem_object.get_height()       #TODO: minimal space between kice problems is whole rest
             pass
         else:                               #item problem
             problem_title = self.bake_problem_title(problem_num)
@@ -147,7 +149,8 @@ class ProblemBuilder:
                 problem_object.add_child(white_box)
                 problem.add_child(problem_object)
                 problem.height += problem_object.get_height()
-            problem.height += Ratio.mm_to_px(70)    #minimal space between item problems
+                problem.height += Ratio.mm_to_px(10)        #이 부분 로직 수정이 필요~
+                print(problem.height)#minimal space between item problems is whole rest
         return problem
     
     def get_unit_title(self, unit_code):
@@ -179,8 +182,8 @@ class ProblemBuilder:
 
         for page_num in range(self.overlayer.doc.page_count):
             self.add_unit_title(page_num, self.get_unit_title(self.topic))
-        
-        if self.overlayer.doc.page_count % 2 == self.page:
+
+        if self.overlayer.doc.page_count % 2 != self.page:
             self.overlayer.add_page(self.get_component_on_resources(4))
 
         self.resources_doc.close()

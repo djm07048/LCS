@@ -724,8 +724,9 @@ class DatabaseManager(QMainWindow):
         pdf_path = os.path.join(OUTPUT_PATH, book_name.replace('.json', '.pdf'))
         if os.path.exists(pdf_path):
             try:
-                subprocess.run(['start', pdf_path], check=True)
-            except subprocess.CalledProcessError as e:
+                os.startfile(pdf_path)
+                self.log_message(f"Opened PDF: {pdf_path}")
+            except Exception as e:
                 self.log_message(f"Error opening PDF: {e}")
         else:
             self.log_message(f"PDF not found: {pdf_path}")
@@ -735,11 +736,12 @@ class DatabaseManager(QMainWindow):
         pdf_path = os.path.join(OUTPUT_PATH, book_name.split('.')[0] + '_R.pdf')
         if os.path.exists(pdf_path):
             try:
-                subprocess.run(['start', pdf_path], check=True)
-            except subprocess.CalledProcessError as e:
-                self.log_message(f"Error opening PDF: {e}")
+                os.startfile(pdf_path)
+                self.log_message(f"Opened rasterized PDF: {pdf_path}")
+            except Exception as e:
+                self.log_message(f"Error opening rasterized PDF: {e}")
         else:
-            self.log_message(f"PDF not found: {pdf_path}")
+            self.log_message(f"Rasterized PDF not found: {pdf_path}")
 
     def add_context_menu(self):
         self.pool_table.setContextMenuPolicy(Qt.CustomContextMenu)

@@ -81,7 +81,7 @@ class SolutionBuilder:
         problem_title = AreaOverlayObject(0, Coord(0,0,0), Ratio.mm_to_px(7))
         problem_title.add_child(TextOverlayObject(0, Coord(Ratio.mm_to_px(1), Ratio.mm_to_px(5.5), 1), "Montserrat-Bold.ttf", 17, f"{num:02d}", (0.75, 0.4, 0, 0), fitz.TEXT_ALIGN_LEFT))
         problem_title.add_child(TextOverlayObject(0, Coord(Ratio.mm_to_px(12), Ratio.mm_to_px(5.5), 1), "Pretendard-Bold.ttf", 11, "정답", (0.75, 0.4, 0, 0), fitz.TEXT_ALIGN_LEFT))
-        problem_title.add_child(TextOverlayObject(0, Coord(Ratio.mm_to_px(20), Ratio.mm_to_px(5.5), 1), "NanumSquareB.ttf", 15, f"{answer}", (0, 0, 0, 0), fitz.TEXT_ALIGN_LEFT))
+        problem_title.add_child(TextOverlayObject(0, Coord(Ratio.mm_to_px(19.5), Ratio.mm_to_px(5.5), 1), "NanumSquareB.ttf", 11, f"{answer}", (0.75, 0.4, 0, 0), fitz.TEXT_ALIGN_LEFT))
 
         return problem_title
 
@@ -121,6 +121,7 @@ class SolutionBuilder:
             sTF = ic.get_TF_of_solutions_from_file(file, 10)
             answer = ic.get_answer_from_file(file)
             objects.append(self.bake_problem_title(problem_num, answer))
+            print(answer)
             objects += self.bake_solutions(commentary_data, item_pdf, solutions_info, sTF)
         return objects
     
