@@ -10,6 +10,18 @@ def parse_code(code: str) -> list:
     parsed_code["number"] = code[7:13]
     return parsed_code
 
+def parse_code_citation(item_code: str) -> str:
+    parsed_code = parse_code(item_code)
+    yyyy = "20" + str(parsed_code["number"][0:2])
+    month_dict = {"01": "예비시행", "06": "6월", "09": "9월", "11": "대수능"}
+    mo = month_dict[parsed_code["number"][2:4]]
+    nn = int(parsed_code["number"][4:])
+    subject_dict = {"E1":"지1", "E2":"지2"}
+    subject = subject_dict[parsed_code["subject"]]
+
+
+    return f"{yyyy}학년도 {mo} {nn}번 {subject}"
+
 from utils.path import *
 @staticmethod
 def parse_item_folder_path(item_code: str) -> str:
@@ -31,3 +43,6 @@ def parse_item_original_path(item_code: str) -> str:
 
 def parse_item_Main_path(item_code: str) -> str:
     return f"{parse_item_folder_path(item_code)}/{item_code}_Main.pdf"
+
+def parse_item_modified_path(item_code: str) -> str:
+    return f"{parse_item_folder_path(item_code)}/{item_code}_modified.pdf"

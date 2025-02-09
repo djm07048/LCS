@@ -17,7 +17,7 @@ class KiceCropper:
         self.pdf_name = pdf_name
         self.base_name = os.path.basename(self.pdf_name)
 
-    def get_problems_area(self, page: Page, accuracy = 1, offset = 1) -> Rect:
+    def get_problems_area(self, page: Page, accuracy = 1, offset = 1, padding = (0,0,0,0)) -> Rect:
         #trim left and right
         rect = page.rect
         new_rect = PdfUtils.trim_whitespace(page, rect, Direction.LEFT, accuracy)
@@ -41,6 +41,12 @@ class KiceCropper:
         new_rect.y1 = lower_bound / accuracy
         new_rect.y0 += offset
         new_rect.y1 += offset
+
+        # Apply padding
+        new_rect.x0 -= Ratio.mm_to_px(padding[0])
+        new_rect.y0 -= Ratio.mm_to_px(padding[1])
+        new_rect.x1 += Ratio.mm_to_px(padding[2])
+        new_rect.y1 += Ratio.mm_to_px(padding[3])
 
         return new_rect
 
@@ -226,9 +232,50 @@ class KiceCropper:
             base.overlay(overlayer, Coord(0,0,0))
             PdfUtils.save_to_pdf(new_doc, KICE_DB_PATH + f"/{code[2:5]}/{code}/{code}_caption.pdf", garbage=4)
 
-            
+
+from utils.parse_code import *
+def save_caption_from_original_indie(item_code):
+    new_doc = fitz.open()
+    overlayer = Overlayer(new_doc)
+    original_pdf = parse_item_original_path(item_code)
+    modification_pdf = original_pdf.replace('_original', '_modification')
+    citation = parse_code_citation(item_code)
+
+    # bake_origin
+    text = TextOverlayObject(0, Coord(0, 0, 0), "Pretendard-Regular.ttf", 12, citation, (1, 1, 1), fitz.TEXT_ALIGN_CENTER)
+    text.get_width()
+    box = ShapeOverlayObject(0, Coord(0, 0, 0), Rect(0, 0, Ratio.mm_to_px(4) + text.get_width(), Ratio.mm_to_px(5.5)),
+                             (0, 0, 0, 0.5), 0.5 / 5.5)
+    text.coord = Coord(box.rect.width / 2, Ratio.mm_to_px(4.3), 0)
+    box.add_child(text)
+    origin = box
+
+    box.coord = Coord(Ratio.mm_to_px(0.25), Ratio.mm_to_px(0.25), 0)
+
+    # bake_caption
+    with fitz.open(original_pdf) as file:
+        page = file.load_page(0)
+        component = Component(original_pdf, 0, page.rect)
+        co = ComponentOverlayObject(0, Coord(0, origin.get_height() + Ratio.mm_to_px(2), 0), component)
+        mo_height = 0
+        if os.path.exists(modification_pdf):
+            modification = Component(modification_pdf, 0, page.rect)
+            mo = ComponentOverlayObject(0, Coord(0, origin.get_height() + co.get_height() + Ratio.mm_to_px(10), 0), modification)
+            mo_height = mo.get_height()
+
+
+    base = AreaOverlayObject(0, Coord(0, 0, 0), origin.get_height() + co.get_height() + mo_height + Ratio.mm_to_px(2))
+    base.add_child(origin)
+    base.add_child(co)
+    if os.path.exists(modification_pdf):
+        base.add_child(mo)
+
+    new_page = new_doc.new_page(width=component.src_rect.width, height=base.get_height())
+    base.overlay(overlayer, Coord(0, 0, 0))
+    PdfUtils.save_to_pdf(new_doc, parse_item_caption_path(item_code), garbage=4)
+
 if __name__ == '__main__':
-    from pathlib import Path
+    '''from pathlib import Path
     folder_path = Path(INPUT_PATH + '/1425')
     pdf_files = folder_path.glob('*.pdf')
 
@@ -239,4 +286,8 @@ if __name__ == '__main__':
         kc = KiceCropper(pdf_name=pdf_src_path)
         ret = kc.extract_problems(accuracy=10)
         print(f'extracted {ret} items')
-        kc.save_original()
+        kc.save_original()'''
+
+    save_caption_from_original_indie('E2aagKC171119')
+    save_caption_from_original_indie('E2aagKC181118')
+

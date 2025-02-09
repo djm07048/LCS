@@ -7,6 +7,7 @@ from utils.pdf_utils import PdfUtils
 from utils.solution_info import SolutionInfo
 from utils.overlay_object import *
 from utils.coord import Coord
+from utils.parse_code import *
 from utils.path import *
 import json
 
@@ -115,12 +116,13 @@ class ProblemBuilder:
                 problem_title.add_child(box)
 
         return problem_title
-    
+
     def bake_problem(self, problem_code, problem_num):
-        problem = AreaOverlayObject(0, Coord(0,0,0), 0)
-        if problem_code[5:7] == 'KC':       #kice problem
+        problem = AreaOverlayObject(0, Coord(0, 0, 0), 0)
+        if problem_code[5:7] == 'KC':  # kice problem
             item_code = problem_code
-            item_pdf = get_item_path(item_code) + f"/{item_code[2:5]}/{item_code}/{item_code}_original.pdf"
+            item_pdf = parse_item_original_path(item_code)
+            modified_pdf = parse_item_modified_path(item_code)
             problem_title = self.bake_problem_title(problem_num, self.code_to_text(problem_code))
             problem.add_child(problem_title)
             problem.height += problem_title.get_height()
@@ -128,13 +130,28 @@ class ProblemBuilder:
                 page = file.load_page(0)
                 component = Component(item_pdf, 0, page.rect)
                 problem_object = ComponentOverlayObject(0, Coord(0, problem.height, 0), component)
-                white_box = ShapeOverlayObject(0, Coord(0,0,0), Rect(0,0,Ratio.mm_to_px(2.5),Ratio.mm_to_px(5)), (1,1,1))
-                problem_object.add_child(white_box)
+                white_box = ShapeOverlayObject(0, Coord(0, 0, 0), Rect(0, 0, Ratio.mm_to_px(3), Ratio.mm_to_px(5.5)),
+                                               (0, 0, 0))
+
                 problem.add_child(problem_object)
+                problem_object.add_child(white_box)
+
                 problem.height += problem_object.get_height()
-                problem.height += Ratio.mm_to_px(280) - problem_object.get_height()       #TODO: minimal space between kice problems is whole rest
-            pass
-        else:                               #item problem
+
+                if Path(modified_pdf).exists():
+                    problem.height += Ratio.mm_to_px(10)
+
+                    with fitz.open(modified_pdf) as mod_file:
+                        mod_page = mod_file.load_page(0)
+                        modified_box = ComponentOverlayObject(0, Coord(0, problem.height, 0),
+                                                              Component(modified_pdf, 0, mod_page.rect))
+                        problem.add_child(modified_box)
+                        problem.height -= modified_box.get_height()
+
+                    problem.height -= Ratio.mm_to_px(20)
+
+                problem.height += Ratio.mm_to_px(280) - problem_object.get_height()
+        else:  #TODO item problem, kice problem과 동기화 해야 함
             problem_title = self.bake_problem_title(problem_num)
             problem.add_child(problem_title)
             problem.height += problem_title.get_height()
@@ -145,12 +162,12 @@ class ProblemBuilder:
                 prect = ic.get_problem_rect_from_file(file, 10)
                 component = Component(item_pdf, 0, prect)
                 problem_object = ComponentOverlayObject(0, Coord(0, problem.height, 0), component)
-                white_box = ShapeOverlayObject(0, Coord(0,0,0), Rect(0,0,Ratio.mm_to_px(2.5),Ratio.mm_to_px(5)), (1,1,1))
+                white_box = ShapeOverlayObject(0, Coord(0, 0, 0), Rect(0, 0, Ratio.mm_to_px(2.5), Ratio.mm_to_px(5)),
+                                               (0, 0, 0))
                 problem_object.add_child(white_box)
                 problem.add_child(problem_object)
                 problem.height += problem_object.get_height()
-                problem.height += Ratio.mm_to_px(10)        #이 부분 로직 수정이 필요~
-                print(problem.height)#minimal space between item problems is whole rest
+                problem.height += Ratio.mm_to_px(280) - problem_object.get_height()
         return problem
     
     def get_unit_title(self, unit_code):

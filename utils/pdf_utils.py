@@ -2,7 +2,7 @@ import fitz
 from fitz import Rect, Page
 import numpy as np
 from pathlib import Path
-
+from utils.ratio import *
 from utils.direction import Direction
 
 class PdfUtils:
@@ -14,7 +14,7 @@ class PdfUtils:
         return na
     
     @staticmethod
-    def trim_whitespace(page: Page, rect: Rect, direction: Direction, accuracy = 1) -> Rect:
+    def trim_whitespace(page: Page, rect: Rect, direction: Direction, accuracy = 1, padding=(0,0,0,0)) -> Rect:
         scale = fitz.Matrix(accuracy, 1) if direction.value % 2 == 1 else fitz.Matrix(1, accuracy)
         na = PdfUtils.pdf_clip_to_array(page, rect, scale)
 
@@ -39,6 +39,13 @@ class PdfUtils:
             new_rect.y1 -= trim_amount / accuracy
         elif direction == Direction.RIGHT:
             new_rect.x1 -= trim_amount / accuracy
+
+        # Apply padding
+        new_rect.x0 -= Ratio.mm_to_px(padding[0])
+        new_rect.y0 -= Ratio.mm_to_px(padding[1])
+        new_rect.x1 += Ratio.mm_to_px(padding[2])
+        new_rect.y1 += Ratio.mm_to_px(padding[3])
+
         return new_rect
     
     @staticmethod

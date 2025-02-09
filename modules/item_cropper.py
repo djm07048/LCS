@@ -14,7 +14,7 @@ class ItemCropper:
         pass
 
     def get_problem_area(self) -> Rect:
-        rect = Rect(26.5, 13, 135.5, 420)
+        rect = Rect(26.7, 13, 135.7, 420)
         return Ratio.rect_mm_to_px(rect)
     
     def get_problem_rect(self, page: Page, accuracy = 1) -> Rect:
@@ -31,7 +31,7 @@ class ItemCropper:
         area.y1 = area.y0 + y / accuracy - Ratio.mm_to_px(1) - 1
 
         problem_rect = PdfUtils.trim_whitespace(page, area, Direction.DOWN, accuracy)
-        problem_rect = PdfUtils.trim_whitespace(page, problem_rect, Direction.UP, accuracy)
+        problem_rect = PdfUtils.trim_whitespace(page, problem_rect, Direction.UP, accuracy, padding=(0, 1, 0, 1))
         return problem_rect
     
     def get_problem_rect_from_file(self, file: fitz.Document, accuracy = 1) -> Rect:

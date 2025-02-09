@@ -18,16 +18,22 @@ class FlowBuilder:
 
     def get_component_on_resources(self, page_num):
         return Component(self.resources_pdf, page_num, self.resources_doc.load_page(page_num).rect)
-    
+
     def get_unit_title(self):
         with open(RESOURCES_PATH+"/topic.json", encoding='UTF8') as file:
             topic_data = json.load(file)
         return topic_data[self.topic]
-    
+
+    def get_flow_right_page(self):
+        src_pdf = RESOURCES_PATH+ f"/fc_additional/{self.topic}.pdf"
+        src_doc = fitz.open(src_pdf)
+        return Component(src_pdf, 0, src_doc.load_page(0).rect)
+
     def set_page(self):
         if self.page_amount == 1:
             self.overlayer.add_page(self.get_component_on_resources(2))
-            self.overlayer.add_page(self.get_component_on_resources(4))
+            self.overlayer.add_page(self.get_flow_right_page())
+            #self.overlayer.add_page(self.get_component_on_resources(4))
         elif self.page_amount == 2:
             self.overlayer.add_page(self.get_component_on_resources(2))
             self.overlayer.add_page(self.get_component_on_resources(3))
@@ -35,7 +41,8 @@ class FlowBuilder:
             self.overlayer.add_page(self.get_component_on_resources(2))
             self.overlayer.add_page(self.get_component_on_resources(3))
             self.overlayer.add_page(self.get_component_on_resources(2))
-            self.overlayer.add_page(self.get_component_on_resources(4))
+            self.overlayer.add_page(self.get_flow_right_page())
+            #self.overlayer.add_page(self.get_component_on_resources(4))
         elif self.page_amount == 4:
             self.overlayer.add_page(self.get_component_on_resources(2))
             self.overlayer.add_page(self.get_component_on_resources(3))
