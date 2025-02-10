@@ -757,13 +757,30 @@ class DatabaseManager(QMainWindow):
         if row >= 0:
             item_code = sender.item(row, 0).text()
             menu = QMenu()
-            open_action = menu.addAction("Open Folder")
+            open_hwp_action = menu.addAction("Open item HWP")
+            open_folder_action = menu.addAction("Open Folder")
             refractor_action = menu.addAction("Refractor Item Code")
             action = menu.exec_(sender.mapToGlobal(pos))
-            if action == open_action:
+            if action == open_folder_action:
                 self.open_item_folder(item_code)
             elif action == refractor_action:
                 self.refractor_item_code(item_code)
+            elif action == open_hwp_action:
+                self.open_item_hwp(item_code)
+
+    def open_item_hwp(self, item_code):
+        # Base folder selection
+        base_path = KICE_DB_PATH if item_code[5:7] == 'KC' else ITEM_DB_PATH
+        topic = item_code[2:5]
+
+        # Construct and normalize path
+        hwp_path = os.path.normpath(os.path.join(base_path, topic, item_code, f"{item_code}.hwp"))
+
+        if os.path.exists(hwp_path):
+            try:
+                os.startfile(hwp_path)
+            except Exception as e:
+                print(f"Error: {e}")
 
     def open_item_folder(self, item_code):
         # Base folder selection
