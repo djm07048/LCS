@@ -136,6 +136,7 @@ class Builder:
         sb = SolutionBuilder(self.proitems.items())
         new_doc = sb.build()
         total.insert_pdf(new_doc)
+
         if log_callback:
             log_callback("Done!")
 

@@ -90,7 +90,9 @@ class ParagraphOverlayObject(OverlayObject):
     def overlay(self, overlayer, absolute_coord):
         for oo in self.child:
             oo.overlay(overlayer, absolute_coord + oo.coord)
-        pass
+
+    def get_coord(self):
+        return self.coord
 
 
 class AreaOverlayObject(OverlayObject):

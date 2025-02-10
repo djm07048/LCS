@@ -121,7 +121,6 @@ class SolutionBuilder:
             sTF = ic.get_TF_of_solutions_from_file(file, 10)
             answer = ic.get_answer_from_file(file)
             objects.append(self.bake_problem_title(problem_num, answer))
-            print(answer)
             objects += self.bake_solutions(commentary_data, item_pdf, solutions_info, sTF)
         return objects
     
@@ -168,7 +167,15 @@ class SolutionBuilder:
                 paragraph.add_child(AreaOverlayObject(0, Coord(0,0,0), Ratio.mm_to_px(20))) #minimal space between problems
 
         paragraph.overlay(self.overlayer, Coord(0,0,0))
+
+        if self.overlayer.doc.page_count % 2 != 0:
+            src_pdf = RESOURCES_PATH + "/weekly_pro_resources.pdf"
+            src_doc = fitz.open(src_pdf)
+            compo = Component(src_pdf, 4, src_doc.load_page(4).rect)
+            self.overlayer.add_page(compo)
+
         self.resources_doc.close()
+
         return new_doc
         pass
 

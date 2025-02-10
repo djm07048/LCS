@@ -19,6 +19,21 @@ class FlowBuilder:
     def get_component_on_resources(self, page_num):
         return Component(self.resources_pdf, page_num, self.resources_doc.load_page(page_num).rect)
 
+    def overlay_flowline(self):
+        src_pdf = RESOURCES_PATH + f"/fc_flowline/{self.topic}.pdf"
+        src_doc = fitz.open(src_pdf)
+        num_pages = src_doc.page_count
+
+        for page_num in range(num_pages):
+            if page_num >= self.overlayer.doc.page_count:
+                print(f"Error: Page {page_num} not in document")
+                continue
+            component = Component(src_pdf, page_num, src_doc.load_page(page_num).rect)
+            co = ComponentOverlayObject(page_num, Coord(0, 0, 10), component)
+            co.overlay(self.overlayer, Coord(0, 0, 10))
+
+        src_doc.close()
+
     def get_unit_title(self):
         with open(RESOURCES_PATH+"/topic.json", encoding='UTF8') as file:
             topic_data = json.load(file)
@@ -110,13 +125,16 @@ class FlowBuilder:
                 oo = ResizedComponentOverlayObject(i//3, Coord(Ratio.mm_to_px(0.175),Ratio.mm_to_px(0.175),0), component, 0.6)
 
                 problem = ShapeOverlayObject(i//3, Coord(Ratio.mm_to_px(0.175),Ratio.mm_to_px(0.175),1), Rect(0,0,rect.width*0.6,rect.height*0.6), (0, 0, 0, 0))
+
                 problem.add_child(oo)
+
                 para_lists[i//3].child[i%3].add_child(problem)
-       
+
+
         for para in para_lists:
             height = 0
             for oo in para.child:
-                height = max(height, oo.get_height() + (len(oo.child)-1)*Ratio.mm_to_px(10))
+                height = max(height, oo.get_height() + (len(oo.child)-1)*Ratio.mm_to_px(10))        #10이 para에서 최소 간격
             for oo in para.child:
                 oo.set_height(height)
             para.rect.y1 = height + Ratio.mm_to_px(22)
@@ -142,6 +160,8 @@ class FlowBuilder:
         for para in para_lists:
             para.overlay(self.overlayer, Coord(0,Ratio.mm_to_px(35),0))
             y = para.coord.y + para.rect.height
+
+            #최하단 띠지 삽입
             so = ShapeOverlayObject(para.page_num, Coord(0, y, 0), Rect(0,0,Ratio.mm_to_px(262),Ratio.mm_to_px(2)), (205/255, 216/255, 238/255))
             so.overlay(self.overlayer, Coord(0, y, 0))
 
@@ -158,6 +178,8 @@ class FlowBuilder:
             so = ShapeOverlayObject(piv-1, Coord(Ratio.mm_to_px(20), y + Ratio.mm_to_px(16.25), 0), Rect(0,0,Ratio.mm_to_px(222), Ratio.mm_to_px(0.5/2.835)), (0.75, 0.45, 0, 0))
             so.overlay(self.overlayer, Coord(Ratio.mm_to_px(20), Ratio.mm_to_px(347), 0))
 
+
+            #기출 Point, 빈출 선지를 FC 하단에 삽입합니다.
             component = self.get_component_on_resources(5)
             co = ComponentOverlayObject(piv-2, Coord(Ratio.mm_to_px(20),y+Ratio.mm_to_px(12),0), component)
             co.overlay(self.overlayer, Coord(Ratio.mm_to_px(20),y+Ratio.mm_to_px(12),0))
@@ -170,6 +192,8 @@ class FlowBuilder:
             to.overlay(self.overlayer, Coord(Ratio.mm_to_px(36), Ratio.mm_to_px(19), 0))
             ti = TextOverlayObject(i, Coord(Ratio.mm_to_px(23.1), Ratio.mm_to_px(19), 0), "Montserrat-Bold.ttf", 32.5, str(self.index), (1, 1, 1), fitz.TEXT_ALIGN_CENTER)
             ti.overlay(self.overlayer, Coord(Ratio.mm_to_px(23.1), Ratio.mm_to_px(19), 0))
+
+        self.overlay_flowline()
 
         self.resources_doc.close()
         return new_doc
