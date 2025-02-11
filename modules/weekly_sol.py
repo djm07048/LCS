@@ -168,11 +168,17 @@ class SolutionBuilder:
 
         paragraph.overlay(self.overlayer, Coord(0,0,0))
 
-        if self.overlayer.doc.page_count % 2 != 0:
+        if self.overlayer.doc.page_count % 2 == 0:
             src_pdf = RESOURCES_PATH + "/weekly_pro_resources.pdf"
             src_doc = fitz.open(src_pdf)
             compo = Component(src_pdf, 4, src_doc.load_page(4).rect)
             self.overlayer.add_page(compo)
+
+        src_pdf = RESOURCES_PATH + "/weekly_toc_resources.pdf"
+        src_doc = fitz.open(src_pdf)
+        compo = Component(src_pdf, 6, src_doc.load_page(6).rect)
+        self.overlayer.add_page(compo)
+
 
         self.resources_doc.close()
 
