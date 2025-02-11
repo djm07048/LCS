@@ -120,15 +120,24 @@ class ResizedComponentOverlayObject(OverlayObject):
     def __init__(self, page_num, coord, component, ratio):
         self.ratio = ratio
         self.component = component
+        self.end= [{'L': [0, 0], 'R': [0, 0], 'T': [0, 0], 'B': [0, 0]}]
         super().__init__(page_num, coord)
 
     def overlay(self, overlayer, absolute_coord):
-        overlayer.pdf_overlay_with_resize(self.page_num, absolute_coord, self.component, self.ratio)
+        import traceback
+        end = overlayer.pdf_overlay_with_resize(self.page_num, absolute_coord, self.component, self.ratio)
         super().overlay(overlayer, absolute_coord)
-    pass
+        print("Call stack:")
+        for line in traceback.format_stack():
+            print(line.strip())
+
+        return end
 
     def get_height(self):
         return self.component.src_rect.height*self.ratio
+
+    def get_end_coords(self):
+        return self.end
     
 class ShapeOverlayObject(OverlayObject):
     def __init__(self, page_num, coord, rect, color, radius = None):

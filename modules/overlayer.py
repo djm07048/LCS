@@ -51,8 +51,24 @@ class Overlayer:
     def pdf_overlay_with_resize(self, page_num, coord, component, ratio):
         file = self.pdf_manager.get_doc(component.src_pdf)
         page = self.doc.load_page(page_num)
-        page.show_pdf_page(fitz.Rect(coord.x,coord.y,coord.x+component.src_rect.width*ratio,coord.y+component.src_rect.height*ratio), file, component.src_page_num, clip=component.src_rect)
-        pass
+        x0 = coord.x
+        y0 = coord.y
+        x1 = x0 + component.src_rect.width * ratio
+        y1 = y0 + component.src_rect.height * ratio
+        page.show_pdf_page(fitz.Rect(x0, y0, x1, y1), file, component.src_page_num, clip=component.src_rect)
+        return [page, (x0, y0, x1, y1)]
 
+    def get_end_coords(self, page_num, coord, component, ratio):        #TODO: 이거 왜 만들었지?
+        x0 = coord.x
+        y0 = coord.y
+        x1 = x0 + component.src_rect.width * ratio
+        y1 = y0 + component.src_rect.height * ratio
+        endL = [page_num, (x0, (y0 + y1) /2)]
+        endR = [page_num, (x1, (y0 + y1) /2)]
+        endT = [page_num, ((x0 + x1) /2, y0)]
+        endB = [page_num, ((x0 + x1) /2, y1)]
+        end_dict = {"L":endL, "R":endR, "T":endT, "B":endB}
+        print(end_dict)
+        return end_dict
 
 #TODO: object resolver
