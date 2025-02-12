@@ -1,11 +1,12 @@
 import json
 import fitz
-from modules.weekly_toc import TocBuilder
-from modules.weekly_flow import FlowBuilder
-from modules.weekly_pro import ProblemBuilder
-from modules.weekly_main import MainsolBuilder
-from modules.weekly_ans import AnswerBuilder
-from modules.weekly_sol import SolutionBuilder
+from modules.squeeze_toc import TocBuilder
+from modules.squeeze_flow import FlowBuilder
+from modules.squeeze_pro import ProblemBuilder
+from modules.squeeze_main import MainsolBuilder
+from modules.squeeze_ans import AnswerBuilder
+from modules.squeeze_sol import SolutionBuilder
+from modules.squeeze_offset import OffsetBuilder
 from modules.overlayer import Overlayer
 from utils.overlay_object import *
 from utils.component import Component
@@ -45,7 +46,7 @@ class Builder:
 
 
     def bake_topic_list(self, page_num, topic_num):
-        resources_pdf = RESOURCES_PATH + "/weekly_main_resources.pdf"
+        resources_pdf = RESOURCES_PATH + "/squeeze_main_resources.pdf"
         resources_doc = fitz.open(resources_pdf)
         topic_list = AreaOverlayObject(page_num, Coord(0,0,0), Ratio.mm_to_px(8))
         for i in range(len(self.topics)):
@@ -67,7 +68,7 @@ class Builder:
 
     def build(self, output, log_callback=None):
         if log_callback:
-            log_callback("Weekly Paper Build Start")
+            log_callback("squeeze Paper Build Start")
         total = fitz.open()
 
         tb = TocBuilder()
@@ -112,7 +113,7 @@ class Builder:
             if new_doc is not None:
                 flag = 1
                 overlayer = Overlayer(result)
-                overlayer.add_page(Component(RESOURCES_PATH + "/weekly_pro_resources.pdf", 4, result.load_page(0).rect))
+                overlayer.add_page(Component(RESOURCES_PATH + "/squeeze_pro_resources.pdf", 4, result.load_page(0).rect))
 
                 result.insert_pdf(new_doc)
                 if log_callback:
@@ -183,6 +184,10 @@ class Builder:
                     topic_list.overlay(overlayer, Coord(Ratio.mm_to_px(159), Ratio.mm_to_px(16.5), 0))
 
         self.add_page_num(overlayer)
+
+        '''ob = OffsetBuilder(book_doc=total)
+        new_doc = ob.build()
+'''
 
         if log_callback:
             log_callback("Done!")

@@ -116,7 +116,7 @@ class AnswerBuilder:
     def build(self):
         new_doc = fitz.open()
         
-        self.resources_pdf = RESOURCES_PATH + "/weekly_ans_resources.pdf"
+        self.resources_pdf = RESOURCES_PATH + "/squeeze_ans_resources.pdf"
         self.resources_doc = fitz.open(self.resources_pdf)
 
         self.overlayer = Overlayer(new_doc)
@@ -160,7 +160,7 @@ class AnswerBuilder:
 
 
         paragraph.overlay(self.overlayer, Coord(0,0,0))
-        #new_doc.save("output/weekly_ans_test.pdf")
+        #new_doc.save("output/squeeze_ans_test.pdf")
         self.resources_doc.close()
         return new_doc
         pass

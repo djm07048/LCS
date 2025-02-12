@@ -16,7 +16,7 @@ class TocBuilder:
     def __init__(self):
         self.page_amount = 0
         self.topic_num = 0
-        self.resources_pdf = RESOURCES_PATH + f"/weekly_toc_resources.pdf"
+        self.resources_pdf = RESOURCES_PATH + f"/squeeze_toc_resources.pdf"
         self.resources_doc = fitz.open(self.resources_pdf)
 
     def get_unit_title(self, unit_code):

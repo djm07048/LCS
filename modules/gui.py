@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QComboBox, QMes
                              QHeaderView, QCheckBox, QDialog, QVBoxLayout, QLabel, QSizePolicy)
 from PyQt5.QtCore import (Qt, QThread, pyqtSignal)
 from PyQt5.QtGui import QColor
-from main import build_weekly_paper
+from main import build_squeeze_paper
 from PyQt5.QtGui import QIcon
 from hwp2pdf import *
 from rasterizer import *
@@ -171,7 +171,7 @@ class DatabaseManager(QMainWindow):
         self.load_book_names()
         self.create_pdfs_btn = QPushButton('CREATE PDFs As Shown')
         self.export_json_btn = QPushButton('EXPORT JSON to DB')
-        self.build_weekly_paper_by_gui_btn = QPushButton('BUILD WEEKLY from DB')
+        self.build_squeeze_paper_by_gui_btn = QPushButton('BUILD squeeze from DB')
         self.rasterize_pdf_btn = QPushButton('RASTERIZE PDF from DB')
         self.open_naive_pdf_btn = QPushButton('OPEN NAIVE PDF')
         self.open_rasterized_pdf_btn = QPushButton('OPEN RASTERIZED PDF')
@@ -181,7 +181,7 @@ class DatabaseManager(QMainWindow):
         right_button_layout.addWidget(self.book_name_input)
         right_button_layout.addWidget(self.create_pdfs_btn)
         right_button_layout.addWidget(self.export_json_btn)
-        right_button_layout.addWidget(self.build_weekly_paper_by_gui_btn)
+        right_button_layout.addWidget(self.build_squeeze_paper_by_gui_btn)
         right_button_layout.addWidget(self.rasterize_pdf_btn)
         right_button_layout.addWidget(self.open_naive_pdf_btn)
         right_button_layout.addWidget(self.open_rasterized_pdf_btn)
@@ -229,7 +229,7 @@ class DatabaseManager(QMainWindow):
         self.book_name_input.currentIndexChanged.connect(self.load_selected_book)
         self.create_pdfs_btn.clicked.connect(self.create_pdfs_gui)
         self.export_json_btn.clicked.connect(self.export_to_json)
-        self.build_weekly_paper_by_gui_btn.clicked.connect(self.build_weekly_paper_by_gui)
+        self.build_squeeze_paper_by_gui_btn.clicked.connect(self.build_squeeze_paper_by_gui)
         self.rasterize_pdf_btn.clicked.connect(self.rasterize_pdf_by_gui)
         self.open_naive_pdf_btn.clicked.connect(self.open_naive_pdf)
         self.open_rasterized_pdf_btn.clicked.connect(self.open_rasterized_pdf)
@@ -694,17 +694,17 @@ class DatabaseManager(QMainWindow):
         except Exception as e:
             self.log_message(f"Error during JSON export: {e}")
 
-    def build_weekly_paper_by_gui(self):
-        if not self.show_warning_dialog("Are you sure you want to build the weekly paper?"):
+    def build_squeeze_paper_by_gui(self):
+        if not self.show_warning_dialog("Are you sure you want to build the squeeze paper?"):
             return
         book_name = self.book_name_input.currentText()
         input_path = os.path.join(BOOK_DB_PATH, book_name)
         output_path = os.path.join(OUTPUT_PATH, book_name.replace('.json', '.pdf'))
-        self.log_message("Starting weekly paper build...")
+        self.log_message("Starting squeeze paper build...")
         try:
-            build_weekly_paper(input=input_path, output=output_path, log_callback=self.log_message)
+            build_squeeze_paper(input=input_path, output=output_path, log_callback=self.log_message)
         except Exception as e:
-            error_message = f"Error during weekly paper build: {e}\n{traceback.format_exc()}"
+            error_message = f"Error during squeeze paper build: {e}\n{traceback.format_exc()}"
             self.log_message(error_message)
 
     def rasterize_pdf_by_gui(self):

@@ -19,9 +19,9 @@ def crop_all_kice(input = INPUT_PATH + '/1425'):
         kc.save_original()
         kc.save_caption_from_original()
 
-def build_weekly_paper(input=INPUT_PATH+"/weekly_item.json", output=OUTPUT_PATH + "/output.pdf", log_callback=None):
+def build_squeeze_paper(input=INPUT_PATH+"/squeeze_item.json", output=OUTPUT_PATH + "/output.pdf", log_callback=None):
     if log_callback:
-        log_callback("Weekly Paper Build Start")
+        log_callback("squeeze Paper Build Start")
         log_callback(f"Building {input} to {output}")
     with open(input, encoding='UTF8') as file:
         items = json.load(file)
@@ -29,7 +29,7 @@ def build_weekly_paper(input=INPUT_PATH+"/weekly_item.json", output=OUTPUT_PATH 
     bd.build(output, log_callback=log_callback)
 
 if __name__ == '__main__':
-    build_weekly_paper()
+    build_squeeze_paper()
     pass
 
 #numpy version 1.46 으로 하였을 때 정상

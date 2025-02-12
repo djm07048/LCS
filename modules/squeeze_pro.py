@@ -110,8 +110,8 @@ class ProblemBuilder:
             problem_title.add_child(box)
             pass
         else:
-            with fitz.open(RESOURCES_PATH + "/weekly_pro_resources.pdf") as file:
-                compo = Component(RESOURCES_PATH + "/weekly_pro_resources.pdf", 6, file.load_page(6).rect)
+            with fitz.open(RESOURCES_PATH + "/squeeze_pro_resources.pdf") as file:
+                compo = Component(RESOURCES_PATH + "/squeeze_pro_resources.pdf", 6, file.load_page(6).rect)
                 box = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(27), Ratio.mm_to_px(7.5), 2), compo)
                 problem_title.add_child(box)
 
@@ -180,7 +180,7 @@ class ProblemBuilder:
         #setup
         self.problem_dict = get_problem_dict(ITEM_DB_PATH)
 
-        self.resources_pdf = RESOURCES_PATH + "/weekly_pro_resources.pdf"
+        self.resources_pdf = RESOURCES_PATH + "/squeeze_pro_resources.pdf"
         self.resources_doc = fitz.open(self.resources_pdf)
 
         self.overlayer = Overlayer(new_doc)

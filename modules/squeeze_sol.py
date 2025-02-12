@@ -134,7 +134,7 @@ class SolutionBuilder:
         with open(RESOURCES_PATH + "/commentary.json") as file:
             commentary_data = json.load(file)
 
-        self.resources_pdf = RESOURCES_PATH + "/weekly_sol_resources.pdf"
+        self.resources_pdf = RESOURCES_PATH + "/squeeze_sol_resources.pdf"
         self.resources_doc = fitz.open(self.resources_pdf)
 
         self.overlayer = Overlayer(new_doc)
@@ -169,12 +169,12 @@ class SolutionBuilder:
         paragraph.overlay(self.overlayer, Coord(0,0,0))
 
         if self.overlayer.doc.page_count % 2 == 0:
-            src_pdf = RESOURCES_PATH + "/weekly_pro_resources.pdf"
+            src_pdf = RESOURCES_PATH + "/squeeze_pro_resources.pdf"
             src_doc = fitz.open(src_pdf)
             compo = Component(src_pdf, 4, src_doc.load_page(4).rect)
             self.overlayer.add_page(compo)
 
-        src_pdf = RESOURCES_PATH + "/weekly_toc_resources.pdf"
+        src_pdf = RESOURCES_PATH + "/squeeze_toc_resources.pdf"
         src_doc = fitz.open(src_pdf)
         compo = Component(src_pdf, 6, src_doc.load_page(6).rect)
         self.overlayer.add_page(compo)

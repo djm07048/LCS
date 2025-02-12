@@ -113,7 +113,7 @@ class FlowBuilder:
     def build(self):
         new_doc = fitz.open()
 
-        self.resources_pdf = RESOURCES_PATH+"/weekly_main_resources.pdf"
+        self.resources_pdf = RESOURCES_PATH+"/squeeze_main_resources.pdf"
         self.resources_doc = fitz.open(self.resources_pdf)
         self.overlayer = Overlayer(new_doc)
         flowline_json = self.get_flowline_json()

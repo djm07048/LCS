@@ -27,7 +27,7 @@ def get_problem_dict(path):
     return problem_dict
 
 def get_item_json():
-    with open("input/weekly_item.json", encoding='UTF8') as file:
+    with open("input/squeeze_item.json", encoding='UTF8') as file:
         item_data = json.load(file)
     return item_data
 
@@ -69,8 +69,8 @@ class MainsolBuilder:
             to.coord = Coord(box.rect.width / 2, Ratio.mm_to_px(4.3), 0)
             box.add_child(to)
         else:
-            with fitz.open(RESOURCES_PATH + "/weekly_pro_resources.pdf") as file:
-                compo = Component(RESOURCES_PATH + "/weekly_pro_resources.pdf", 6, file.load_page(6).rect)
+            with fitz.open(RESOURCES_PATH + "/squeeze_pro_resources.pdf") as file:
+                compo = Component(RESOURCES_PATH + "/squeeze_pro_resources.pdf", 6, file.load_page(6).rect)
                 box = ComponentOverlayObject(0, Coord(0, 0, 0), compo)
                 box.rect = compo.src_rect  # Ensure the rect attribute is set
         return box
@@ -248,7 +248,7 @@ class MainsolBuilder:
     def build(self):
         new_doc = fitz.open()
 
-        self.resources_pdf = RESOURCES_PATH + "/weekly_main_resources.pdf"
+        self.resources_pdf = RESOURCES_PATH + "/squeeze_main_resources.pdf"
         self.resources_doc = fitz.open(self.resources_pdf)
 
         self.overlayer = Overlayer(new_doc)
