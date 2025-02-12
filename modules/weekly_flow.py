@@ -19,7 +19,14 @@ class FlowBuilder:
     def get_component_on_resources(self, page_num):
         return Component(self.resources_pdf, page_num, self.resources_doc.load_page(page_num).rect)
 
-    def overlay_flowline(self):
+    def get_flowline_json(self):
+        '''with open(RESOURCES_PATH + f"/fc_flowline/{self.topic}.json", encoding='UTF8') as file:
+            flowline_json = json.load(file)
+        return flowline_json'''
+        flowline_json = [['11B', '12L'], ['21R', '31T']]
+        return flowline_json
+
+    def overlay_flowline(self):     #TODO: flowline.json 파일을 읽어와서 flowline을 overlay하는 함수가 완성되면 삭제
         src_pdf = RESOURCES_PATH + f"/fc_flowline/{self.topic}.pdf"
         src_doc = fitz.open(src_pdf)
         num_pages = src_doc.page_count
@@ -33,6 +40,7 @@ class FlowBuilder:
             co.overlay(self.overlayer, Coord(0, 0, 10))
 
         src_doc.close()
+
 
     def get_unit_title(self):
         with open(RESOURCES_PATH+"/topic.json", encoding='UTF8') as file:
@@ -108,28 +116,36 @@ class FlowBuilder:
         self.resources_pdf = RESOURCES_PATH+"/weekly_main_resources.pdf"
         self.resources_doc = fitz.open(self.resources_pdf)
         self.overlayer = Overlayer(new_doc)
+        flowline_json = self.get_flowline_json()
 
         self.get_item_list_on_paragraph()
         self.page_amount = (len(self.item_lists)-1)//3+1
         self.set_page()
 
         para_lists = self.get_lists_on_page()
+        item_bound_dict_lists = {}
+
+        print(self.item_lists)
+
         for i in range(len(self.item_lists)):
             for item in self.item_lists[i]:
                 item_code = item[1]
+                FC_para = int(i*10 + 10 + item[0])
                 item_pdf = get_item_path(item_code) + f"/{item_code[2:5]}/{item_code}/{item_code}_caption.pdf"
+
                 with fitz.open(item_pdf) as file:
                     page = file.load_page(0)
                     rect = page.rect
                     component = Component(item_pdf, 0, page.rect)
                 oo = ResizedComponentOverlayObject(i//3, Coord(Ratio.mm_to_px(0.175),Ratio.mm_to_px(0.175),0), component, 0.6)
+                item_bound_dict = self.overlayer.get_bound_coords(i//3, Coord(Ratio.mm_to_px(0.175),Ratio.mm_to_px(0.175),0), component, 0.6)
+                item_bound_dict_lists[FC_para] = [item_code, item_bound_dict]
 
                 problem = ShapeOverlayObject(i//3, Coord(Ratio.mm_to_px(0.175),Ratio.mm_to_px(0.175),1), Rect(0,0,rect.width*0.6,rect.height*0.6), (0, 0, 0, 0))
 
                 problem.add_child(oo)
 
                 para_lists[i//3].child[i%3].add_child(problem)
-
 
         for para in para_lists:
             height = 0
@@ -165,6 +181,7 @@ class FlowBuilder:
             so = ShapeOverlayObject(para.page_num, Coord(0, y, 0), Rect(0,0,Ratio.mm_to_px(262),Ratio.mm_to_px(2)), (205/255, 216/255, 238/255))
             so.overlay(self.overlayer, Coord(0, y, 0))
 
+
         if len(para_lists) % 2 == 0:
             piv = len(para_lists)
             y = para_lists[piv-2].coord.y + para_lists[piv-2].rect.height
@@ -193,7 +210,31 @@ class FlowBuilder:
             ti = TextOverlayObject(i, Coord(Ratio.mm_to_px(23.1), Ratio.mm_to_px(19), 0), "Montserrat-Bold.ttf", 32.5, str(self.index), (1, 1, 1), fitz.TEXT_ALIGN_CENTER)
             ti.overlay(self.overlayer, Coord(Ratio.mm_to_px(23.1), Ratio.mm_to_px(19), 0))
 
-        self.overlay_flowline()
+        '''# Flowline 삽입
+        for fl in flowline_json:
+            # 문자열 형식으로 변환하여 처리
+            start_full = str(fl[0])
+            end_full = str(fl[1])
+
+            # 정수로 변환하여 딕셔너리 접근
+            start_index = int(start_full[:-1])  # 예: "11B" -> 11
+            start_pos = start_full[-1]  # 예: "11B" -> "B"
+            end_index = int(end_full[:-1])
+            end_pos = end_full[-1]
+
+            start_bound_coords = item_bound_dict_lists[start_index][1][start_pos]
+            end_bound_coords = item_bound_dict_lists[end_index][1][end_pos]
+            page_num = item_bound_dict_lists[start_index][1]["page_num"]
+
+            print(start_bound_coords.x)
+            print(start_bound_coords.y)
+            print(end_bound_coords.x)
+            print(end_bound_coords.y)
+
+            flo = LineOverlayObject(page_num, Coord(0, 0, 100), start_bound_coords, end_bound_coords, (0.75, 0.45, 0, 0), 2)
+            flo.overlay(self.overlayer, Coord(0, 0, 100))'''
+
+        self.overlay_flowline()     #TODO: FL 자동화되면 삭제
 
         self.resources_doc.close()
         return new_doc

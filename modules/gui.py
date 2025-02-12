@@ -1021,6 +1021,7 @@ if __name__ == '__main__':
     suppress_qt_warnings()
 
     app = QApplication(sys.argv)
+    app.beep = lambda: None
     app_icon = QIcon(r'T:\Software\LCS\resources\symbol\symbol.png')
     app.setWindowIcon(app_icon)
     app.setStyle('Fusion')  # Apply Fusion style
