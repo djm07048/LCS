@@ -33,7 +33,7 @@ class FlowBuilder:
 
         for page_num in range(num_pages):
             if page_num >= self.overlayer.doc.page_count:
-                print(f"Error: Page {page_num} not in document")
+                print(f"Error during Overlay Flowline: Page {page_num} not in document")
                 continue
             component = Component(src_pdf, page_num, src_doc.load_page(page_num).rect)
             co = ComponentOverlayObject(page_num, Coord(0, 0, 10), component)
@@ -125,8 +125,6 @@ class FlowBuilder:
         para_lists = self.get_lists_on_page()
         item_bound_dict_lists = {}
 
-        print(self.item_lists)
-
         for i in range(len(self.item_lists)):
             for item in self.item_lists[i]:
                 item_code = item[1]
@@ -178,21 +176,21 @@ class FlowBuilder:
             y = para.coord.y + para.rect.height
 
             #최하단 띠지 삽입
-            so = ShapeOverlayObject(para.page_num, Coord(0, y, 0), Rect(0,0,Ratio.mm_to_px(262),Ratio.mm_to_px(2)), (205/255, 216/255, 238/255))
+            so = ShapeOverlayObject(para.page_num, Coord(0, y, 0), Rect(0,0,Ratio.mm_to_px(262),Ratio.mm_to_px(2)), (0.2, 0, 0, 0))
             so.overlay(self.overlayer, Coord(0, y, 0))
 
 
         if len(para_lists) % 2 == 0:
             piv = len(para_lists)
             y = para_lists[piv-2].coord.y + para_lists[piv-2].rect.height
-            so = ShapeOverlayObject(piv-2, Coord(Ratio.mm_to_px(20), y + Ratio.mm_to_px(16.25), 0), Rect(0,0,Ratio.mm_to_px(222),Ratio.mm_to_px(330.75)-y), (243/255, 246/255, 251/255))
+            so = ShapeOverlayObject(piv-2, Coord(Ratio.mm_to_px(20), y + Ratio.mm_to_px(16.25), 0), Rect(0,0,Ratio.mm_to_px(222),Ratio.mm_to_px(330.75)-y), (0.2, 0, 0, 0))
             so.overlay(self.overlayer, Coord(Ratio.mm_to_px(20), y + Ratio.mm_to_px(16.25), 0))
-            so = ShapeOverlayObject(piv-1, Coord(Ratio.mm_to_px(20), y + Ratio.mm_to_px(16.25), 0), Rect(0,0,Ratio.mm_to_px(222),Ratio.mm_to_px(330.75)-y), (243/255, 246/255, 251/255))
+            so = ShapeOverlayObject(piv-1, Coord(Ratio.mm_to_px(20), y + Ratio.mm_to_px(16.25), 0), Rect(0,0,Ratio.mm_to_px(222),Ratio.mm_to_px(330.75)-y), (0.2, 0, 0, 0))
             so.overlay(self.overlayer, Coord(Ratio.mm_to_px(20), y + Ratio.mm_to_px(16.25), 0))
             
-            so = ShapeOverlayObject(piv-2, Coord(Ratio.mm_to_px(20), y + Ratio.mm_to_px(16.25), 0), Rect(0,0,Ratio.mm_to_px(222), Ratio.mm_to_px(0.5/2.835)), (0.75, 0.45, 0, 0))
+            so = ShapeOverlayObject(piv-2, Coord(Ratio.mm_to_px(20), y + Ratio.mm_to_px(16.25), 0), Rect(0,0,Ratio.mm_to_px(222), Ratio.mm_to_px(0.5/2.835)), (1, 0, 0, 0))
             so.overlay(self.overlayer, Coord(Ratio.mm_to_px(20), Ratio.mm_to_px(347), 0))
-            so = ShapeOverlayObject(piv-1, Coord(Ratio.mm_to_px(20), y + Ratio.mm_to_px(16.25), 0), Rect(0,0,Ratio.mm_to_px(222), Ratio.mm_to_px(0.5/2.835)), (0.75, 0.45, 0, 0))
+            so = ShapeOverlayObject(piv-1, Coord(Ratio.mm_to_px(20), y + Ratio.mm_to_px(16.25), 0), Rect(0,0,Ratio.mm_to_px(222), Ratio.mm_to_px(0.5/2.835)), (1, 0, 0, 0))
             so.overlay(self.overlayer, Coord(Ratio.mm_to_px(20), Ratio.mm_to_px(347), 0))
 
 
@@ -231,7 +229,7 @@ class FlowBuilder:
             print(end_bound_coords.x)
             print(end_bound_coords.y)
 
-            flo = LineOverlayObject(page_num, Coord(0, 0, 100), start_bound_coords, end_bound_coords, (0.75, 0.45, 0, 0), 2)
+            flo = LineOverlayObject(page_num, Coord(0, 0, 100), start_bound_coords, end_bound_coords, (1, 0, 0, 0), 2)
             flo.overlay(self.overlayer, Coord(0, 0, 100))'''
 
         self.overlay_flowline()     #TODO: FL 자동화되면 삭제

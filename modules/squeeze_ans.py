@@ -103,12 +103,12 @@ class AnswerBuilder:
 
         if unit_code == 'Main':
             for i in range(len(unit_problem_answers)):
-                unit.add_child(TextOverlayObject(0, Coord(default_num_x+Ratio.mm_to_px(19.6)*(i%5), default_y+Ratio.mm_to_px(10)*(i//5), 1), "Montserrat-Bold.ttf", 13, f"{chr(65 + i)}", tuple([int(num%3 == 1)]*3), fitz.TEXT_ALIGN_CENTER))
-                unit.add_child(TextOverlayObject(0, Coord(default_ans_x+Ratio.mm_to_px(19.6)*(i%5), default_y+Ratio.mm_to_px(10)*(i//5), 1), "NanumSquareNeo-cBd.ttf", 13, f"{unit_problem_answers[i]}", tuple([0]), fitz.TEXT_ALIGN_CENTER))
+                unit.add_child(TextOverlayObject(0, Coord(default_num_x+Ratio.mm_to_px(19.6)*(i%5), default_y+Ratio.mm_to_px(11)*(i//5), 1), "Montserrat-Bold.ttf", 13, f"{chr(65 + i)}", tuple([int(num%3 == 1)]*3), fitz.TEXT_ALIGN_CENTER))
+                unit.add_child(TextOverlayObject(0, Coord(default_ans_x+Ratio.mm_to_px(19.6)*(i%5), default_y+Ratio.mm_to_px(11)*(i//5), 1), "NanumSquareNeo-cBd.ttf", 13, f"{unit_problem_answers[i]}", tuple([0]), fitz.TEXT_ALIGN_CENTER))
         else:
             for i in range(len(unit_problem_answers)):
-                unit.add_child(TextOverlayObject(0, Coord(default_num_x+Ratio.mm_to_px(19.6)*(i%5), default_y+Ratio.mm_to_px(10)*(i//5), 1), "Pretendard-ExtraBold.ttf", 13, f"{i+problem_num}", tuple([int(num%3 == 1)]*3), fitz.TEXT_ALIGN_CENTER))
-                unit.add_child(TextOverlayObject(0, Coord(default_ans_x+Ratio.mm_to_px(19.6)*(i%5), default_y+Ratio.mm_to_px(10)*(i//5), 1), "NanumSquareNeo-cBd.ttf", 13, f"{unit_problem_answers[i]}", tuple([0]), fitz.TEXT_ALIGN_CENTER))
+                unit.add_child(TextOverlayObject(0, Coord(default_num_x+Ratio.mm_to_px(19.6)*(i%5), default_y+Ratio.mm_to_px(11)*(i//5), 1), "Pretendard-ExtraBold.ttf", 13, f"{i+problem_num}", tuple([int(num%3 == 1)]*3), fitz.TEXT_ALIGN_CENTER))
+                unit.add_child(TextOverlayObject(0, Coord(default_ans_x+Ratio.mm_to_px(19.6)*(i%5), default_y+Ratio.mm_to_px(11)*(i//5), 1), "NanumSquareNeo-cBd.ttf", 13, f"{unit_problem_answers[i]}", tuple([0]), fitz.TEXT_ALIGN_CENTER))
         return unit
 
 

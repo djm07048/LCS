@@ -73,10 +73,10 @@ class ProblemBuilder:
     
     def add_unit_title(self, page_num, title):
         if page_num % 2 == self.page:
-            unit_title_object = TextOverlayObject(page_num, Coord(Ratio.mm_to_px(18), Ratio.mm_to_px(14.5), 4), "Pretendard-ExtraBold.ttf", 18, title, (0.75, 0.4, 0, 0), fitz.TEXT_ALIGN_LEFT)
+            unit_title_object = TextOverlayObject(page_num, Coord(Ratio.mm_to_px(18), Ratio.mm_to_px(14.5), 4), "Pretendard-ExtraBold.ttf", 18, title, (1, 0, 0, 0), fitz.TEXT_ALIGN_LEFT)
             unit_title_object.overlay(self.overlayer, unit_title_object.coord)
         # else:
-        #     unit_title_object = TextOverlayObject(page_num, Coord(Ratio.mm_to_px(244), Ratio.mm_to_px(14.5), 4), "Pretendard-ExtraBold.ttf", 18, title, (0.75, 0.4, 0, 0), fitz.TEXT_ALIGN_RIGHT)
+        #     unit_title_object = TextOverlayObject(page_num, Coord(Ratio.mm_to_px(244), Ratio.mm_to_px(14.5), 4), "Pretendard-ExtraBold.ttf", 18, title, (1, 0, 0, 0), fitz.TEXT_ALIGN_RIGHT)
 
     def code_to_text(self, problem_code):
         subject_text = {
@@ -99,7 +99,7 @@ class ProblemBuilder:
 
     def bake_problem_title(self, problem_num, source = None):
         problem_title = AreaOverlayObject(0, Coord(0,0,0), Ratio.mm_to_px(17))
-        num_object = TextOverlayObject(0, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(13), 4), "Pretendard-ExtraBold.ttf", 30, f"{problem_num}", (0.75, 0.4, 0, 0), fitz.TEXT_ALIGN_LEFT)
+        num_object = TextOverlayObject(0, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(13), 4), "Pretendard-ExtraBold.ttf", 30, f"{problem_num}", (1, 0, 0, 0), fitz.TEXT_ALIGN_LEFT)
         problem_title.add_child(num_object)
         if source is not None:
             text = TextOverlayObject(0, Coord(0,0,0), "Pretendard-Regular.ttf", 12, source, (1,1,1), fitz.TEXT_ALIGN_CENTER)

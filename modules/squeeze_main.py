@@ -106,7 +106,7 @@ class MainsolBuilder:
 
         component = self.get_problem_component(item_code)
         right_page.add_child(ComponentOverlayObject(0, Coord(Ratio.mm_to_px(118), Ratio.mm_to_px(46), 0), component))
-        right_page.add_child(TextOverlayObject(0, Coord(Ratio.mm_to_px(108), Ratio.mm_to_px(59), 0), "Montserrat-Bold.ttf", 48, item_num, (0.75, 0.4, 0, 0), fitz.TEXT_ALIGN_RIGHT))
+        right_page.add_child(TextOverlayObject(0, Coord(Ratio.mm_to_px(108), Ratio.mm_to_px(59), 0), "Montserrat-Bold.ttf", 48, item_num, (1, 0, 0, 0), fitz.TEXT_ALIGN_RIGHT))
         origin.coord = Coord(Ratio.mm_to_px(108)-origin.rect.width, Ratio.mm_to_px(64), 0)
         right_page.add_child(origin)
         white_box = ShapeOverlayObject(0,  Coord(Ratio.mm_to_px(118-0.5), Ratio.mm_to_px(46), 0), Rect(0, 0, Ratio.mm_to_px(2.5+0.5), Ratio.mm_to_px(5.5)), (1, 1, 1))
@@ -185,7 +185,7 @@ class MainsolBuilder:
         left_page = AreaOverlayObject(page_num, Coord(0, 0, 0), Ratio.mm_to_px(371))
         left_page.add_child(
             TextOverlayObject(0, Coord(Ratio.mm_to_px(18), Ratio.mm_to_px(59), 0), "Montserrat-Bold.ttf", 48, item_num,
-                              (0.75, 0.4, 0, 0), fitz.TEXT_ALIGN_LEFT))
+                              (1, 0, 0, 0), fitz.TEXT_ALIGN_LEFT))
         origin = self.bake_origin(item_code)
         origin.coord = Coord(Ratio.mm_to_px(38), Ratio.mm_to_px(59) - origin.rect.height, 0)
         left_page.add_child(origin)
@@ -240,10 +240,10 @@ class MainsolBuilder:
     
     def add_unit_title(self, page_num, title):
         if page_num % 2 == 1:
-            unit_title_object = TextOverlayObject(page_num, Coord(Ratio.mm_to_px(18), Ratio.mm_to_px(14.5), 4), "Pretendard-ExtraBold.ttf", 18, title, (0.75, 0.4, 0, 0), fitz.TEXT_ALIGN_LEFT)
+            unit_title_object = TextOverlayObject(page_num, Coord(Ratio.mm_to_px(18), Ratio.mm_to_px(14.5), 4), "Pretendard-ExtraBold.ttf", 18, title, (1, 0, 0, 0), fitz.TEXT_ALIGN_LEFT)
             unit_title_object.overlay(self.overlayer, unit_title_object.coord)
         # else:
-        #     unit_title_object = TextOverlayObject(page_num, Coord(Ratio.mm_to_px(244), Ratio.mm_to_px(14.5), 4), "Pretendard-ExtraBold.ttf", 18, title, (0.75, 0.4, 0, 0), fitz.TEXT_ALIGN_RIGHT)
+        #     unit_title_object = TextOverlayObject(page_num, Coord(Ratio.mm_to_px(244), Ratio.mm_to_px(14.5), 4), "Pretendard-ExtraBold.ttf", 18, title, (1, 0, 0, 0), fitz.TEXT_ALIGN_RIGHT)
 
     def build(self):
         new_doc = fitz.open()

@@ -12,23 +12,25 @@ from utils.overlay_object import *
 from utils.path import *
 from modules.overlayer import Overlayer
 
+
+#warning: 2014학년도 대수능 지2: 22문항이 정상임
+
 class KiceCropper:
     def __init__(self, pdf_name: str) -> None:
         self.pdf_name = pdf_name
         self.base_name = os.path.basename(self.pdf_name)
-
     def get_problems_area(self, page: Page, accuracy = 1, offset = 1, padding = (0,0,0,0)) -> Rect:
         #trim left and right
         rect = page.rect
         new_rect = PdfUtils.trim_whitespace(page, rect, Direction.LEFT, accuracy)
         new_rect.x1 -= new_rect.x0 - rect.x0
 
-        #trim up and down
+        # trim up and down
         na = PdfUtils.pdf_clip_to_array(page, new_rect, fitz.Matrix(1, accuracy))
         na = na.mean(axis=1, dtype=np.uint32)
         na = np.where(na < 10, 0, na)
         na = na.mean(axis=1, dtype=np.uint32)
-        
+
         upper_bound = na.argmin()
         lower_bound = 0
         flag = False
@@ -50,7 +52,7 @@ class KiceCropper:
 
         return new_rect
 
-    def get_problem_rects(self, page: Page, accuracy = 1) -> list[Rect]:
+    def get_problem_rects(self, page: Page, accuracy=1) -> list[Rect]:
         rects = []
         area = self.get_problems_area(page, accuracy, offset=2)
 
@@ -71,33 +73,33 @@ class KiceCropper:
 
         return rects
 
-    def get_problem_rects_from_area(self, page: Page, area: Rect, accuracy = 1, number_offset = 7) -> list[Rect]:
+    def get_problem_rects_from_area(self, page: Page, area: Rect, accuracy=1, number_offset=7) -> list[Rect]:
         number_rect = PdfUtils.trim_whitespace(page, area, Direction.LEFT, accuracy)
         number_rect.x1 = number_rect.x0 + number_offset
 
         na = PdfUtils.pdf_clip_to_array(page, number_rect, fitz.Matrix(1, accuracy))
         na = na.mean(axis=1, dtype=np.uint32) // 255
-        
+
         upper_bounds = []
         flag = False
         for y in range(na.shape[0]):
-            if np.array_equal(na[y], [1,1,1]):
+            if np.array_equal(na[y], [1, 1, 1]):
                 flag = True
-            elif flag and np.array_equal(na[y], [0,0,0]):
+            elif flag and np.array_equal(na[y], [0, 0, 0]):
                 flag = False
                 upper_bounds.append(y)
 
         lower_bounds = upper_bounds[1:] + [na.shape[0]]
         for i in range(len(lower_bounds)):
             lower_bounds[i] -= accuracy
-            
+
         rects = []
         for i in range(len(upper_bounds)):
             new_rect = Rect(area)
             new_rect.y1 = new_rect.y0 + lower_bounds[i] / accuracy
             new_rect.y0 += upper_bounds[i] / accuracy
             rects.append(new_rect)
-        
+
         ret = []
         for rect in rects:
             new_rect = PdfUtils.trim_whitespace(page, rect, Direction.DOWN, accuracy)
@@ -107,8 +109,8 @@ class KiceCropper:
             ret.append(new_rect)
 
         return ret
-    
-    def get_problem_infos_from_file(self, file: fitz.Document, accuracy = 1) -> list[ProblemInfo]:
+
+    def get_problem_infos_from_file(self, file: fitz.Document, accuracy=1) -> list[ProblemInfo]:
         ret = []
         for page_num in range(file.page_count):
             page = file.load_page(page_num)
@@ -118,31 +120,31 @@ class KiceCropper:
         ret.pop()
         return ret
 
-    def extract_problems(self, accuracy = 1) -> int:
+    def extract_problems(self, accuracy=1) -> int:
         with fitz.open(self.pdf_name) as file:
             self.infos = self.get_problem_infos_from_file(file, accuracy)
             return len(self.infos)
 
-    def get_question_code(self, key: str) -> str|None:
+    def get_question_code(self, key: str) -> str | None:
         subject_code = {
-            '물1' : 'P1',
-            '물2' : 'P2',
-            '화1' : 'C1',
-            '화2' : 'C2',
-            '생1' : 'B1',
-            '생2' : 'B2',
-            '지1' : 'E1',
-            '지2' : 'E2',
+            '물1': 'P1',
+            '물2': 'P2',
+            '화1': 'C1',
+            '화2': 'C2',
+            '생1': 'B1',
+            '생2': 'B2',
+            '지1': 'E1',
+            '지2': 'E2',
         }
         month_code = {
-            '6월' : '06',
-            '9월' : '09',
-            '대수능' : '11',
-            '예비시행' : '01',
+            '6월': '06',
+            '9월': '09',
+            '대수능': '11',
+            '예비시행': '01',
         }
         with open(RESOURCES_PATH + "/KICEtopic.json", encoding="UTF-8") as file:
             topic_code = json.load(file)
-        
+
         parts = key.split(' ')
         if key not in topic_code:
             return None
@@ -190,7 +192,7 @@ class KiceCropper:
         text.coord = Coord(box.rect.width/2, Ratio.mm_to_px(4.3), 0)
         box.add_child(text)
         return box
-    
+
     def code_to_text(self, problem_code):
         subject_text = {
             'P1' : '물1',
@@ -275,9 +277,10 @@ def save_caption_from_original_indie(item_code):
     PdfUtils.save_to_pdf(new_doc, parse_item_caption_path(item_code), garbage=4)
 
 if __name__ == '__main__':
-    '''from pathlib import Path
-    folder_path = Path(INPUT_PATH + '/1425')
-    pdf_files = folder_path.glob('*.pdf')
+    from pathlib import Path
+
+    folder_path = Path(INPUT_PATH + '/temp')
+    pdf_files = sorted(folder_path.glob('*.pdf'))
 
     for pdf_file in pdf_files:
         pdf_src_path = str(pdf_file)
@@ -286,8 +289,6 @@ if __name__ == '__main__':
         kc = KiceCropper(pdf_name=pdf_src_path)
         ret = kc.extract_problems(accuracy=10)
         print(f'extracted {ret} items')
-        kc.save_original()'''
-
-    save_caption_from_original_indie('E2aagKC171119')
-    save_caption_from_original_indie('E2aagKC181118')
+        kc.save_original()
+        kc.save_caption_from_original()
 

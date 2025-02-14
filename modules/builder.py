@@ -14,6 +14,8 @@ from utils.ratio import Ratio
 from utils.path import *
 from utils.pdf_utils import PdfUtils
 
+# TODO : Recolor Everything!
+
 class Builder:
     def __init__(self, items):
         self.topics = []
@@ -165,8 +167,6 @@ class Builder:
         if log_callback:
             log_callback("Done!")
 
-
-        print(total.page_count)
 
         # Overlay TOC to the total document
         bake_toc = TocBuilder()

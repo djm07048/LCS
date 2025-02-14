@@ -94,16 +94,16 @@ class TocBuilder:
 
             # Component를 새로 하나 만들고, 거기에 to_title, to_flow, to_main, to_pro를 overlay
             to_num = TextOverlayObject(0, Coord(Ratio.mm_to_px(34.5), Ratio.mm_to_px(47), 1), "Montserrat-Bold.ttf",
-                                       100, f"{int(i + 1)}", (1, 1, 1), fitz.TEXT_ALIGN_CENTER)
+                                       100, f"{int(i + 1)}", (0, 0, 0, 0), fitz.TEXT_ALIGN_CENTER)
             to_title = TextOverlayObject(0, Coord(Ratio.mm_to_px(80), Ratio.mm_to_px(21), 1), "Pretendard-Bold.ttf",
-                                         23.5, f"{unit_title}", (0, 0, 0),
+                                         23.5, f"{unit_title}", (1, 0, 0, 0),
                                          fitz.TEXT_ALIGN_LEFT)  # TODO cmyk 75 40 0 0으로 색상 변경
             to_flow = TextOverlayObject(0, Coord(Ratio.mm_to_px(217), Ratio.mm_to_px(36), 1), "Pretendard-Bold.ttf", 16,
-                                        f"{flow_page}", (0, 0, 0), fitz.TEXT_ALIGN_RIGHT)
+                                        f"{flow_page}", (0, 0, 0, 1), fitz.TEXT_ALIGN_RIGHT)
             to_main = TextOverlayObject(0, Coord(Ratio.mm_to_px(217), Ratio.mm_to_px(45), 1), "Pretendard-Bold.ttf", 16,
-                                        f"{main_page}", (0, 0, 0), fitz.TEXT_ALIGN_RIGHT)
+                                        f"{main_page}", (0, 0, 0, 1), fitz.TEXT_ALIGN_RIGHT)
             to_pro = TextOverlayObject(0, Coord(Ratio.mm_to_px(217), Ratio.mm_to_px(54), 1), "Pretendard-Bold.ttf", 16,
-                                       f"{pro_page}", (0, 0, 0), fitz.TEXT_ALIGN_RIGHT)
+                                       f"{pro_page}", (0, 0, 0, 1), fitz.TEXT_ALIGN_RIGHT)
 
             topic_area.add_child(to_object)
             topic_area.add_child(to_num)
