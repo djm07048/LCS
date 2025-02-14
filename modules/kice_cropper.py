@@ -160,7 +160,7 @@ class KiceCropper:
                 new_doc = fitz.open()
                 new_page = new_doc.new_page(width=rect.width, height=rect.height)
                 new_page.show_pdf_page(fitz.Rect(0,0,rect.width,rect.height), file, self.infos[i].page_num, clip=rect)
-                new_page.draw_rect(fitz.Rect(0, 0, Ratio.mm_to_px(2.5), Ratio.mm_to_px(5)), color=(1,1,1), fill=(1,1,1))
+                new_page.draw_rect(fitz.Rect(0, 0, Ratio.mm_to_px(2.5), Ratio.mm_to_px(5)), color=(0, 0, 0, 0), fill=(0, 0, 0, 0))
                 key = f'{self.base_name[:-7]} {i+1}번 {self.base_name[-6:-4]}'
                 code = self.get_question_code(key)
                 if code is None:
@@ -176,19 +176,19 @@ class KiceCropper:
                 new_doc = fitz.open()
                 new_page = new_doc.new_page(width=rect.width, height=rect.height+Ratio.mm_to_px(caption_point[1]))
                 new_page.show_pdf_page(fitz.Rect(0, Ratio.mm_to_px(caption_point[1]),rect.width,rect.height+Ratio.mm_to_px(caption_point[1])), file, self.infos[i].page_num, clip=rect)
-                new_page.draw_rect(fitz.Rect(0, Ratio.mm_to_px(caption_point[1]), Ratio.mm_to_px(6), Ratio.mm_to_px(caption_point[1]+5)), color=(1,1,1), fill=(1,1,1))
+                new_page.draw_rect(fitz.Rect(0, Ratio.mm_to_px(caption_point[1]), Ratio.mm_to_px(6), Ratio.mm_to_px(caption_point[1]+5)), color=(0, 0, 0, 0), fill=(0, 0, 0, 0))
                 font = fitz.Font(fontfile="Eulyoo1945-Regular.ttf")
                 tw = fitz.TextWriter(new_page.rect)
                 tw.append((Ratio.mm_to_px(caption_point[0]), font_size), f"{os.path.basename(self.pdf_name)[:-4]} {i+1}번 지1", font, font_size)
-                tw.write_text(new_page, color=(0,0,0))
+                tw.write_text(new_page, color=(0, 0, 0, 1))
                 new_doc.save(f"output/caption/{self.base_name[:-7]} {i+1}번 {self.base_name[-6:-4]}_caption.pdf")
                 #PdfUtils.extract_to_pdf(file, infos[i].page_num, infos[i].rect, f"output/caption/{os.path.basename(pdf_name)[:-4]} {i+1}번 지1_caption.pdf")
 
 
     def bake_origin(self, source):
-        text = TextOverlayObject(0, Coord(0,0,0), "Pretendard-Regular.ttf", 12, source, (1,1,1), fitz.TEXT_ALIGN_CENTER)
+        text = TextOverlayObject(0, Coord(0,0,0), "Pretendard-Regular.ttf", 12, source, (0, 0, 0, 0), fitz.TEXT_ALIGN_CENTER)
         text.get_width()
-        box = ShapeOverlayObject(0, Coord(0, 0, 0), Rect(0,0,Ratio.mm_to_px(4)+text.get_width(),Ratio.mm_to_px(5.5)), (0,0,0,0.5), 0.5/5.5)
+        box = ShapeOverlayObject(0, Coord(0, 0, 0), Rect(0,0,Ratio.mm_to_px(4)+text.get_width(),Ratio.mm_to_px(5.5)), (0, 0, 0, 0.5), 0.5/5.5)
         text.coord = Coord(box.rect.width/2, Ratio.mm_to_px(4.3), 0)
         box.add_child(text)
         return box
@@ -244,7 +244,7 @@ def save_caption_from_original_indie(item_code):
     citation = parse_code_citation(item_code)
 
     # bake_origin
-    text = TextOverlayObject(0, Coord(0, 0, 0), "Pretendard-Regular.ttf", 12, citation, (1, 1, 1), fitz.TEXT_ALIGN_CENTER)
+    text = TextOverlayObject(0, Coord(0, 0, 0), "Pretendard-Regular.ttf", 12, citation, (0, 0, 0, 0), fitz.TEXT_ALIGN_CENTER)
     text.get_width()
     box = ShapeOverlayObject(0, Coord(0, 0, 0), Rect(0, 0, Ratio.mm_to_px(4) + text.get_width(), Ratio.mm_to_px(5.5)),
                              (0, 0, 0, 0.5), 0.5 / 5.5)

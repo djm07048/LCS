@@ -72,8 +72,8 @@ class SolutionBuilder:
         component = self.get_component_on_resources(2)
         unit_cover = AreaOverlayObject(0, Coord(0,0,0), Ratio.mm_to_px(24))
         unit_cover.add_child(ComponentOverlayObject(0, Coord(0,0,0), component))
-        unit_cover.add_child(TextOverlayObject(0, Coord(Ratio.mm_to_px(7.5), Ratio.mm_to_px(10), 1), "Cafe24Ohsquare-v2.0.ttf", 25, f"{num}", (1,1,1), fitz.TEXT_ALIGN_CENTER))
-        unit_cover.add_child(TextOverlayObject(0, Coord(Ratio.mm_to_px(20), Ratio.mm_to_px(10), 1), "Pretendard-SemiBold.ttf", 16.5, f"{self.get_unit_title(unit_code)}", (0,0,0), fitz.TEXT_ALIGN_LEFT))
+        unit_cover.add_child(TextOverlayObject(0, Coord(Ratio.mm_to_px(7.5), Ratio.mm_to_px(10), 1), "Cafe24Ohsquare-v2.0.ttf", 25, f"{num}", (0, 0, 0, 0), fitz.TEXT_ALIGN_CENTER))
+        unit_cover.add_child(TextOverlayObject(0, Coord(Ratio.mm_to_px(20), Ratio.mm_to_px(10), 1), "Pretendard-SemiBold.ttf", 16.5, f"{self.get_unit_title(unit_code)}", (0, 0, 0, 1), fitz.TEXT_ALIGN_LEFT))
 
         return unit_cover
 

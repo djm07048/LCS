@@ -116,9 +116,9 @@ class TocBuilder:
 
         topic_area = AreaOverlayObject(2, Coord(0, 0, 1), 371)
         to_ans = TextOverlayObject(0, Coord(Ratio.mm_to_px(217), Ratio.mm_to_px(313), 1), "Pretendard-Bold.ttf", 16,
-                                   f"{ans_page}", (0, 0, 0), fitz.TEXT_ALIGN_RIGHT)
+                                   f"{ans_page}", (0, 0, 0, 1), fitz.TEXT_ALIGN_RIGHT)
         to_sol = TextOverlayObject(0, Coord(Ratio.mm_to_px(217), Ratio.mm_to_px(340), 1), "Pretendard-Bold.ttf", 16,
-                                    f"{sol_page}", (0, 0, 0), fitz.TEXT_ALIGN_RIGHT)
+                                    f"{sol_page}", (0, 0, 0, 1), fitz.TEXT_ALIGN_RIGHT)
         topic_area.add_child(to_ans)
         topic_area.add_child(to_sol)
         topic_area.overlay(overlayer=Overlayer(total_doc), absolute_coord=Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(0), 1))

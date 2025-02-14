@@ -72,7 +72,7 @@ class AnswerBuilder:
         unit_cover = AreaOverlayObject(0, Coord(0,0,0), Ratio.mm_to_px(20))
         unit_cover.add_child(ComponentOverlayObject(0, Coord(0,0,0), component))
         unit_title = f'{num-1}. {self.get_unit_title(unit_code)}' if unit_code != 'Main' else '주요 문항 A to Z'
-        unit_cover.add_child(TextOverlayObject(0, Coord(Ratio.mm_to_px(49), Ratio.mm_to_px(6), 1), "Pretendard-ExtraBold.ttf", 13, f"{unit_title}", tuple([int(num%3 == 1)]*3), fitz.TEXT_ALIGN_CENTER))
+        unit_cover.add_child(TextOverlayObject(0, Coord(Ratio.mm_to_px(49), Ratio.mm_to_px(6), 1), "Pretendard-ExtraBold.ttf", 13, f"{unit_title}", tuple([0, 0, 0, int(num%3 == 0)]), fitz.TEXT_ALIGN_CENTER))
         return unit_cover
 
     def bake_unit(self, unit_code, num, problem_num, unit_problem_answers):
@@ -103,12 +103,12 @@ class AnswerBuilder:
 
         if unit_code == 'Main':
             for i in range(len(unit_problem_answers)):
-                unit.add_child(TextOverlayObject(0, Coord(default_num_x+Ratio.mm_to_px(19.6)*(i%5), default_y+Ratio.mm_to_px(11)*(i//5), 1), "Montserrat-Bold.ttf", 13, f"{chr(65 + i)}", tuple([int(num%3 == 1)]*3), fitz.TEXT_ALIGN_CENTER))
-                unit.add_child(TextOverlayObject(0, Coord(default_ans_x+Ratio.mm_to_px(19.6)*(i%5), default_y+Ratio.mm_to_px(11)*(i//5), 1), "NanumSquareNeo-cBd.ttf", 13, f"{unit_problem_answers[i]}", tuple([0]), fitz.TEXT_ALIGN_CENTER))
+                unit.add_child(TextOverlayObject(0, Coord(default_num_x+Ratio.mm_to_px(19.6)*(i%5), default_y+Ratio.mm_to_px(11)*(i//5), 1), "Montserrat-Bold.ttf", 13, f"{chr(65 + i)}", tuple([0, 0, 0, int(num%3 == 0)]), fitz.TEXT_ALIGN_CENTER))
+                unit.add_child(TextOverlayObject(0, Coord(default_ans_x+Ratio.mm_to_px(19.6)*(i%5), default_y+Ratio.mm_to_px(11)*(i//5), 1), "NanumSquareNeo-cBd.ttf", 13, f"{unit_problem_answers[i]}", (0, 0, 0, 1), fitz.TEXT_ALIGN_CENTER))
         else:
             for i in range(len(unit_problem_answers)):
-                unit.add_child(TextOverlayObject(0, Coord(default_num_x+Ratio.mm_to_px(19.6)*(i%5), default_y+Ratio.mm_to_px(11)*(i//5), 1), "Pretendard-ExtraBold.ttf", 13, f"{i+problem_num}", tuple([int(num%3 == 1)]*3), fitz.TEXT_ALIGN_CENTER))
-                unit.add_child(TextOverlayObject(0, Coord(default_ans_x+Ratio.mm_to_px(19.6)*(i%5), default_y+Ratio.mm_to_px(11)*(i//5), 1), "NanumSquareNeo-cBd.ttf", 13, f"{unit_problem_answers[i]}", tuple([0]), fitz.TEXT_ALIGN_CENTER))
+                unit.add_child(TextOverlayObject(0, Coord(default_num_x+Ratio.mm_to_px(19.6)*(i%5), default_y+Ratio.mm_to_px(11)*(i//5), 1), "Pretendard-ExtraBold.ttf", 13, f"{i+problem_num}", tuple([0, 0, 0, int(num%3 == 0)]), fitz.TEXT_ALIGN_CENTER))
+                unit.add_child(TextOverlayObject(0, Coord(default_ans_x+Ratio.mm_to_px(19.6)*(i%5), default_y+Ratio.mm_to_px(11)*(i//5), 1), "NanumSquareNeo-cBd.ttf", 13, f"{unit_problem_answers[i]}", (0, 0, 0, 1), fitz.TEXT_ALIGN_CENTER))
         return unit
 
 

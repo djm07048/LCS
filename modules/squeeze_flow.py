@@ -73,7 +73,7 @@ class FlowBuilder:
             self.overlayer.add_page(self.get_component_on_resources(3))
 
     def set_lists(self, page_num, k):
-        paragraphs_base = ShapeOverlayObject(page_num, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(35), 0), Rect(0,0,Ratio.mm_to_px(262),Ratio.mm_to_px(k+22)), (0,0,0,0.05))
+        paragraphs_base = ShapeOverlayObject(page_num, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(35), 0), Rect(0,0,Ratio.mm_to_px(262),Ratio.mm_to_px(k+22)), (0, 0, 0, 0.1))
         paragraphs_base.add_child(ListOverlayObject(page_num, Coord(Ratio.mm_to_px(20), Ratio.mm_to_px(11), 1), Ratio.mm_to_px(k), 1))      #첫번째 단
         paragraphs_base.add_child(ListOverlayObject(page_num, Coord(Ratio.mm_to_px(97.25), Ratio.mm_to_px(11), 1), Ratio.mm_to_px(k), 1))   #두번째 단
         paragraphs_base.add_child(ListOverlayObject(page_num, Coord(Ratio.mm_to_px(174.5), Ratio.mm_to_px(11), 1), Ratio.mm_to_px(k), 1))   #세번째 단
@@ -203,9 +203,9 @@ class FlowBuilder:
             co.overlay(self.overlayer, Coord(Ratio.mm_to_px(20),y+Ratio.mm_to_px(12),0))
 
         for i in range(len(para_lists))[::2]:
-            to = TextOverlayObject(i, Coord(Ratio.mm_to_px(36), Ratio.mm_to_px(19), 0), "Pretendard-Bold.ttf", 32.5, self.get_unit_title(), (0, 0, 0), fitz.TEXT_ALIGN_LEFT)
+            to = TextOverlayObject(i, Coord(Ratio.mm_to_px(36), Ratio.mm_to_px(19), 0), "Pretendard-Bold.ttf", 32.5, self.get_unit_title(), (0, 0, 0, 1), fitz.TEXT_ALIGN_LEFT)
             to.overlay(self.overlayer, Coord(Ratio.mm_to_px(36), Ratio.mm_to_px(19), 0))
-            ti = TextOverlayObject(i, Coord(Ratio.mm_to_px(23.1), Ratio.mm_to_px(19), 0), "Montserrat-Bold.ttf", 32.5, str(self.index), (1, 1, 1), fitz.TEXT_ALIGN_CENTER)
+            ti = TextOverlayObject(i, Coord(Ratio.mm_to_px(23.1), Ratio.mm_to_px(19), 0), "Montserrat-Bold.ttf", 32.5, str(self.index), (0, 0, 0, 0), fitz.TEXT_ALIGN_CENTER)
             ti.overlay(self.overlayer, Coord(Ratio.mm_to_px(23.1), Ratio.mm_to_px(19), 0))
 
         '''# Flowline 삽입

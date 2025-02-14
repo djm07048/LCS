@@ -102,7 +102,7 @@ class ProblemBuilder:
         num_object = TextOverlayObject(0, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(13), 4), "Pretendard-ExtraBold.ttf", 30, f"{problem_num}", (1, 0, 0, 0), fitz.TEXT_ALIGN_LEFT)
         problem_title.add_child(num_object)
         if source is not None:
-            text = TextOverlayObject(0, Coord(0,0,0), "Pretendard-Regular.ttf", 12, source, (1,1,1), fitz.TEXT_ALIGN_CENTER)
+            text = TextOverlayObject(0, Coord(0,0,0), "Pretendard-Regular.ttf", 12, source, (0, 0, 0, 0), fitz.TEXT_ALIGN_CENTER)
             text.get_width()
             box = ShapeOverlayObject(0, Coord(Ratio.mm_to_px(27), Ratio.mm_to_px(7.5), 2), Rect(0,0,Ratio.mm_to_px(4)+text.get_width(),Ratio.mm_to_px(5.5)), (0,0,0,0.5), 0.5/5.5)
             text.coord = Coord(box.rect.width/2, Ratio.mm_to_px(4.3), 3)

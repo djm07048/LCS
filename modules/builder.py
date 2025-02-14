@@ -63,9 +63,9 @@ class Builder:
     def add_page_num(self, overlayer):
         for num in range(4, overlayer.doc.page_count): #4P부터 시작
             if num % 2:
-                page_num_object = TextOverlayObject(num-1, Coord(Ratio.mm_to_px(244), Ratio.mm_to_px(358.5), 4), "Pretendard-Bold.ttf", 14, f"{num}", (0, 0, 0), fitz.TEXT_ALIGN_RIGHT)
+                page_num_object = TextOverlayObject(num-1, Coord(Ratio.mm_to_px(244), Ratio.mm_to_px(358.5), 4), "Pretendard-Bold.ttf", 14, f"{num}", (0, 0, 0, 1), fitz.TEXT_ALIGN_RIGHT)
             else:
-                page_num_object = TextOverlayObject(num-1, Coord(Ratio.mm_to_px(20), Ratio.mm_to_px(358.5), 4), "Pretendard-Bold.ttf", 14, f"{num}", (0, 0, 0), fitz.TEXT_ALIGN_LEFT)
+                page_num_object = TextOverlayObject(num-1, Coord(Ratio.mm_to_px(20), Ratio.mm_to_px(358.5), 4), "Pretendard-Bold.ttf", 14, f"{num}", (0, 0, 0, 1), fitz.TEXT_ALIGN_LEFT)
             page_num_object.overlay(overlayer, page_num_object.coord)
 
     def build(self, output, log_callback=None):
