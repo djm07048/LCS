@@ -53,10 +53,7 @@ class Overlayer:
         y0 = coord.y
         x1 = x0 + component.src_rect.width
         y1 = y0 + component.src_rect.height
-        '''page = file[component.src_page_num]  # 페이지 가져오기
-        clip_rect = fitz.Rect(x0, y0, x1, y1)  # 자르고자 하는 영역 설정
-        page.set_cropbox(clip_rect)  # 해당 영역으로 페이지 자르기'''
-        page.show_pdf_page(fitz.Rect(x0, y0, x1, y1), file, component.src_page_num, clip=component.src_rect)
+        page.show_pdf_page(fitz.Rect(x0, y0, x1, y1), file, component.src_page_num, clip=component.src_rect, overlay=True)
         pass
 
     def pdf_overlay_with_resize(self, page_num, coord, component, ratio):
@@ -69,7 +66,7 @@ class Overlayer:
         '''page = file[component.src_page_num]  # 페이지 가져오기
         clip_rect = fitz.Rect(x0, y0, x1, y1)  # 자르고자 하는 영역 설정
         page.set_cropbox(clip_rect)  # 해당 영역으로 페이지 자르기'''
-        page.show_pdf_page(fitz.Rect(x0, y0, x1, y1), file, component.src_page_num, clip=component.src_rect)
+        page.show_pdf_page(fitz.Rect(x0, y0, x1, y1), file, component.src_page_num, clip=component.src_rect, overlay=True)
         pass
 
     def get_bound_coords(self, page_num, coord, component, ratio):

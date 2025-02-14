@@ -56,7 +56,7 @@ class PdfUtils:
         new_doc.save(file_name)
 
     @staticmethod
-    def save_to_pdf(file: fitz.Document, file_name: str, garbage=0) -> None:
+    def save_to_pdf(file: fitz.Document, file_name: str, garbage=4) -> None:        #garbage=4로 해야 모든 서체 포함됨
         path = Path(file_name)
         paths = list(path.parents)[::-1]
         for parent_path in paths:
