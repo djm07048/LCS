@@ -1,4 +1,5 @@
 import fitz
+import os
 from utils.ratio import Ratio
 from utils.coord import Coord
 from utils.path import *
@@ -24,7 +25,8 @@ class Overlayer:
             new_page.show_pdf_page(fitz.Rect(0,0,rect.width,rect.height), file, base.src_page_num, clip=rect)
 
     def text_overlay(self, page_num, coord, font_file, size, text, color, text_align):
-        font = fitz.Font(fontfile=RESOURCES_PATH+"/fonts/"+font_file)
+        font_path = RESOURCES_PATH + "/fonts/" + font_file
+        font = fitz.Font(fontfile=font_path)
         page = self.doc.load_page(page_num)
         tw = fitz.TextWriter(page.rect)
         x = coord.x
@@ -33,10 +35,16 @@ class Overlayer:
             x -= font.text_length(text, size) / 2
         elif text_align == fitz.TEXT_ALIGN_RIGHT:
             x -= font.text_length(text, size)
-        
+
         tw.append((x, y), text, font, size)
         tw.write_text(page, color=color)
-        pass
+
+        font_name = os.path.splitext(os.path.basename(font_file))[0]
+
+        page.insert_font(
+            fontname=font_name,
+            fontfile=font_path
+        )
 
     def shape_overlay(self, page_num, coord, rect, color, radius = None):
         page = self.doc.load_page(page_num)

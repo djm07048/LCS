@@ -97,7 +97,7 @@ class TocBuilder:
                                        100, f"{int(i + 1)}", (0, 0, 0, 0), fitz.TEXT_ALIGN_CENTER)
             to_title = TextOverlayObject(0, Coord(Ratio.mm_to_px(80), Ratio.mm_to_px(21), 1), "Pretendard-Bold.ttf",
                                          23.5, f"{unit_title}", (1, 0, 0, 0),
-                                         fitz.TEXT_ALIGN_LEFT)  # TODO cmyk 75 40 0 0으로 색상 변경
+                                         fitz.TEXT_ALIGN_LEFT)
             to_flow = TextOverlayObject(0, Coord(Ratio.mm_to_px(217), Ratio.mm_to_px(36), 1), "Pretendard-Bold.ttf", 16,
                                         f"{flow_page}", (0, 0, 0, 1), fitz.TEXT_ALIGN_RIGHT)
             to_main = TextOverlayObject(0, Coord(Ratio.mm_to_px(217), Ratio.mm_to_px(45), 1), "Pretendard-Bold.ttf", 16,

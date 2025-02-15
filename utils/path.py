@@ -1,5 +1,5 @@
-KICE_DB_PATH = 'T:/THedu/KiceDB'
-ITEM_DB_PATH = 'T:/THedu/ItemDB'
+KICE_DB_PATH = r'T:\THedu\KiceDB'
+ITEM_DB_PATH = r'T:\THedu\ItemDB'
 
 RESOURCES_PATH = 'T:/Software/LCS/resources'
 

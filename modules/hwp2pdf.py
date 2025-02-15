@@ -9,6 +9,8 @@ from utils.parse_code import *
 from utils.coord import Coord
 from utils.ratio import Ratio
 import fitz
+from pyhwpx import Hwp
+from hwps.printer import *
 
 hwp_lock = Lock()
 
@@ -30,6 +32,8 @@ def convert_hwp_to_pdf(hwp_path):
     """HWP를 PDF로 변환하는 함수"""
     pdf_path = hwp_path.replace('.hwp', '.pdf')
 
+    hwp = Hwp(visible=False)
+
     try:
         for attempt in range(3):
 
@@ -48,18 +52,14 @@ def convert_hwp_to_pdf(hwp_path):
             pythoncom.CoInitialize()
             if attempt > 1:
                 print(f"Failed to convert {hwp_path} to PDF. Retrying...")
-                time.sleep(0.5)
+                time.sleep(0.1)
 
             hwp = None
             try:
                 with hwp_lock:
-                    hwp = win32.gencache.EnsureDispatch("HWPFrame.HwpObject")
-                    hwp.XHwpWindows.Item(0).Visible = False
-                    hwp.RegisterModule("FilePathCheckDLL", "FilePathCheckerModule")  # 보안 모듈 pass
-                    hwp.Open(hwp_path)
-                    hwp.XHwpDocuments.Item(0).XHwpPrint.filename = pdf_path
-                    hwp.XHwpDocuments.Item(0).XHwpPrint.RunToPDF()
-                    time.sleep(0.5)  # PDF 변환 완료 대기
+                    hwp = Hwp(visible=False)
+                    print_pdf(hwp_path, pdf_path)
+                    hwp.Quit()
                     return pdf_path
             except Exception as e:
                 print(f"Error converting {hwp_path} to PDF: {e}")

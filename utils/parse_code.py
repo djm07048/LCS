@@ -1,3 +1,8 @@
+import os
+#TODO: 모든 경로를 path 또는 parse_code로부터 받도록 바꾸기
+#TODO: 모든 경로를 윈도우즈 기준 역슬래시로
+
+
 @staticmethod
 def parse_code(code: str) -> list:
     parsed_code = {"subject" : "E1",
@@ -29,20 +34,20 @@ def parse_item_folder_path(item_code: str) -> str:
     if parsed["section"] == "KC": base_path= KICE_DB_PATH
     else: base_path= ITEM_DB_PATH
 
-    return f"{base_path}/{parsed['topic']}/{item_code}"
+    return rf"{base_path}\{parsed['topic']}\{item_code}"
 
 @staticmethod
 def parse_item_pdf_path(item_code: str) -> str:
-    return f"{parse_item_folder_path(item_code)}/{item_code}.pdf"
+    return os.path.join(parse_item_folder_path(item_code), f"{item_code}.pdf")
 
 def parse_item_caption_path(item_code: str) -> str:
-    return f"{parse_item_folder_path(item_code)}/{item_code}_caption.pdf"
+    return os.path.join(parse_item_folder_path(item_code), f"{item_code}_caption.pdf")
 
 def parse_item_original_path(item_code: str) -> str:
-    return f"{parse_item_folder_path(item_code)}/{item_code}_original.pdf"
+    return os.path.join(parse_item_folder_path(item_code), f"{item_code}_original.pdf")
 
 def parse_item_Main_path(item_code: str) -> str:
-    return f"{parse_item_folder_path(item_code)}/{item_code}_Main.pdf"
+    return os.path.join(parse_item_folder_path(item_code), f"{item_code}_Main.pdf")
 
 def parse_item_modified_path(item_code: str) -> str:
-    return f"{parse_item_folder_path(item_code)}/{item_code}_modified.pdf"
+    return os.path.join(parse_item_folder_path(item_code), f"{item_code}_modified.pdf")

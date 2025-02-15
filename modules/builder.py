@@ -14,8 +14,6 @@ from utils.ratio import Ratio
 from utils.path import *
 from utils.pdf_utils import PdfUtils
 
-# TODO : Recolor Everything!
-
 class Builder:
     def __init__(self, items):
         self.topics = []

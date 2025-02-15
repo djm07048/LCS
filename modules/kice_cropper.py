@@ -181,7 +181,7 @@ class KiceCropper:
                 tw = fitz.TextWriter(new_page.rect)
                 tw.append((Ratio.mm_to_px(caption_point[0]), font_size), f"{os.path.basename(self.pdf_name)[:-4]} {i+1}번 지1", font, font_size)
                 tw.write_text(new_page, color=(0, 0, 0, 1))
-                new_doc.save(f"output/caption/{self.base_name[:-7]} {i+1}번 {self.base_name[-6:-4]}_caption.pdf")
+                PdfUtils.save_to_pdf(new_doc,f"output/caption/{self.base_name[:-7]} {i+1}번 {self.base_name[-6:-4]}_caption.pdf", garbage=4)
                 #PdfUtils.extract_to_pdf(file, infos[i].page_num, infos[i].rect, f"output/caption/{os.path.basename(pdf_name)[:-4]} {i+1}번 지1_caption.pdf")
 
 
@@ -279,7 +279,7 @@ def save_caption_from_original_indie(item_code):
 if __name__ == '__main__':
     from pathlib import Path
 
-    folder_path = Path(INPUT_PATH + '/temp')
+    folder_path = Path(INPUT_PATH + '/ex')
     pdf_files = sorted(folder_path.glob('*.pdf'))
 
     for pdf_file in pdf_files:

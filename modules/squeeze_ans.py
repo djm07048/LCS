@@ -37,7 +37,6 @@ class AnswerBuilder:
         if num % 2 == 0:
             overlayer.add_page(base)
             #append left area
-            #TODO : Lt 시작 위치 바꾸고 처음에 AtoZ 추가
             paragraph_list = ListOverlayObject(num//2, Coord(Ratio.mm_to_px(25.5), Ratio.mm_to_px(34), 0), Ratio.mm_to_px(303), 0)
             #paragraph_list = ListOverlayObject(num//2, Coord(Ratio.mm_to_px(25.5), Ratio.mm_to_px(34), 0), Ratio.mm_to_px(303), 0)
             paragraph.add_paragraph_list(paragraph_list=paragraph_list)

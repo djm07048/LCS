@@ -12,7 +12,7 @@ from PyQt5.QtCore import (Qt, QThread, pyqtSignal)
 from PyQt5.QtGui import QColor
 from main import build_squeeze_paper
 from PyQt5.QtGui import QIcon
-from hwp2pdf import *
+from hwps.multi_printer import *
 from rasterizer import *
 from utils.path import *
 from utils.parse_code import *
@@ -169,6 +169,7 @@ class DatabaseManager(QMainWindow):
         right_button_layout = QVBoxLayout()
         self.book_name_input = QComboBox()
         self.load_book_names()
+        self.delete_pdfs_btn = QPushButton('DELETE PDFs As Shown')
         self.create_pdfs_btn = QPushButton('CREATE PDFs As Shown')
         self.export_json_btn = QPushButton('EXPORT JSON to DB')
         self.build_squeeze_paper_by_gui_btn = QPushButton('BUILD squeeze from DB')
@@ -179,6 +180,7 @@ class DatabaseManager(QMainWindow):
         self.log_window.setReadOnly(True)
 
         right_button_layout.addWidget(self.book_name_input)
+        right_button_layout.addWidget(self.delete_pdfs_btn)
         right_button_layout.addWidget(self.create_pdfs_btn)
         right_button_layout.addWidget(self.export_json_btn)
         right_button_layout.addWidget(self.build_squeeze_paper_by_gui_btn)
@@ -227,6 +229,7 @@ class DatabaseManager(QMainWindow):
         self.list_table.horizontalHeader().sectionClicked.connect(self.sort_list)
 
         self.book_name_input.currentIndexChanged.connect(self.load_selected_book)
+        self.delete_pdfs_btn.clicked.connect(self.delete_pdfs_gui)
         self.create_pdfs_btn.clicked.connect(self.create_pdfs_gui)
         self.export_json_btn.clicked.connect(self.export_to_json)
         self.build_squeeze_paper_by_gui_btn.clicked.connect(self.build_squeeze_paper_by_gui)
@@ -589,6 +592,34 @@ class DatabaseManager(QMainWindow):
             if section != "KC":
                 self.list_table.setItem(i, 3, QTableWidgetItem(chr(next_main_number+64)))
                 next_main_number += 1
+
+    def delete_pdfs_gui(self):
+        if not self.show_warning_dialog("Are you sure you want to DELETE PDFs?"):
+            return
+
+        if not self.show_warning_dialog("Are you REALLY sure you want to DELETE PDFs?"):
+            return
+
+        if not self.show_warning_dialog("ARE YOU REALLY SURE YOU WANT TO DELETE PDFs?"):
+            return
+
+        for row in range(self.list_table.rowCount()):
+            item_code = self.list_table.item(row, 0).text() if self.list_table.item(row, 0) else None
+            if item_code:
+                pdf_path = parse_item_pdf_path(item_code)
+                Main_path = parse_item_Main_path(item_code)
+                if pdf_path:
+                    try:
+                        os.remove(pdf_path) if os.path.exists(pdf_path) else None
+                        self.log_message(f"Deleted PDF: {pdf_path}")
+                    except Exception as e:
+                        self.log_message(f"Error deleting PDF: {e}")
+                if Main_path:
+                    try:
+                        os.remove(Main_path) if os.path.exists(Main_path) else None
+                        self.log_message(f"Deleted PDF: {Main_path}")
+                    except Exception as e:
+                        self.log_message(f"Error deleting PDF: {e}")
 
     def create_pdfs_gui(self):
         if not self.show_warning_dialog("Are you sure you want to create PDFs?"):

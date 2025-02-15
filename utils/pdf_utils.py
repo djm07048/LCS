@@ -62,4 +62,8 @@ class PdfUtils:
         for parent_path in paths:
             if parent_path.exists() == False:
                 parent_path.mkdir()
-        file.save(file_name, garbage=garbage)
+        file.save(file_name,
+                  garbage=garbage,
+                  deflate=True,  # 압축 활성화
+                  clean=True,  # 불필요한 요소 제거
+                  )
