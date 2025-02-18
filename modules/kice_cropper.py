@@ -15,6 +15,11 @@ from modules.overlayer import Overlayer
 
 #warning: 2014학년도 대수능 지2: 22문항이 정상임
 
+#TODO: problem.rect width를 110으로 확대하였음!!
+#TODO: problem.rect를 KICEcoord.json에 저장
+#TODO: KICEcoord.json을 이용하여 problem.rect를 잘라내어 저장하기
+
+
 class KiceCropper:
     def __init__(self, pdf_name: str) -> None:
         self.pdf_name = pdf_name
@@ -103,7 +108,7 @@ class KiceCropper:
         ret = []
         for rect in rects:
             new_rect = PdfUtils.trim_whitespace(page, rect, Direction.DOWN, accuracy)
-            new_rect.x0 = new_rect.x1 - Ratio.mm_to_px(109)
+            new_rect.x0 = new_rect.x1 - Ratio.mm_to_px(110)
             new_rect.y0 -= Ratio.mm_to_px(0.5)
             new_rect.y1 += Ratio.mm_to_px(0.5)
             ret.append(new_rect)
@@ -151,22 +156,55 @@ class KiceCropper:
         code = topic_code[key]
         return code
 
-    def save_original(self) -> None:
+    def save_original(self) -> None:            #TODO: key값이 없을 때 처리
         with open(RESOURCES_PATH + "/KICEtopic.json", encoding="UTF-8") as file:
             KICEtopic = json.load(file)
-        with fitz.open(self.pdf_name) as file:
+        with fitz.open(self.pdf_name) as kice_doc:
             for i in range(len(self.infos)):
-                rect = self.infos[i].rect
+                problem_rect = self.infos[i].rect
+                kice_page = kice_doc.load_page(self.infos[i].page_num)
+
+                full_doc = fitz.open()
+                full_page = full_doc.new_page(width = kice_page.rect.width, height = kice_page.rect.height, colorspace = fitz.csCMYK)
+                # 여기서 full_page가 cmyk colorspace가 아니라서 문제가 발생함
+                # cmyk로 만든 dummy pdf로부터 잘라서 가져오도록 바꾸어야 함,
+                full_page.show_pdf_page(kice_page.rect, kice_doc, self.infos[i].page_num)
+
+                if problem_rect.x0 > 0:
+                    full_page.add_redact_annot(fitz.Rect(0, 0, problem_rect.x0, full_page.rect.height))
+                if problem_rect.y0 > 0:
+                    full_page.add_redact_annot(fitz.Rect(0, 0, full_page.rect.width, problem_rect.y0))
+                if problem_rect.x1 < full_page.rect.width:
+                    full_page.add_redact_annot(fitz.Rect(problem_rect.x1, 0, full_page.rect.width, full_page.rect.height))
+                if problem_rect.y1 < full_page.rect.height:
+                    full_page.add_redact_annot(fitz.Rect(0, problem_rect.y1, full_page.rect.width, full_page.rect.height))
+
+                full_page.apply_redactions()
+
+
                 new_doc = fitz.open()
-                new_page = new_doc.new_page(width=rect.width, height=rect.height)
-                new_page.show_pdf_page(fitz.Rect(0,0,rect.width,rect.height), file, self.infos[i].page_num, clip=rect)
-                new_page.draw_rect(fitz.Rect(0, 0, Ratio.mm_to_px(2.5), Ratio.mm_to_px(5)), color=(0, 0, 0, 0), fill=(0, 0, 0, 0))
+                new_page = new_doc.new_page(width=problem_rect.width, height=problem_rect.height)
+                # 여기서 new_page가 cmyk colorspace가 아니라서 문제가 발생함
+
+                new_page.show_pdf_page(
+                    new_page.rect,
+                    full_doc,
+                    0,
+                    clip=problem_rect
+                )
+
+                new_page.set_mediabox(new_page.rect)
+                new_page.set_cropbox(new_page.rect)
+                new_page.draw_rect(fitz.Rect(0, 0, Ratio.mm_to_px(3), Ratio.mm_to_px(5)), color=(0, 0, 0, 0), fill=(0, 0, 0, 0))
+
                 key = f'{self.base_name[:-7]} {i+1}번 {self.base_name[-6:-4]}'
                 code = self.get_question_code(key)
+
                 if code is None:
                     PdfUtils.save_to_pdf(new_doc, KICE_DB_PATH + f"/others/{key}_original.pdf", garbage=4)
                 else:
-                    PdfUtils.save_to_pdf(new_doc, KICE_DB_PATH + f"/{code[2:5]}/{code}/{code}_original.pdf", garbage=4)
+                    PdfUtils.save_to_pdf(new_doc, parse_item_original_path(code), garbage=4)
+                    print(f"saved caption for {code}: {parse_item_original_path(code)}")
                 #new_doc.save(f"output/original/{self.base_name[:-7]} {i+1}번 {self.base_name[-6:-4]}_original.pdf")
 
     def save_caption(self, caption_point: tuple, font_size: int) -> None:
@@ -222,7 +260,7 @@ class KiceCropper:
                 continue
             origin = self.bake_origin(self.code_to_text(code))
             origin.coord = Coord(Ratio.mm_to_px(0.25), Ratio.mm_to_px(0.25), 0)
-            original_pdf = KICE_DB_PATH + f"/{code[2:5]}/{code}/{code}_original.pdf"
+            original_pdf = parse_item_original_path(code)
             with fitz.open(original_pdf) as file:
                 page = file.load_page(0)
                 component = Component(original_pdf, 0, page.rect)
@@ -240,7 +278,7 @@ def save_caption_from_original_indie(item_code):
     new_doc = fitz.open()
     overlayer = Overlayer(new_doc)
     original_pdf = parse_item_original_path(item_code)
-    modification_pdf = original_pdf.replace('_original', '_modification')
+    modification_pdf = parse_item_modified_path(item_code)
     citation = parse_code_citation(item_code)
 
     # bake_origin
@@ -279,7 +317,7 @@ def save_caption_from_original_indie(item_code):
 if __name__ == '__main__':
     from pathlib import Path
 
-    folder_path = Path(INPUT_PATH + '/ex')
+    folder_path = Path(INPUT_PATH + '/temp')
     pdf_files = sorted(folder_path.glob('*.pdf'))
 
     for pdf_file in pdf_files:

@@ -109,7 +109,7 @@ class MainsolBuilder:
         right_page.add_child(TextOverlayObject(0, Coord(Ratio.mm_to_px(108), Ratio.mm_to_px(59), 0), "Montserrat-Bold.ttf", 48, item_num, (1, 0, 0, 0), fitz.TEXT_ALIGN_RIGHT))
         origin.coord = Coord(Ratio.mm_to_px(108)-origin.rect.width, Ratio.mm_to_px(64), 0)
         right_page.add_child(origin)
-        white_box = ShapeOverlayObject(0,  Coord(Ratio.mm_to_px(118-0.5), Ratio.mm_to_px(46), 0), Rect(0, 0, Ratio.mm_to_px(2.5+0.5), Ratio.mm_to_px(5.5)), (1, 1, 1))
+        white_box = ShapeOverlayObject(0,  Coord(Ratio.mm_to_px(118-0.5), Ratio.mm_to_px(46), 0), Rect(0, 0, Ratio.mm_to_px(3.0+0.5), Ratio.mm_to_px(5.5)), (1, 1, 1))
         right_page.add_child(white_box)
 
         y_end = 46 + Ratio.px_to_mm(component.src_rect.height)
@@ -240,10 +240,8 @@ class MainsolBuilder:
     
     def add_unit_title(self, page_num, title):
         if page_num % 2 == 1:
-            unit_title_object = TextOverlayObject(page_num, Coord(Ratio.mm_to_px(18), Ratio.mm_to_px(14.5), 4), "Pretendard-ExtraBold.ttf", 18, title, (1, 0, 0, 0), fitz.TEXT_ALIGN_LEFT)
+            unit_title_object = TextOverlayObject(page_num, Coord(Ratio.mm_to_px(28), Ratio.mm_to_px(18.5), 4), "Pretendard-ExtraBold.ttf", 22, title, (1, 0, 0, 0), fitz.TEXT_ALIGN_LEFT)
             unit_title_object.overlay(self.overlayer, unit_title_object.coord)
-        # else:
-        #     unit_title_object = TextOverlayObject(page_num, Coord(Ratio.mm_to_px(244), Ratio.mm_to_px(14.5), 4), "Pretendard-ExtraBold.ttf", 18, title, (1, 0, 0, 0), fitz.TEXT_ALIGN_RIGHT)
 
     def build(self):
         new_doc = fitz.open()

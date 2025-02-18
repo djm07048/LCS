@@ -61,9 +61,9 @@ class Builder:
     def add_page_num(self, overlayer):
         for num in range(4, overlayer.doc.page_count): #4P부터 시작
             if num % 2:
-                page_num_object = TextOverlayObject(num-1, Coord(Ratio.mm_to_px(244), Ratio.mm_to_px(358.5), 4), "Pretendard-Bold.ttf", 14, f"{num}", (0, 0, 0, 1), fitz.TEXT_ALIGN_RIGHT)
+                page_num_object = TextOverlayObject(num-1, Coord(Ratio.mm_to_px(244), Ratio.mm_to_px(358.5), -1), "Pretendard-Bold.ttf", 14, f"{num}", (0, 0, 0, 1), fitz.TEXT_ALIGN_RIGHT)
             else:
-                page_num_object = TextOverlayObject(num-1, Coord(Ratio.mm_to_px(20), Ratio.mm_to_px(358.5), 4), "Pretendard-Bold.ttf", 14, f"{num}", (0, 0, 0, 1), fitz.TEXT_ALIGN_LEFT)
+                page_num_object = TextOverlayObject(num-1, Coord(Ratio.mm_to_px(20), Ratio.mm_to_px(358.5), -1), "Pretendard-Bold.ttf", 14, f"{num}", (0, 0, 0, 1), fitz.TEXT_ALIGN_LEFT)
             page_num_object.overlay(overlayer, page_num_object.coord)
 
     def build(self, output, log_callback=None):
@@ -165,6 +165,14 @@ class Builder:
         if log_callback:
             log_callback("Done!")
 
+        # Add Memo pages due to the number of pages
+        if not total.page_count % 4 == 3:  # 4k+3 형태가 아닐 때
+            for i in range((3 - total.page_count % 4) % 4):  # 필요한 페이지 수만큼
+                src_pdf = RESOURCES_PATH + "/squeeze_pro_resources.pdf"
+                src_doc = fitz.open(src_pdf)
+                total.insert_pdf(src_doc, from_page=4, to_page=4)
+
+        total.insert_pdf(fitz.open(RESOURCES_PATH + "/squeeze_toc_resources.pdf"), from_page=6, to_page=6)
 
         # Overlay TOC to the total document
         bake_toc = TocBuilder()
@@ -180,6 +188,8 @@ class Builder:
                 if fc_pages[i][1] == 2:
                     topic_list = self.bake_topic_list(fc_pages[i][0] + 3, i)
                     topic_list.overlay(overlayer, Coord(Ratio.mm_to_px(159), Ratio.mm_to_px(16.5), 0))
+
+
 
         self.add_page_num(overlayer)
 

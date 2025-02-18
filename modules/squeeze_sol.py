@@ -103,10 +103,10 @@ class SolutionBuilder:
             if sTF[solution_info.hexcode] == 0:
                 OX_component = self.get_component_on_resources(4)
             if OX_component is not None:
-                solution_object.add_child(ComponentOverlayObject(0, Coord(Ratio.mm_to_px(-1), 0, 1), OX_component))
+                solution_object.add_child(ComponentOverlayObject(0, Coord(Ratio.mm_to_px(-1), 0, 2), OX_component))
 
-            solution_object.add_child(ComponentOverlayObject(0, Coord(Ratio.mm_to_px(-1), 0, 2), type_component))
-            solution_object.add_child(ComponentOverlayObject(0, Coord(Ratio.mm_to_px(5.5), 0, 2), solution_component))
+            solution_object.add_child(ComponentOverlayObject(0, Coord(Ratio.mm_to_px(-1), 0, 1), type_component))
+            solution_object.add_child(ComponentOverlayObject(0, Coord(Ratio.mm_to_px(5.5), 0, 1), solution_component))
             solution_object.height = solution_info.rect.height
 
             solutions.append(solution_object)
@@ -123,7 +123,7 @@ class SolutionBuilder:
             objects.append(self.bake_problem_title(problem_num, answer))
             objects += self.bake_solutions(commentary_data, item_pdf, solutions_info, sTF)
         return objects
-    
+
     def build(self):
         fitz.TOOLS.debug = True
         new_doc = fitz.open()
@@ -163,22 +163,10 @@ class SolutionBuilder:
                     paragraph_cnt += 1
 
                 for problem_object in problem_objects:
-                    paragraph_cnt = self.add_child_to_paragraph(paragraph, problem_object, paragraph_cnt, self.overlayer, base)  
+                    paragraph_cnt = self.add_child_to_paragraph(paragraph, problem_object, paragraph_cnt, self.overlayer, base)
                 paragraph.add_child(AreaOverlayObject(0, Coord(0,0,0), Ratio.mm_to_px(20))) #minimal space between problems
 
         paragraph.overlay(self.overlayer, Coord(0,0,0))
-
-        if self.overlayer.doc.page_count % 2 == 0:
-            src_pdf = RESOURCES_PATH + "/squeeze_pro_resources.pdf"
-            src_doc = fitz.open(src_pdf)
-            compo = Component(src_pdf, 4, src_doc.load_page(4).rect)
-            self.overlayer.add_page(compo)
-
-        src_pdf = RESOURCES_PATH + "/squeeze_toc_resources.pdf"
-        src_doc = fitz.open(src_pdf)
-        compo = Component(src_pdf, 6, src_doc.load_page(6).rect)
-        self.overlayer.add_page(compo)
-
 
         self.resources_doc.close()
 

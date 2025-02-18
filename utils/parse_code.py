@@ -31,8 +31,10 @@ from utils.path import *
 @staticmethod
 def parse_item_folder_path(item_code: str) -> str:
     parsed = parse_code(item_code)
-    if parsed["section"] == "KC": base_path= KICE_DB_PATH
-    else: base_path= ITEM_DB_PATH
+    if parsed["section"] == "KC":
+        base_path= KICE_DB_PATH
+    else:
+        base_path= ITEM_DB_PATH
 
     return rf"{base_path}\{parsed['topic']}\{item_code}"
 

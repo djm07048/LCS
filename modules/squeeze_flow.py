@@ -47,15 +47,16 @@ class FlowBuilder:
             topic_data = json.load(file)
         return topic_data[self.topic]
 
-    def get_flow_right_page(self):
+    def get_flow_additional_pages(self, page_num):
         src_pdf = RESOURCES_PATH+ f"/fc_additional/{self.topic}.pdf"
         src_doc = fitz.open(src_pdf)
-        return Component(src_pdf, 0, src_doc.load_page(0).rect)
+        return Component(src_pdf, page_num, src_doc.load_page(page_num).rect)
+
 
     def set_page(self):
         if self.page_amount == 1:
             self.overlayer.add_page(self.get_component_on_resources(2))
-            self.overlayer.add_page(self.get_flow_right_page())
+            self.overlayer.add_page(self.get_flow_additional_pages(0))
             #self.overlayer.add_page(self.get_component_on_resources(4))
         elif self.page_amount == 2:
             self.overlayer.add_page(self.get_component_on_resources(2))
@@ -64,7 +65,7 @@ class FlowBuilder:
             self.overlayer.add_page(self.get_component_on_resources(2))
             self.overlayer.add_page(self.get_component_on_resources(3))
             self.overlayer.add_page(self.get_component_on_resources(2))
-            self.overlayer.add_page(self.get_flow_right_page())
+            self.overlayer.add_page(self.get_flow_additional_pages(0))
             #self.overlayer.add_page(self.get_component_on_resources(4))
         elif self.page_amount == 4:
             self.overlayer.add_page(self.get_component_on_resources(2))
@@ -188,9 +189,9 @@ class FlowBuilder:
             so = ShapeOverlayObject(piv-1, Coord(Ratio.mm_to_px(20), y + Ratio.mm_to_px(16.25), 0), Rect(0,0,Ratio.mm_to_px(222),Ratio.mm_to_px(330.75)-y), (0.2, 0, 0, 0))
             so.overlay(self.overlayer, Coord(Ratio.mm_to_px(20), y + Ratio.mm_to_px(16.25), 0))
             
-            so = ShapeOverlayObject(piv-2, Coord(Ratio.mm_to_px(20), y + Ratio.mm_to_px(16.25), 0), Rect(0,0,Ratio.mm_to_px(222), Ratio.mm_to_px(0.5/2.835)), (1, 0, 0, 0))
+            so = ShapeOverlayObject(piv-2, Coord(Ratio.mm_to_px(20), y + Ratio.mm_to_px(16.25), 0), Rect(0,0,Ratio.mm_to_px(222), 1.0/2.835), (1, 0, 0, 0))
             so.overlay(self.overlayer, Coord(Ratio.mm_to_px(20), Ratio.mm_to_px(347), 0))
-            so = ShapeOverlayObject(piv-1, Coord(Ratio.mm_to_px(20), y + Ratio.mm_to_px(16.25), 0), Rect(0,0,Ratio.mm_to_px(222), Ratio.mm_to_px(0.5/2.835)), (1, 0, 0, 0))
+            so = ShapeOverlayObject(piv-1, Coord(Ratio.mm_to_px(20), y + Ratio.mm_to_px(16.25), 0), Rect(0,0,Ratio.mm_to_px(222), 1.0/2.835), (1, 0, 0, 0))
             so.overlay(self.overlayer, Coord(Ratio.mm_to_px(20), Ratio.mm_to_px(347), 0))
 
 
@@ -198,15 +199,26 @@ class FlowBuilder:
             component = self.get_component_on_resources(5)
             co = ComponentOverlayObject(piv-2, Coord(Ratio.mm_to_px(20),y+Ratio.mm_to_px(12),0), component)
             co.overlay(self.overlayer, Coord(Ratio.mm_to_px(20),y+Ratio.mm_to_px(12),0))
+
+            component = self.get_flow_additional_pages(0)
+            co = ComponentOverlayObject(piv-2, Coord(Ratio.mm_to_px(0),y+Ratio.mm_to_px(12),1), component)
+            co.overlay(self.overlayer, Coord(Ratio.mm_to_px(0),y+Ratio.mm_to_px(12),1))
+
             component = self.get_component_on_resources(6)
             co = ComponentOverlayObject(piv-1, Coord(Ratio.mm_to_px(20),y+Ratio.mm_to_px(12),0), component)
             co.overlay(self.overlayer, Coord(Ratio.mm_to_px(20),y+Ratio.mm_to_px(12),0))
 
+            component = self.get_flow_additional_pages(1)
+            co = ComponentOverlayObject(piv-1, Coord(Ratio.mm_to_px(0),y+Ratio.mm_to_px(12),1), component)
+            co.overlay(self.overlayer, Coord(Ratio.mm_to_px(0),y+Ratio.mm_to_px(12),1))
+
+
+        # 좌수 상단 단원 숫자 제목
         for i in range(len(para_lists))[::2]:
-            to = TextOverlayObject(i, Coord(Ratio.mm_to_px(36), Ratio.mm_to_px(19), 0), "Pretendard-Bold.ttf", 32.5, self.get_unit_title(), (0, 0, 0, 1), fitz.TEXT_ALIGN_LEFT)
-            to.overlay(self.overlayer, Coord(Ratio.mm_to_px(36), Ratio.mm_to_px(19), 0))
-            ti = TextOverlayObject(i, Coord(Ratio.mm_to_px(23.1), Ratio.mm_to_px(19), 0), "Montserrat-Bold.ttf", 32.5, str(self.index), (0, 0, 0, 0), fitz.TEXT_ALIGN_CENTER)
-            ti.overlay(self.overlayer, Coord(Ratio.mm_to_px(23.1), Ratio.mm_to_px(19), 0))
+            to = TextOverlayObject(i, Coord(Ratio.mm_to_px(56), Ratio.mm_to_px(19), 0), "Pretendard-Bold.ttf", 32.5, self.get_unit_title(), (0, 0, 0, 1), fitz.TEXT_ALIGN_LEFT)
+            to.overlay(self.overlayer, Coord(Ratio.mm_to_px(56), Ratio.mm_to_px(19), 0))
+            ti = TextOverlayObject(i, Coord(Ratio.mm_to_px(43.1), Ratio.mm_to_px(19), 0), "Montserrat-Bold.ttf", 32.5, str(self.index), (0, 0, 0, 0), fitz.TEXT_ALIGN_CENTER)
+            ti.overlay(self.overlayer, Coord(Ratio.mm_to_px(43.1), Ratio.mm_to_px(19), 0))
 
         '''# Flowline 삽입
         for fl in flowline_json:

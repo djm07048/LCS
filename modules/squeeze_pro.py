@@ -73,10 +73,9 @@ class ProblemBuilder:
     
     def add_unit_title(self, page_num, title):
         if page_num % 2 == self.page:
-            unit_title_object = TextOverlayObject(page_num, Coord(Ratio.mm_to_px(18), Ratio.mm_to_px(14.5), 4), "Pretendard-ExtraBold.ttf", 18, title, (1, 0, 0, 0), fitz.TEXT_ALIGN_LEFT)
+            unit_title_object = TextOverlayObject(page_num, Coord(Ratio.mm_to_px(28), Ratio.mm_to_px(18.5), 4), "Pretendard-ExtraBold.ttf", 22, title, (1, 0, 0, 0), fitz.TEXT_ALIGN_LEFT)
             unit_title_object.overlay(self.overlayer, unit_title_object.coord)
-        # else:
-        #     unit_title_object = TextOverlayObject(page_num, Coord(Ratio.mm_to_px(244), Ratio.mm_to_px(14.5), 4), "Pretendard-ExtraBold.ttf", 18, title, (1, 0, 0, 0), fitz.TEXT_ALIGN_RIGHT)
+
 
     def code_to_text(self, problem_code):
         subject_text = {
@@ -162,7 +161,7 @@ class ProblemBuilder:
                 prect = ic.get_problem_rect_from_file(file, 10)
                 component = Component(item_pdf, 0, prect)
                 problem_object = ComponentOverlayObject(0, Coord(0, problem.height, 0), component)
-                white_box = ShapeOverlayObject(0, Coord(0, 0, 0), Rect(0, 0, Ratio.mm_to_px(2.5), Ratio.mm_to_px(5)),
+                white_box = ShapeOverlayObject(0, Coord(0, 0, 0), Rect(0, 0, Ratio.mm_to_px(3), Ratio.mm_to_px(5)),
                                                (0, 0, 0))
                 problem_object.add_child(white_box)
                 problem.add_child(problem_object)
