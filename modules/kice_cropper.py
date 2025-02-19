@@ -161,14 +161,16 @@ class KiceCropper:
             KICEtopic = json.load(file)
         with fitz.open(self.pdf_name) as kice_doc:
             for i in range(len(self.infos)):
+                key = f'{self.base_name[:-7]} {i+1}번 {self.base_name[-6:-4]}'
+                code = self.get_question_code(key)
                 problem_rect = self.infos[i].rect
                 kice_page = kice_doc.load_page(self.infos[i].page_num)
 
                 full_doc = fitz.open()
-                full_page = full_doc.new_page(width = kice_page.rect.width, height = kice_page.rect.height, colorspace = fitz.csCMYK)
+                full_doc.insert_pdf(kice_doc, from_page=self.infos[i].page_num, to_page=self.infos[i].page_num)
+                full_page = full_doc.load_page(0)
                 # 여기서 full_page가 cmyk colorspace가 아니라서 문제가 발생함
                 # cmyk로 만든 dummy pdf로부터 잘라서 가져오도록 바꾸어야 함,
-                full_page.show_pdf_page(kice_page.rect, kice_doc, self.infos[i].page_num)
 
                 if problem_rect.x0 > 0:
                     full_page.add_redact_annot(fitz.Rect(0, 0, problem_rect.x0, full_page.rect.height))
@@ -181,9 +183,14 @@ class KiceCropper:
 
                 full_page.apply_redactions()
 
+                full_doc.new_page(width=problem_rect.width, height=problem_rect.height)
+
+                PdfUtils.save_to_pdf(full_doc, parse_item_original_path(key).replace('_original', '_dd'), garbage=4)
 
                 new_doc = fitz.open()
-                new_page = new_doc.new_page(width=problem_rect.width, height=problem_rect.height)
+                new_doc.insert_pdf(full_doc, from_page=1, to_page=1)
+                new_page = new_doc.load_page(0)
+                full_doc.delete_page(1)
                 # 여기서 new_page가 cmyk colorspace가 아니라서 문제가 발생함
 
                 new_page.show_pdf_page(
@@ -197,14 +204,11 @@ class KiceCropper:
                 new_page.set_cropbox(new_page.rect)
                 new_page.draw_rect(fitz.Rect(0, 0, Ratio.mm_to_px(3), Ratio.mm_to_px(5)), color=(0, 0, 0, 0), fill=(0, 0, 0, 0))
 
-                key = f'{self.base_name[:-7]} {i+1}번 {self.base_name[-6:-4]}'
-                code = self.get_question_code(key)
-
                 if code is None:
                     PdfUtils.save_to_pdf(new_doc, KICE_DB_PATH + f"/others/{key}_original.pdf", garbage=4)
                 else:
                     PdfUtils.save_to_pdf(new_doc, parse_item_original_path(code), garbage=4)
-                    print(f"saved caption for {code}: {parse_item_original_path(code)}")
+                    print(f"saved original for {code}: {parse_item_original_path(code)}")
                 #new_doc.save(f"output/original/{self.base_name[:-7]} {i+1}번 {self.base_name[-6:-4]}_original.pdf")
 
     def save_caption(self, caption_point: tuple, font_size: int) -> None:
@@ -268,9 +272,10 @@ class KiceCropper:
             base = AreaOverlayObject(0, Coord(0,0,0), origin.get_height() + co.get_height() + Ratio.mm_to_px(2))
             base.add_child(origin)
             base.add_child(co)
-            new_page = new_doc.new_page(width=component.src_rect.width, height=base.get_height())
+            new_doc.new_page(width=component.src_rect.width, height=base.get_height())
             base.overlay(overlayer, Coord(0,0,0))
             PdfUtils.save_to_pdf(new_doc, KICE_DB_PATH + f"/{code[2:5]}/{code}/{code}_caption.pdf", garbage=4)
+            print(f"saved caption for {code}: {KICE_DB_PATH + f'/{code[2:5]}/{code}/{code}_caption.pdf'}")
 
 
 from utils.parse_code import *
@@ -317,16 +322,24 @@ def save_caption_from_original_indie(item_code):
 if __name__ == '__main__':
     from pathlib import Path
 
-    folder_path = Path(INPUT_PATH + '/temp')
-    pdf_files = sorted(folder_path.glob('*.pdf'))
+    folders = [
+        r"T:\Software\LCS\input\1415",
+        r"T:\Software\LCS\input\1617",
+        r"T:\Software\LCS\input\1820",
+        r"T:\Software\LCS\input\2123",
+        r"T:\Software\LCS\input\2425"
+    ]
+    for folder_path in folders:
+        folder_path = Path(folder_path)
+        pdf_files = sorted(folder_path.glob('*.pdf'))
 
-    for pdf_file in pdf_files:
-        pdf_src_path = str(pdf_file)
-        item_code = pdf_file.stem
-        print(item_code, end=' ')
-        kc = KiceCropper(pdf_name=pdf_src_path)
-        ret = kc.extract_problems(accuracy=10)
-        print(f'extracted {ret} items')
-        kc.save_original()
-        kc.save_caption_from_original()
+        for pdf_file in pdf_files:
+            pdf_src_path = str(pdf_file)
+            item_code = pdf_file.stem
+            print(item_code, end=' ')
+            kc = KiceCropper(pdf_name=pdf_src_path)
+            ret = kc.extract_problems(accuracy=10)
+            print(f'extracted {ret} items')
+            kc.save_original()
+            kc.save_caption_from_original()
 

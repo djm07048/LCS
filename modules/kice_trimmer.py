@@ -61,8 +61,7 @@ def kice_trimmer(src_pdf, trim_height=0):
 
     src_doc.close()
 
-#trim_specs = [("E1baaKC230601", 19.5), ('E1baaKC250904', 12.0), ('E2babKC150902', 15.0), ('E2babKC151106', 15.0), ('E1badKC240912',20.0), ('E2bafKC160912', 10.0)]
-trim_specs = [('E2babKC150902', 15.0)]
+trim_specs = [("E1baaKC230601", 19.5), ('E1baaKC250904', 12.0), ('E2babKC150902', 15.0), ('E2babKC151106', 15.0), ('E1badKC240912',20.0), ('E2bafKC160912', 10.0)]
 
 for item in trim_specs:
     kice_trimmer(parse_item_original_path(item[0]), trim_height=item[1])

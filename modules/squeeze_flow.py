@@ -8,6 +8,7 @@ from utils.solution_info import SolutionInfo
 from utils.overlay_object import *
 from utils.coord import Coord
 from utils.path import *
+from utils.parse_code import *
 import json
 
 class FlowBuilder:
@@ -130,7 +131,10 @@ class FlowBuilder:
             for item in self.item_lists[i]:
                 item_code = item[1]
                 FC_para = int(i*10 + 10 + item[0])
-                item_pdf = get_item_path(item_code) + f"/{item_code[2:5]}/{item_code}/{item_code}_caption.pdf"
+                if os.path.exists(parse_item_caption_path(item_code).replace(".pdf", "_trimmed.pdf")):
+                    item_pdf = parse_item_caption_path(item_code).replace(".pdf", "_trimmed.pdf")
+                else:
+                    item_pdf = parse_item_caption_path(item_code)
 
                 with fitz.open(item_pdf) as file:
                     page = file.load_page(0)

@@ -120,7 +120,11 @@ class ProblemBuilder:
         problem = AreaOverlayObject(0, Coord(0, 0, 0), 0)
         if problem_code[5:7] == 'KC':  # kice problem
             item_code = problem_code
-            item_pdf = parse_item_original_path(item_code)
+
+            if os.path.exists(parse_item_original_path(item_code).replace(".pdf", "_trimmed.pdf")):
+                item_pdf = parse_item_original_path(item_code).replace(".pdf", "_trimmed.pdf")
+            else:
+                item_pdf = parse_item_original_path(item_code)
             modified_pdf = parse_item_modified_path(item_code)
             problem_title = self.bake_problem_title(problem_num, self.code_to_text(problem_code))
             problem.add_child(problem_title)
