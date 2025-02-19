@@ -2,6 +2,8 @@ from utils.parse_code import *
 from utils.ratio import Ratio
 import fitz
 import traceback
+import os
+from utils.ratio import Ratio
 
 def kice_trimmer(src_pdf, trim_height=0):
     dst_doc = None
@@ -12,6 +14,13 @@ def kice_trimmer(src_pdf, trim_height=0):
     try:
         # 원본 페이지 로드
         original_page = src_doc.load_page(0)
+        x0 = 0
+        y0 = 0
+        x1 = original_page.rect.width
+        y1 = original_page.rect.height
+        original_rect = fitz.Rect(x0, y0, x1, y1)
+        original_page.set_cropbox(original_rect)
+        original_page.set_mediabox(original_rect)
 
         # 새로운 PDF 문서 생성 및 페이지 복사
         temp_doc = fitz.open()
@@ -61,8 +70,8 @@ def kice_trimmer(src_pdf, trim_height=0):
 
     src_doc.close()
 
-trim_specs = [("E1baaKC230601", 19.5), ('E1baaKC250904', 12.0), ('E2babKC150902', 15.0), ('E2babKC151106', 15.0), ('E1badKC240912',20.0), ('E2bafKC160912', 10.0)]
+trim_specs = [("E1baaKC230601", 19.5), ('E2babKC150902', 15.0), ('E2babKC151106', 15.0), ('E2bafKC160912', 10.0)]
 
 for item in trim_specs:
-    kice_trimmer(parse_item_original_path(item[0]), trim_height=item[1])
-    kice_trimmer(parse_item_caption_path(item[0]), trim_height=item[1])
+    kice_trimmer(parse_item_original_path(item[0]), item[1])
+    kice_trimmer(parse_item_caption_path(item[0]),item[1])

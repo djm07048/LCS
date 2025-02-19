@@ -202,7 +202,7 @@ class KiceCropper:
 
                 new_page.set_mediabox(new_page.rect)
                 new_page.set_cropbox(new_page.rect)
-                new_page.draw_rect(fitz.Rect(0, 0, Ratio.mm_to_px(3), Ratio.mm_to_px(5)), color=(0, 0, 0, 0), fill=(0, 0, 0, 0))
+                new_page.draw_rect(fitz.Rect(0, 0, Ratio.mm_to_px(4), Ratio.mm_to_px(5)), color=(0, 0, 0, 0), fill=(0, 0, 0, 0))
 
                 if code is None:
                     PdfUtils.save_to_pdf(new_doc, KICE_DB_PATH + f"/others/{key}_original.pdf", garbage=4)
@@ -322,24 +322,16 @@ def save_caption_from_original_indie(item_code):
 if __name__ == '__main__':
     from pathlib import Path
 
-    folders = [
-        r"T:\Software\LCS\input\1415",
-        r"T:\Software\LCS\input\1617",
-        r"T:\Software\LCS\input\1820",
-        r"T:\Software\LCS\input\2123",
-        r"T:\Software\LCS\input\2425"
-    ]
-    for folder_path in folders:
-        folder_path = Path(folder_path)
-        pdf_files = sorted(folder_path.glob('*.pdf'))
+    folder_path = Path(r"T:\Software\LCS\input\1617")
+    pdf_files = sorted(folder_path.glob('*.pdf'))
 
-        for pdf_file in pdf_files:
-            pdf_src_path = str(pdf_file)
-            item_code = pdf_file.stem
-            print(item_code, end=' ')
-            kc = KiceCropper(pdf_name=pdf_src_path)
-            ret = kc.extract_problems(accuracy=10)
-            print(f'extracted {ret} items')
-            kc.save_original()
-            kc.save_caption_from_original()
+    for pdf_file in pdf_files:
+        pdf_src_path = str(pdf_file)
+        item_code = pdf_file.stem
+        print(item_code, end=' ')
+        kc = KiceCropper(pdf_name=pdf_src_path)
+        ret = kc.extract_problems(accuracy=10)
+        print(f'extracted {ret} items')
+        kc.save_original()
+        kc.save_caption_from_original()
 

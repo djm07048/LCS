@@ -188,6 +188,7 @@ class FlowBuilder:
         if len(para_lists) % 2 == 0:
             piv = len(para_lists)
             y = para_lists[piv-2].coord.y + para_lists[piv-2].rect.height
+            '''
             so = ShapeOverlayObject(piv-2, Coord(Ratio.mm_to_px(20), y + Ratio.mm_to_px(16.25), 0), Rect(0,0,Ratio.mm_to_px(222),Ratio.mm_to_px(330.75)-y), (0.2, 0, 0, 0))
             so.overlay(self.overlayer, Coord(Ratio.mm_to_px(20), y + Ratio.mm_to_px(16.25), 0))
             so = ShapeOverlayObject(piv-1, Coord(Ratio.mm_to_px(20), y + Ratio.mm_to_px(16.25), 0), Rect(0,0,Ratio.mm_to_px(222),Ratio.mm_to_px(330.75)-y), (0.2, 0, 0, 0))
@@ -204,13 +205,13 @@ class FlowBuilder:
             co = ComponentOverlayObject(piv-2, Coord(Ratio.mm_to_px(20),y+Ratio.mm_to_px(12),0), component)
             co.overlay(self.overlayer, Coord(Ratio.mm_to_px(20),y+Ratio.mm_to_px(12),0))
 
-            component = self.get_flow_additional_pages(0)
-            co = ComponentOverlayObject(piv-2, Coord(Ratio.mm_to_px(0),y+Ratio.mm_to_px(12),1), component)
-            co.overlay(self.overlayer, Coord(Ratio.mm_to_px(0),y+Ratio.mm_to_px(12),1))
-
             component = self.get_component_on_resources(6)
             co = ComponentOverlayObject(piv-1, Coord(Ratio.mm_to_px(20),y+Ratio.mm_to_px(12),0), component)
             co.overlay(self.overlayer, Coord(Ratio.mm_to_px(20),y+Ratio.mm_to_px(12),0))
+            '''
+            component = self.get_flow_additional_pages(0)
+            co = ComponentOverlayObject(piv-2, Coord(Ratio.mm_to_px(0),y+Ratio.mm_to_px(12),1), component)
+            co.overlay(self.overlayer, Coord(Ratio.mm_to_px(0),y+Ratio.mm_to_px(12),1))
 
             component = self.get_flow_additional_pages(1)
             co = ComponentOverlayObject(piv-1, Coord(Ratio.mm_to_px(0),y+Ratio.mm_to_px(12),1), component)
