@@ -185,8 +185,6 @@ class KiceCropper:
 
                 full_doc.new_page(width=problem_rect.width, height=problem_rect.height)
 
-                PdfUtils.save_to_pdf(full_doc, parse_item_original_path(key).replace('_original', '_dd'), garbage=4)
-
                 new_doc = fitz.open()
                 new_doc.insert_pdf(full_doc, from_page=1, to_page=1)
                 new_page = new_doc.load_page(0)

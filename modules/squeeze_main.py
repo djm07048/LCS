@@ -161,6 +161,22 @@ class MainsolBuilder:
     def bake_solution_object(self, solution_info, TF, item_pdf):
         solution_object = AreaOverlayObject(0, Coord(0,0,0), 0)
         solution_component = Component(item_pdf, 0, solution_info.rect)
+
+        sol_type_dict = self.get_sol_type_dict()
+        commentary_data = self.get_commentary_data()
+
+        if solution_info.hexcode not in commentary_data:
+            # Handle the missing key case
+            print(f"Warning: Hexcode {solution_info.hexcode} not found in commentary data.")
+            return None
+
+        commentary_key = commentary_data[solution_info.hexcode]
+        if commentary_key not in sol_type_dict:
+            # Handle the missing key case
+            print(f"Warning: Commentary key {commentary_key} not found in solution type dictionary.")
+            return None
+
+
         res_page_num = self.get_sol_type_dict()[self.get_commentary_data()[solution_info.hexcode]]
         type_component = self.get_component_on_resources(res_page_num)
         solution_object.add_child(ComponentOverlayObject(0, Coord(Ratio.mm_to_px(0), 0, 2), type_component))
