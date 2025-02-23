@@ -291,16 +291,17 @@ class DatabaseManager(QMainWindow):
 
         # Helper function to check if item is valid
         def is_valid_item(folder_path, subfolder, original_pdf=True):
+            # hwp file / pdf file 둘 중 하나라도 있으면 존재하는 것으로 산정.
             if not os.path.isdir(os.path.join(folder_path, subfolder)):
                 return False
 
             hwp_path = os.path.join(folder_path, subfolder, f"{subfolder}.hwp")
-            if original_pdf:
+            if original_pdf == True:
                 pdf_path = os.path.join(folder_path, subfolder, f"{subfolder}_original.pdf")
             else:
                 pdf_path = os.path.join(folder_path, subfolder, f"{subfolder}.pdf")
 
-            return os.path.exists(hwp_path) and os.path.exists(pdf_path)
+            return os.path.exists(hwp_path) or os.path.exists(pdf_path)
 
         # Load from KICE_DB_PATH
         for folder in os.listdir(KICE_DB_PATH):
