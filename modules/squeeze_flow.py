@@ -57,8 +57,7 @@ class FlowBuilder:
     def set_page(self):
         if self.page_amount == 1:
             self.overlayer.add_page(self.get_component_on_resources(2))
-            self.overlayer.add_page(self.get_flow_additional_pages(0))
-            #self.overlayer.add_page(self.get_component_on_resources(4))
+            self.overlayer.add_page(self.get_component_on_resources(4))
         elif self.page_amount == 2:
             self.overlayer.add_page(self.get_component_on_resources(2))
             self.overlayer.add_page(self.get_component_on_resources(3))
@@ -66,8 +65,7 @@ class FlowBuilder:
             self.overlayer.add_page(self.get_component_on_resources(2))
             self.overlayer.add_page(self.get_component_on_resources(3))
             self.overlayer.add_page(self.get_component_on_resources(2))
-            self.overlayer.add_page(self.get_flow_additional_pages(0))
-            #self.overlayer.add_page(self.get_component_on_resources(4))
+            self.overlayer.add_page(self.get_component_on_resources(4))
         elif self.page_amount == 4:
             self.overlayer.add_page(self.get_component_on_resources(2))
             self.overlayer.add_page(self.get_component_on_resources(3))
@@ -217,6 +215,15 @@ class FlowBuilder:
             co = ComponentOverlayObject(piv-1, Coord(Ratio.mm_to_px(0),y+Ratio.mm_to_px(12),1), component)
             co.overlay(self.overlayer, Coord(Ratio.mm_to_px(0),y+Ratio.mm_to_px(12),1))
 
+        if len(para_lists) % 2 == 1:
+            piv = len(para_lists)
+            component = self.get_flow_additional_pages(0)
+            co = ComponentOverlayObject(piv, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(46), 1), component)
+            co.overlay(self.overlayer, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(46), 1))
+
+            component = self.get_flow_additional_pages(1)
+            co = ComponentOverlayObject(piv, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(207.75), 1), component)
+            co.overlay(self.overlayer, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(207.75), 1))
 
         # 좌수 상단 단원 숫자 제목
         for i in range(len(para_lists))[::2]:

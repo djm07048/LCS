@@ -58,7 +58,8 @@ def add_watermark_and_rasterize(source_pdf, output_pdf, dpi=200, compression_qua
         watermark_page = watermark.pages[0]
 
         # 각 페이지에 워터마크 추가 후 레스터화
-        for page in reader.pages:
+        for page_num in range(len(reader.pages)):
+            page = reader.pages[page_num]
             # 워터마크 추가
             page.merge_page(watermark_page)
 
