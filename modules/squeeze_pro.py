@@ -41,28 +41,21 @@ class ProblemBuilder:
         return Component(self.resources_pdf, page_num, self.resources_doc.load_page(page_num).rect)
 
     def append_new_list_to_paragraph(self, paragraph: ParagraphOverlayObject, num):
+
         if num % 4 == 0:
             self.overlayer.add_page(self.get_component_on_resources(2+self.page))
-            #append left area to left page
-            paragraph_list = ListOverlayObject(num//2, Coord(Ratio.mm_to_px(20-self.page*2), Ratio.mm_to_px(34), 0), Ratio.mm_to_px(303), 2)
-            paragraph.add_paragraph_list(paragraph_list=paragraph_list)
-            pass
-        elif num % 4 == 1:
-            #append right area to left page
-            paragraph_list = ListOverlayObject(num//2, Coord(Ratio.mm_to_px(136-self.page*2), Ratio.mm_to_px(34), 0), Ratio.mm_to_px(303), 2)
-            paragraph.add_paragraph_list(paragraph_list=paragraph_list)
             pass
         elif num % 4 == 2:
             self.overlayer.add_page(self.get_component_on_resources(3-self.page))
-            #append left area to right page
-            paragraph_list = ListOverlayObject(num//2, Coord(Ratio.mm_to_px(18+self.page*2), Ratio.mm_to_px(34), 0), Ratio.mm_to_px(303), 2)
-            paragraph.add_paragraph_list(paragraph_list=paragraph_list)
             pass
-        elif num % 4 == 3:
-            #append right area to right page
-            paragraph_list = ListOverlayObject(num//2, Coord(Ratio.mm_to_px(134+self.page*2), Ratio.mm_to_px(34), 0), Ratio.mm_to_px(303), 2)
-            paragraph.add_paragraph_list(paragraph_list=paragraph_list)
-            pass
+
+        x0_list = [17 - 1.5, 133 - 1.5, 20 - 0.5, 136 - 0.5] #LL, LR, RL, RR의 x0
+        if self.page == 0:
+            x0 = x0_list[num]
+        else:
+            x0 = x0_list[(num+2) % 4]
+        paragraph_list = ListOverlayObject(num//2, Coord(Ratio.mm_to_px(x0), Ratio.mm_to_px(34), 0), Ratio.mm_to_px(303), 2)
+        paragraph.add_paragraph_list(paragraph_list=paragraph_list)
         pass
 
     def add_child_to_paragraph(self, paragraph: ParagraphOverlayObject, child: OverlayObject, num):
@@ -73,7 +66,7 @@ class ProblemBuilder:
     
     def add_unit_title(self, page_num, title):
         if page_num % 2 == self.page:
-            unit_title_object = TextOverlayObject(page_num, Coord(Ratio.mm_to_px(28), Ratio.mm_to_px(18.5), 4), "Pretendard-ExtraBold.ttf", 22, title, (1, 0, 0, 0), fitz.TEXT_ALIGN_LEFT)
+            unit_title_object = TextOverlayObject(page_num, Coord(Ratio.mm_to_px(17), Ratio.mm_to_px(20), 4), "Pretendard-ExtraBold.ttf", 22, title, (1, 0, 0, 0), fitz.TEXT_ALIGN_LEFT)
             unit_title_object.overlay(self.overlayer, unit_title_object.coord)
 
 
@@ -98,12 +91,12 @@ class ProblemBuilder:
 
     def bake_problem_title(self, problem_num, source = None):
         problem_title = AreaOverlayObject(0, Coord(0,0,0), Ratio.mm_to_px(17))
-        num_object = TextOverlayObject(0, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(13), 4), "Pretendard-ExtraBold.ttf", 30, f"{problem_num}", (1, 0, 0, 0), fitz.TEXT_ALIGN_LEFT)
+        num_object = TextOverlayObject(0, Coord(Ratio.mm_to_px(3), Ratio.mm_to_px(13), 4), "Pretendard-ExtraBold.ttf", 30, f"{problem_num}", (1, 0, 0, 0), fitz.TEXT_ALIGN_LEFT)
         problem_title.add_child(num_object)
         if source is not None:
             text = TextOverlayObject(0, Coord(0,0,0), "Pretendard-Regular.ttf", 12, source, (0, 0, 0, 0), fitz.TEXT_ALIGN_CENTER)
             text.get_width()
-            box = ShapeOverlayObject(0, Coord(Ratio.mm_to_px(27), Ratio.mm_to_px(7.5), 2), Rect(0,0,Ratio.mm_to_px(4)+text.get_width(),Ratio.mm_to_px(5.5)), (0,0,0,0.5), 0.5/5.5)
+            box = ShapeOverlayObject(0, Coord(Ratio.mm_to_px(30), Ratio.mm_to_px(7.5), 2), Rect(0,0,Ratio.mm_to_px(4)+text.get_width(),Ratio.mm_to_px(5.5)), (0,0,0,0.5), 0.5/5.5)
             text.coord = Coord(box.rect.width/2, Ratio.mm_to_px(4.3), 3)
             box.add_child(text)
             problem_title.add_child(box)

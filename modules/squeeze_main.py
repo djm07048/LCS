@@ -256,7 +256,7 @@ class MainsolBuilder:
     
     def add_unit_title(self, page_num, title):
         if page_num % 2 == 1:
-            unit_title_object = TextOverlayObject(page_num, Coord(Ratio.mm_to_px(28), Ratio.mm_to_px(18.5), 4), "Pretendard-ExtraBold.ttf", 22, title, (1, 0, 0, 0), fitz.TEXT_ALIGN_LEFT)
+            unit_title_object = TextOverlayObject(page_num, Coord(Ratio.mm_to_px(17), Ratio.mm_to_px(20), 4), "Pretendard-ExtraBold.ttf", 22, title, (1, 0, 0, 0), fitz.TEXT_ALIGN_LEFT)
             unit_title_object.overlay(self.overlayer, unit_title_object.coord)
 
     def build(self):

@@ -729,6 +729,8 @@ class DatabaseManager(QMainWindow):
     def build_squeeze_paper_by_gui(self):
         if not self.show_warning_dialog("Are you sure you want to build the squeeze paper?"):
             return
+        if not self.show_warning_dialog("Please Ensure that Every PDF file is Updated"):
+            return
         book_name = self.book_name_input.currentText()
         input_path = os.path.join(BOOK_DB_PATH, book_name)
         output_path = os.path.join(OUTPUT_PATH, book_name.replace('.json', '.pdf'))
