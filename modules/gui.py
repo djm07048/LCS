@@ -16,6 +16,12 @@ from hwps.multi_printer import *
 from rasterizer import *
 from utils.path import *
 from utils.parse_code import *
+from utils.coord import Coord
+from utils.ratio import Ratio
+
+from overlayer import *
+from utils.overlay_object import *
+
 import traceback
 
 def suppress_qt_warnings():
@@ -171,9 +177,11 @@ class DatabaseManager(QMainWindow):
         self.load_book_names()
         self.delete_pdfs_btn = QPushButton('DELETE PDFs As Shown')
         self.create_pdfs_btn = QPushButton('CREATE PDFs As Shown')
+        self.merge_pdfs_btn = QPushButton('MERGE PDFs As Shown')
         self.export_json_btn = QPushButton('EXPORT JSON to DB')
         self.build_squeeze_paper_by_gui_btn = QPushButton('BUILD squeeze from DB')
         self.rasterize_pdf_btn = QPushButton('RASTERIZE PDF from DB')
+        self.open_merged_pdf_btn = QPushButton('OPEN MERGED PDF')
         self.open_naive_pdf_btn = QPushButton('OPEN NAIVE PDF')
         self.open_rasterized_pdf_btn = QPushButton('OPEN RASTERIZED PDF')
         self.log_window = QTextEdit()
@@ -182,6 +190,7 @@ class DatabaseManager(QMainWindow):
         right_button_layout.addWidget(self.book_name_input)
         right_button_layout.addWidget(self.delete_pdfs_btn)
         right_button_layout.addWidget(self.create_pdfs_btn)
+        right_button_layout.addWidget(self.merge_pdfs_btn)
         right_button_layout.addWidget(self.export_json_btn)
         right_button_layout.addWidget(self.build_squeeze_paper_by_gui_btn)
         right_button_layout.addWidget(self.rasterize_pdf_btn)
@@ -231,9 +240,11 @@ class DatabaseManager(QMainWindow):
         self.book_name_input.currentIndexChanged.connect(self.load_selected_book)
         self.delete_pdfs_btn.clicked.connect(self.delete_pdfs_gui)
         self.create_pdfs_btn.clicked.connect(self.create_pdfs_gui)
+        self.merge_pdfs_btn.clicked.connect(self.merge_pdfs_gui)
         self.export_json_btn.clicked.connect(self.export_to_json)
         self.build_squeeze_paper_by_gui_btn.clicked.connect(self.build_squeeze_paper_by_gui)
         self.rasterize_pdf_btn.clicked.connect(self.rasterize_pdf_by_gui)
+        self.open_merged_pdf_btn.clicked.connect(self.open_merged_pdf)
         self.open_naive_pdf_btn.clicked.connect(self.open_naive_pdf)
         self.open_rasterized_pdf_btn.clicked.connect(self.open_rasterized_pdf)
 
@@ -635,6 +646,52 @@ class DatabaseManager(QMainWindow):
         self.pdf_thread.progress_signal.connect(self.log_message)
         self.pdf_thread.start()
     # Sort ComboBox Options
+
+    def merge_pdfs_gui(self):
+        if not self.show_warning_dialog("Are you sure you want to merge PDFs?"):
+            return
+        book_name = self.book_name_input.currentText()
+        self.log_message("Starting PDF merge...")
+        try:
+            pdf_list = []
+            for row in range(self.list_table.rowCount()):
+                if self.list_table.item(row, 3):
+                    item_code = self.list_table.item(row, 0).text()
+                    pdf_path = parse_item_pdf_path(item_code)
+                    item_num = self.list_table.item(row, 3).text()
+                    pdf_list.append((item_num, item_code, pdf_path))
+                    print((item_num, item_code, pdf_path))
+                else:
+                    pass
+            pdf_list.sort(key=lambda x: x[0])
+
+            doc = fitz.open()
+            for pdf in pdf_list:
+                doc.insert_pdf(fitz.open(pdf[2]))
+                cur_page = doc.page_count - 1
+
+                to = AreaOverlayObject(cur_page, Coord(0, 0, 0), Coord(Ratio.mm_to_px(297), Ratio.mm_to_px(420), 0))
+
+                tonum = TextOverlayObject(cur_page, Coord(Ratio.mm_to_px(170), Ratio.mm_to_px(20), 0),
+                                                    "Pretendard-Bold.ttf", 30, f"{pdf[0]}", (1, 0, 0, 0),
+                                                    fitz.TEXT_ALIGN_RIGHT)
+                tocode = TextOverlayObject(cur_page, Coord(Ratio.mm_to_px(260), Ratio.mm_to_px(20), 0),
+                                                    "Pretendard-Bold.ttf", 20, f"{pdf[1]}", (0, 0, 0, 1),
+                                                    fitz.TEXT_ALIGN_RIGHT)
+                to.add_child(tonum)
+                to.add_child(tocode)
+
+                overlayer = Overlayer(doc)
+                to.overlay(overlayer, Coord(0, 0, 0))
+
+            doc.save(os.path.join(OUTPUT_PATH, f"Merged_{book_name.replace('.json', '.pdf')}"))
+            self.log_message("PDFs merged successfully.")
+            doc.close()
+
+        except Exception as e:
+            error_message = f"Error during PDF merge: {e}\n{traceback.format_exc()}"
+            self.log_message(error_message)
+
     def load_book_names(self):
         self.book_name_input.clear()
         book_names = [file_name for file_name in os.listdir(BOOK_DB_PATH) if file_name.endswith('.json')]
@@ -753,6 +810,17 @@ class DatabaseManager(QMainWindow):
         except Exception as e:
             self.log_message(f"Error during PDF rasterization: {e}")
 
+    def open_merged_pdf(self):
+        book_name = self.book_name_input.currentText()
+        pdf_path = os.path.join(OUTPUT_PATH, f"Merged_{book_name.replace('.json', '.pdf')}")
+        if os.path.exists(pdf_path):
+            try:
+                os.startfile(pdf_path)
+                self.log_message(f"Opened merged PDF: {pdf_path}")
+            except Exception as e:
+                self.log_message(f"Error opening merged PDF: {e}")
+        else:
+            self.log_message(f"Merged PDF not found: {pdf_path}")
     def open_naive_pdf(self):
         book_name = self.book_name_input.currentText()
         pdf_path = os.path.join(OUTPUT_PATH, book_name.replace('.json', '.pdf'))
