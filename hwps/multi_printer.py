@@ -26,8 +26,8 @@ from pyhwpx import Hwp
 hwp_lock = Lock()
 
 def code2path(item_code):
-    hwp_path = parse_item_pdf_path(item_code).replace('.pdf', '.hwp')
-    hwp_Main_path = parse_item_Main_path(item_code).replace('.pdf', '.hwp')
+    hwp_path = code2pdf(item_code).replace('.pdf', '.hwp')
+    hwp_Main_path = code2Main(item_code).replace('.pdf', '.hwp')
 
     return hwp_path, hwp_Main_path
 

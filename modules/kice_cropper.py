@@ -205,8 +205,8 @@ class KiceCropper:
                 if code is None:
                     PdfUtils.save_to_pdf(new_doc, KICE_DB_PATH + f"/others/{key}_original.pdf", garbage=4)
                 else:
-                    PdfUtils.save_to_pdf(new_doc, parse_item_original_path(code), garbage=4)
-                    print(f"saved original for {code}: {parse_item_original_path(code)}")
+                    PdfUtils.save_to_pdf(new_doc, code2original(code), garbage=4)
+                    print(f"saved original for {code}: {code2original(code)}")
                 #new_doc.save(f"output/original/{self.base_name[:-7]} {i+1}번 {self.base_name[-6:-4]}_original.pdf")
 
     def save_caption(self, caption_point: tuple, font_size: int) -> None:
@@ -262,7 +262,7 @@ class KiceCropper:
                 continue
             origin = self.bake_origin(self.code_to_text(code))
             origin.coord = Coord(Ratio.mm_to_px(0.25), Ratio.mm_to_px(0.25), 0)
-            original_pdf = parse_item_original_path(code)
+            original_pdf = code2original(code)
             with fitz.open(original_pdf) as file:
                 page = file.load_page(0)
                 component = Component(original_pdf, 0, page.rect)
@@ -280,9 +280,9 @@ from utils.parse_code import *
 def save_caption_from_original_indie(item_code):
     new_doc = fitz.open()
     overlayer = Overlayer(new_doc)
-    original_pdf = parse_item_original_path(item_code)
-    modification_pdf = parse_item_modified_path(item_code)
-    citation = parse_code_citation(item_code)
+    original_pdf = code2original(item_code)
+    modification_pdf = code2modified(item_code)
+    citation = code2cite(item_code)
 
     # bake_origin
     text = TextOverlayObject(0, Coord(0, 0, 0), "Pretendard-Regular.ttf", 12, citation, (0, 0, 0, 0), fitz.TEXT_ALIGN_CENTER)
@@ -315,7 +315,7 @@ def save_caption_from_original_indie(item_code):
 
     new_page = new_doc.new_page(width=component.src_rect.width, height=base.get_height())
     base.overlay(overlayer, Coord(0, 0, 0))
-    PdfUtils.save_to_pdf(new_doc, parse_item_caption_path(item_code), garbage=4)
+    PdfUtils.save_to_pdf(new_doc, code2caption(item_code), garbage=4)
 
 if __name__ == '__main__':
     from pathlib import Path

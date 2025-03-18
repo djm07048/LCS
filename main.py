@@ -1,6 +1,6 @@
 from modules.kice_cropper import KiceCropper
-from modules.builder import Builder
-
+from modules.builder import SQBuilder
+from modules.builder import SQMiniBuilder
 from pathlib import Path
 import json
 from utils.path import *
@@ -25,7 +25,16 @@ def build_squeeze_paper(input=INPUT_PATH+"/squeeze_item.json", output=OUTPUT_PAT
         log_callback(f"Building {input} to {output}")
     with open(input, encoding='UTF8') as file:
         items = json.load(file)
-    bd = Builder(items)
+    bd = SQBuilder(items)
+    bd.build(output, log_callback=log_callback)
+
+def build_squeeze_mini_paper(input, output, log_callback=None):
+    if log_callback:
+        log_callback("squeeze mini Paper Build Start")
+        log_callback(f"Buliding {input} to {output}")
+    with open(input, encoding='UTF8') as file:
+        items = json.load(file)
+    bd = SQMiniBuilder(items)
     bd.build(output, log_callback=log_callback)
 
 if __name__ == '__main__':

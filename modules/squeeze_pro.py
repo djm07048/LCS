@@ -114,11 +114,11 @@ class ProblemBuilder:
         if problem_code[5:7] == 'KC':  # kice problem
             item_code = problem_code
 
-            if os.path.exists(parse_item_original_path(item_code).replace(".pdf", "_trimmed.pdf")):
-                item_pdf = parse_item_original_path(item_code).replace(".pdf", "_trimmed.pdf")
+            if os.path.exists(code2original(item_code).replace(".pdf", "_trimmed.pdf")):
+                item_pdf = code2original(item_code).replace(".pdf", "_trimmed.pdf")
             else:
-                item_pdf = parse_item_original_path(item_code)
-            modified_pdf = parse_item_modified_path(item_code)
+                item_pdf = code2original(item_code)
+            modified_pdf = code2modified(item_code)
             problem_title = self.bake_problem_title(problem_num, self.code_to_text(problem_code))
             problem.add_child(problem_title)
             problem.height += problem_title.get_height()

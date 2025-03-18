@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QComboBox, QMes
 from PyQt5.QtCore import (Qt, QThread, pyqtSignal)
 from PyQt5.QtGui import QColor
 from main import build_squeeze_paper
+from main import build_squeeze_mini_paper
 from PyQt5.QtGui import QIcon
 from hwps.multi_printer import *
 from rasterizer import *
@@ -180,6 +181,7 @@ class DatabaseManager(QMainWindow):
         self.merge_pdfs_btn = QPushButton('MERGE PDFs As Shown')
         self.export_json_btn = QPushButton('EXPORT JSON to DB')
         self.build_squeeze_paper_by_gui_btn = QPushButton('BUILD squeeze from DB')
+        self.build_squeeze_mini_paper_by_gui_btn = QPushButton('BUILD squeeze mini from DB')
         self.rasterize_pdf_btn = QPushButton('RASTERIZE PDF from DB')
         self.open_merged_pdf_btn = QPushButton('OPEN MERGED PDF')
         self.open_naive_pdf_btn = QPushButton('OPEN NAIVE PDF')
@@ -193,6 +195,7 @@ class DatabaseManager(QMainWindow):
         right_button_layout.addWidget(self.merge_pdfs_btn)
         right_button_layout.addWidget(self.export_json_btn)
         right_button_layout.addWidget(self.build_squeeze_paper_by_gui_btn)
+        right_button_layout.addWidget(self.build_squeeze_mini_paper_by_gui_btn)
         right_button_layout.addWidget(self.rasterize_pdf_btn)
         right_button_layout.addWidget(self.open_naive_pdf_btn)
         right_button_layout.addWidget(self.open_rasterized_pdf_btn)
@@ -243,6 +246,7 @@ class DatabaseManager(QMainWindow):
         self.merge_pdfs_btn.clicked.connect(self.merge_pdfs_gui)
         self.export_json_btn.clicked.connect(self.export_to_json)
         self.build_squeeze_paper_by_gui_btn.clicked.connect(self.build_squeeze_paper_by_gui)
+        self.build_squeeze_mini_paper_by_gui_btn.clicked.connect(self.build_squeeze_mini_paper_by_gui)
         self.rasterize_pdf_btn.clicked.connect(self.rasterize_pdf_by_gui)
         self.open_merged_pdf_btn.clicked.connect(self.open_merged_pdf)
         self.open_naive_pdf_btn.clicked.connect(self.open_naive_pdf)
@@ -329,6 +333,21 @@ class DatabaseManager(QMainWindow):
                         })
                         serial_num += 1
 
+        # Load from NICE_DB_PATH
+        for folder in os.listdir(NICE_DB_PATH):
+            folder_path = os.path.join(NICE_DB_PATH, folder)
+            if os.path.isdir(folder_path):
+                for subfolder in os.listdir(folder_path):
+                    if len(subfolder) == 13 and is_valid_item(folder_path, subfolder, original_pdf=True):
+                        parsed = self.parse_code(subfolder)
+                        order = parsed["topic"] + parsed["section"] + parsed["number"] + parsed["subject"]
+                        self.pool_data.append({
+                            'item_code': subfolder,
+                            'topic': parsed["topic"],
+                            'order': order
+                        })
+                        serial_num += 1
+
         # Load from ITEM_DB_PATH
         for folder in os.listdir(ITEM_DB_PATH):
             folder_path = os.path.join(ITEM_DB_PATH, folder)
@@ -344,6 +363,8 @@ class DatabaseManager(QMainWindow):
                         })
                         serial_num += 1
 
+
+
         self.update_pool_table()
 
     def update_pool_table(self, data=None):
@@ -358,7 +379,9 @@ class DatabaseManager(QMainWindow):
                 item_code_item.setBackground(QColor('pink'))
             if parse_code(item_code)["section"] == "KC" and item_code in self.kice_topics:
                 item_code_item.setBackground(QColor('lightgreen'))
-            if parse_code(item_code)["section"] != "KC":
+            if parse_code(item_code)["section"] == "NC":
+                item_code_item.setBackground(QColor('lightyellow'))
+            if parse_code(item_code)["section"] != "KC" and parse_code(item_code)["section"] != "NC":
                 item_code_item.setBackground(QColor('lightblue'))
 
             self.pool_table.setItem(i, 0, item_code_item)
@@ -555,7 +578,7 @@ class DatabaseManager(QMainWindow):
 
             # 색상 결정
             if parse_code(item_code)["section"] == "KC":
-                if parse_item_caption_path(item_code):
+                if code2caption(item_code):
                     row_color = QColor('lightgreen')
                 else:
                     row_color = QColor('pink')
@@ -618,8 +641,8 @@ class DatabaseManager(QMainWindow):
         for row in range(self.list_table.rowCount()):
             item_code = self.list_table.item(row, 0).text() if self.list_table.item(row, 0) else None
             if item_code:
-                pdf_path = parse_item_pdf_path(item_code)
-                Main_path = parse_item_Main_path(item_code)
+                pdf_path = code2pdf(item_code)
+                Main_path = code2Main(item_code)
                 if pdf_path:
                     try:
                         os.remove(pdf_path) if os.path.exists(pdf_path) else None
@@ -657,7 +680,7 @@ class DatabaseManager(QMainWindow):
             for row in range(self.list_table.rowCount()):
                 if self.list_table.item(row, 3):
                     item_code = self.list_table.item(row, 0).text()
-                    pdf_path = parse_item_pdf_path(item_code)
+                    pdf_path = code2pdf(item_code)
                     item_num = self.list_table.item(row, 3).text()
                     pdf_list.append((item_num, item_code, pdf_path))
                     print((item_num, item_code, pdf_path))
@@ -796,6 +819,21 @@ class DatabaseManager(QMainWindow):
             build_squeeze_paper(input=input_path, output=output_path, log_callback=self.log_message)
         except Exception as e:
             error_message = f"Error during squeeze paper build: {e}\n{traceback.format_exc()}"
+            self.log_message(error_message)
+
+    def build_squeeze_mini_paper_by_gui(self):
+        if not self.show_warning_dialog("Are you sure you want to build the squeeze paper?"):
+            return
+        if not self.show_warning_dialog("Please Ensure that Every PDF file is Updated"):
+            return
+        book_name = self.book_name_input.currentText()
+        input_path = os.path.join(BOOK_DB_PATH, book_name)
+        output_path = os.path.join(OUTPUT_PATH, book_name.replace('.json', '.pdf'))
+        self.log_message("Starting squeeze mini paper build...")
+        try:
+            build_squeeze_mini_paper(input=input_path, output=output_path, log_callback=self.log_message)
+        except Exception as e:
+            error_message = f"Error during squeeze mini paper build: {e}\n{traceback.format_exc()}"
             self.log_message(error_message)
 
     def rasterize_pdf_by_gui(self):
@@ -1027,7 +1065,7 @@ class FilterDialog(QDialog):
 
         # 왼쪽 카테고리 버튼들을 위한 레이아웃
         category_layout = QVBoxLayout()
-        stretch_factors = [1, 2, 1, 2, 1, 1, 2, 2, 2, 2, 1, 1, 2, 1, 1, 1]
+        stretch_factors = [1, 2, 1, 2, 1, 1, 2, 2, 2, 2, 1, 1, 1, 2, 1, 1]
         title_factors = ['고체1', '고체2', '고체3', '고체4', '고체5',
                          '유체1', '유체2', '유체3', '유체4', '유체5',
                          '천체1', '천체2', '천체3', '천체4', '천체5', '천체6']

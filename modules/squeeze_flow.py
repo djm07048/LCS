@@ -129,10 +129,10 @@ class FlowBuilder:
             for item in self.item_lists[i]:
                 item_code = item[1]
                 FC_para = int(i*10 + 10 + item[0])
-                if os.path.exists(parse_item_caption_path(item_code).replace(".pdf", "_trimmed.pdf")):
-                    item_pdf = parse_item_caption_path(item_code).replace(".pdf", "_trimmed.pdf")
+                if os.path.exists(code2caption(item_code).replace(".pdf", "_trimmed.pdf")):
+                    item_pdf = code2caption(item_code).replace(".pdf", "_trimmed.pdf")
                 else:
-                    item_pdf = parse_item_caption_path(item_code)
+                    item_pdf = code2caption(item_code)
 
                 with fitz.open(item_pdf) as file:
                     page = file.load_page(0)

@@ -149,7 +149,7 @@ class AnswerBuilder:
         for topic_set in self.proitems.items():
             for item in topic_set[1]:
                 item_code = item["item_code"]
-                item_pdf = parse_item_pdf_path(item_code)
+                item_pdf = code2pdf(item_code)
                 unit_problem_answers.append(self.get_problem_answer(item_pdf))
             unit_num += 1
             unit = self.bake_unit(topic_set[0], unit_num, topic_set[1][0]['item_num'], unit_problem_answers)

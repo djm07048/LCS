@@ -12,7 +12,7 @@ from utils.parse_code import *
 from item_cropper import ItemCropper
 import json
 # KC이면 문항은 original, 해설은 Main에서 가져옴
-# KC가 아니면 문항은 pdf, 해설도 pdf에서 가져옴
+# NC or 자작이면 문항은 pdf, 해설도 pdf에서 가져옴
 
 
 def get_problem_dict(path):
@@ -50,7 +50,7 @@ class MainsolBuilder:
 
     def get_problem_component(self, item_code):
         ic = ItemCropper()
-        item_pdf = parse_item_original_path(item_code) if item_code[5:7] == 'KC' else parse_item_pdf_path(item_code)
+        item_pdf = code2original(item_code) if item_code[5:7] == 'KC' else code2pdf(item_code)
         with fitz.open(item_pdf) as file:
             page = file.load_page(0)
             component = Component(item_pdf, 0, page.rect) if item_code[5:7] == 'KC'\
@@ -218,7 +218,7 @@ class MainsolBuilder:
 
         left_page.add_child(ComponentOverlayObject(0, Coord(Ratio.mm_to_px(18), Ratio.mm_to_px(65.5), 0), component))
 
-        main_pdf = parse_item_Main_path(item_code) if item_code[5:7] == 'KC' else parse_item_pdf_path(item_code)
+        main_pdf = code2Main(item_code) if item_code[5:7] == 'KC' else code2pdf(item_code)
         with fitz.open(main_pdf) as file:
             ic = ItemCropper()
             solutions_info = ic.get_solution_infos_from_file(file, 10)
