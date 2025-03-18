@@ -683,10 +683,17 @@ class DatabaseManager(QMainWindow):
                     pdf_path = code2pdf(item_code)
                     item_num = self.list_table.item(row, 3).text()
                     pdf_list.append((item_num, item_code, pdf_path))
-                    print((item_num, item_code, pdf_path))
                 else:
                     pass
-            pdf_list.sort(key=lambda x: x[0])
+            def custom_sort_key(item):
+                try:
+                    # Try to convert the item to an integer
+                    return (0, int(item[0]))
+                except ValueError:
+                    # If it fails, return a tuple that ensures non-numeric values are sorted after numeric values
+                    return (1, item[0])
+
+            pdf_list.sort(key=custom_sort_key)
 
             doc = fitz.open()
             for pdf in pdf_list:
