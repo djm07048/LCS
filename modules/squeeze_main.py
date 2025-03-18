@@ -59,8 +59,8 @@ class MainsolBuilder:
 
     def bake_origin(self, item_code):
         if item_code[5:7] == 'KC':
-            source = self.code_to_text(item_code)
-            to = TextOverlayObject(0, Coord(0, 0, 0), "Pretendard-Regular.ttf", 12, source, (1, 1, 1),
+            source = code2cite(item_code)
+            to = TextOverlayObject(0, Coord(0, 0, 0), "Pretendard-Regular.ttf", 12, source, (0, 0, 0, 0),
                                    fitz.TEXT_ALIGN_CENTER)
             to.get_width()
             box = ShapeOverlayObject(0, Coord(0, 0, 0),
@@ -74,25 +74,6 @@ class MainsolBuilder:
                 box = ComponentOverlayObject(0, Coord(0, 0, 0), compo)
                 box.rect = compo.src_rect  # Ensure the rect attribute is set
         return box
-
-    def code_to_text(self, problem_code):
-        subject_text = {
-            'P1' : '물1',
-            'P2' : '물2',
-            'C1' : '화1',
-            'C2' : '화2',
-            'B1' : '생1',
-            'B2' : '생2',
-            'E1' : '지1',
-            'E2' : '지2',
-        }
-        month_text = {
-            '06' : '6월',
-            '09' : '9월',
-            '11' : '대수능',
-            '01' : '예비시행',
-        }
-        return f"20{problem_code[7:9]}학년도 {month_text[problem_code[9:11]]} {int(problem_code[11:13])}번 {subject_text[problem_code[0:2]]}"
 
     def build_right(self, item_code, page_num):
         # Main Solution 우수 Page: 문항 번호, 문제 이미지, 원본 이미지, 해설 조각

@@ -1,8 +1,8 @@
 import json
 import fitz
 from modules.squeeze_mini_toc import TocBuilder
-from modules.squeeze_main import MainsolBuilder
-from modules.squeeze_ans import AnswerBuilder
+from modules.squeeze_mini_main import MainsolBuilder
+from modules.squeeze_mini_ans import AnswerBuilderSqueezeMini
 from modules.overlayer import Overlayer
 from utils.overlay_object import *
 from utils.component import Component
@@ -119,7 +119,7 @@ class SQMiniBuilder:
 
         if log_callback:
             log_callback("Building Solutions...")
-        ab = AnswerBuilder(self.proitems.items(), self.mainitems.items())
+        ab = AnswerBuilderSqueezeMini(self.proitems.items(), self.mainitems.items())
         new_doc = ab.build()
         total.insert_pdf(new_doc)
 

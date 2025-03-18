@@ -10,72 +10,11 @@ from utils.solution_info import SolutionInfo
 from utils.overlay_object import *
 from utils.coord import Coord
 from utils.path import *
+from utils.parse_code import *
+from modules.squeeze_toc import TocBuilder
 import json
 
-class TocBuilder:
-    def __init__(self):
-        self.page_amount = 0
-        self.topic_num = 0
-        self.resources_pdf = RESOURCES_PATH + f"/squeeze_toc_resources.pdf"
-        self.resources_doc = fitz.open(self.resources_pdf)
-
-    def get_unit_title(self, unit_code):
-        with open(RESOURCES_PATH+"/topic.json", encoding='UTF8') as file:
-            topic_data = json.load(file)
-        return topic_data[unit_code]
-
-    def get_component_on_resources(self, page_num):
-        return Component(self.resources_pdf, page_num, self.resources_doc.load_page(page_num).rect)
-
-    def get_topic_location(self):
-        topic_loc_list = []
-
-        topic_loc_dict = {
-            1: ["R4"],
-            2: ["R3", "R4"],
-            3: ["R2", "R3", "R4"],
-            4: ["L3", "L4", "R3", "R4"],
-            5: ["L3", "L4", "R2", "R3", "R4"],
-            6: ["L2", "L3", "L4", "R2", "R3", "R4"],
-            7: ["L2", "L3", "L4", "R1", "R2", "R3", "R4"]
-        }
-
-        loc_coord_dict = {
-            "L1" : [1, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(53), 1)],
-            "L2" : [1, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(113), 1)],
-            "L3" : [1, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(173), 1)],
-            "L4" : [1, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(233), 1)],
-            "R1" : [2, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(53), 1)],
-            "R2" : [2, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(113), 1)],
-            "R3" : [2, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(173), 1)],
-            "R4" : [2, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(233), 1)],
-        }
-
-        for topic in topic_loc_dict[self.topic_num]:
-            topic_loc_list.append(loc_coord_dict[topic])
-
-        return topic_loc_list
-
-
-    def build_empty(self):
-        new_doc = fitz.open()
-
-        self.overlayer = Overlayer(new_doc)
-
-        self.page_amount = 3
-
-        self.overlayer.add_page(self.get_component_on_resources(0))
-
-        if self.topic_num < 4:
-            self.overlayer.add_page(self.get_component_on_resources(1))
-            self.overlayer.add_page(self.get_component_on_resources(2))
-        else:
-            self.overlayer.add_page(self.get_component_on_resources(3))
-            self.overlayer.add_page(self.get_component_on_resources(4))
-
-        self.resources_doc.close()
-        return new_doc
-
+class TocBuilderSqueezeMini(TocBuilder):
     def bake_topic_toc(self, total_doc, toc_pages, ans_page, sol_page):
         self.topic_num = len(toc_pages)
         topic_loc_list = self.get_topic_location()

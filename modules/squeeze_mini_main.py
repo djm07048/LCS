@@ -10,6 +10,7 @@ from utils.coord import Coord
 from utils.path import *
 from utils.parse_code import *
 from item_cropper import ItemCropper
+from modules.squeeze_main import MainsolBuilder
 import json
 
 
@@ -35,67 +36,21 @@ def get_item_json():
     return item_data
 
 
-class MainsolBuilder:
-    def __init__(self, topic, mainitems):
-        self.topic = topic
-        self.mainitems = mainitems
+class MainsolBuilderSqueezeMini(MainsolBuilder):
 
-    def get_component_on_resources(self, page_num):
-        return Component(self.resources_pdf, page_num, self.resources_doc.load_page(page_num).rect)
+    def bake_topic(self, item_code):
+        topic = parse_code(item_code)["topic"]
 
-    def get_item_list(self):
-        item_list = []
-        for item in self.mainitems:
-            if item['mainsub'] is not None:
-                item_list.append(item)
-
-        return item_list
-
-    def get_problem_component(self, item_code):
-        ic = ItemCropper()
-        item_pdf = code2original(item_code) if item_code[5:7] == 'KC' else code2pdf(item_code)
-        with fitz.open(item_pdf) as file:
-            page = file.load_page(0)
-            component = Component(item_pdf, 0, page.rect) if item_code[5:7] == 'KC' \
-                else Component(item_pdf, 0, ic.get_problem_rect_from_file(file, accuracy=1))
-        return component
-
-    def bake_origin(self, item_code):
-        if item_code[5:7] == 'KC':
-            source = self.code_to_text(item_code)
-            to = TextOverlayObject(0, Coord(0, 0, 0), "Pretendard-Regular.ttf", 12, source, (1, 1, 1),
-                                   fitz.TEXT_ALIGN_CENTER)
-            to.get_width()
-            box = ShapeOverlayObject(0, Coord(0, 0, 0),
-                                     Rect(0, 0, Ratio.mm_to_px(4) + to.get_width(), Ratio.mm_to_px(5.5)),
-                                     (0, 0, 0, 0.5), 0.5 / 5.5)
-            to.coord = Coord(box.rect.width / 2, Ratio.mm_to_px(4.3), 0)
-            box.add_child(to)
-        else:
-            with fitz.open(RESOURCES_PATH + "/squeeze_pro_resources.pdf") as file:
-                compo = Component(RESOURCES_PATH + "/squeeze_pro_resources.pdf", 6, file.load_page(6).rect)
-                box = ComponentOverlayObject(0, Coord(0, 0, 0), compo)
-                box.rect = compo.src_rect  # Ensure the rect attribute is set
+        to = TextOverlayObject(0, Coord(0, 0, 0), "Pretendard-Regular.ttf", 12, topic, (0, 0, 0, 0),
+                               fitz.TEXT_ALIGN_CENTER)
+        to.get_width()
+        box = ShapeOverlayObject(0, Coord(0, 0, 0),
+                                 Rect(0, 0, Ratio.mm_to_px(4) + to.get_width(), Ratio.mm_to_px(5.5)),
+                                 (0, 0, 0, 0.5), 0.5 / 5.5)
+        to.coord = Coord(box.rect.width / 2, Ratio.mm_to_px(4.3), 0)
+        box.add_child(to)
         return box
 
-    def code_to_text(self, problem_code):
-        subject_text = {
-            'P1': '물1',
-            'P2': '물2',
-            'C1': '화1',
-            'C2': '화2',
-            'B1': '생1',
-            'B2': '생2',
-            'E1': '지1',
-            'E2': '지2',
-        }
-        month_text = {
-            '06': '6월',
-            '09': '9월',
-            '11': '대수능',
-            '01': '예비시행',
-        }
-        return f"20{problem_code[7:9]}학년도 {month_text[problem_code[9:11]]} {int(problem_code[11:13])}번 {subject_text[problem_code[0:2]]}"
 
     def build_right(self, item_code, page_num):
         # Main Solution 우수 Page: 문항 번호, 문제 이미지, 원본 이미지, 해설 조각
@@ -105,6 +60,7 @@ class MainsolBuilder:
                 item_num = item['mainsub']
         right_page = AreaOverlayObject(page_num, Coord(0, 0, 0), Ratio.mm_to_px(371))
         origin = self.bake_origin(item_code)
+        topic = self.bake_topic(item_code)
 
         component = self.get_problem_component(item_code)
         right_page.add_child(ComponentOverlayObject(0, Coord(Ratio.mm_to_px(118), Ratio.mm_to_px(46), 0), component))
@@ -113,6 +69,8 @@ class MainsolBuilder:
                               (1, 0, 0, 0), fitz.TEXT_ALIGN_RIGHT))
         origin.coord = Coord(Ratio.mm_to_px(108) - origin.rect.width, Ratio.mm_to_px(64), 0)
         right_page.add_child(origin)
+        topic.coord = Coord(Ratio.mm_to_px(108) - topic.rect.width, Ratio.mm_to_px(59), 0) # 59는 숫자 조정 가능
+        right_page.add_child(topic)
         white_box = ShapeOverlayObject(0, Coord(Ratio.mm_to_px(118 - 0.5), Ratio.mm_to_px(46), 0),
                                        Rect(0, 0, Ratio.mm_to_px(3.0 + 0.5), Ratio.mm_to_px(5.5)), (1, 1, 1))
         right_page.add_child(white_box)
@@ -213,7 +171,11 @@ class MainsolBuilder:
                               (1, 0, 0, 0), fitz.TEXT_ALIGN_LEFT))
         origin = self.bake_origin(item_code)
         origin.coord = Coord(Ratio.mm_to_px(38), Ratio.mm_to_px(59) - origin.rect.height, 0)
+        topic = self.bake_topic(item_code)
+        topic.coord = Coord(Ratio.mm_to_px(38), Ratio.mm_to_px(59) - origin.rect.height - topic.rect.height, 0)
+
         left_page.add_child(origin)
+        left_page.add_child(topic)
 
         white_box = ShapeOverlayObject(0, Coord(Ratio.mm_to_px(18 - 8), Ratio.mm_to_px(65.5), 0),
                                        Rect(0, 0, Ratio.mm_to_px(3 + 8), Ratio.mm_to_px(5.5)), (1, 1, 1))
