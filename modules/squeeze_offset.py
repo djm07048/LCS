@@ -4,7 +4,6 @@ from modules.overlayer import Overlayer
 from utils.path import *
 from utils.ratio import Ratio
 from utils.pdf_utils import PdfUtils
-from utils.parse_code import *
 import fitz
 
 class OffsetBuilder:  # TODO 모듈화가 제대로 안됨.. 수정 필요

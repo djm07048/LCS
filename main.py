@@ -1,6 +1,6 @@
 from modules.kice_cropper import KiceCropper
 from modules.builder_squeeze import SQBuilder
-from modules.builder_squeeze import SQMiniBuilder
+from modules.builder_squeeze_mini import SQMiniBuilder
 from pathlib import Path
 import json
 from utils.path import *

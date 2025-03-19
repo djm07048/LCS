@@ -5,7 +5,6 @@ import sys
 from glob import glob
 from tqdm import tqdm
 from hwps.ezpdf import *
-from utils.parse_code import *
 from utils.path import *
 from utils.overlay_object import *
 from pathlib import Path
@@ -15,9 +14,7 @@ import pythoncom
 import win32com.client as win32
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
-from utils.parse_code import *
 from utils.overlay_object import *
-from utils.parse_code import *
 from utils.coord import Coord
 from utils.ratio import Ratio
 import fitz

@@ -7,7 +7,6 @@ from utils.pdf_utils import PdfUtils
 from utils.solution_info import SolutionInfo
 from utils.overlay_object import *
 from utils.coord import Coord
-from utils.parse_code import *
 from utils.path import *
 import json
 

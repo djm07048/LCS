@@ -276,7 +276,7 @@ class KiceCropper:
             print(f"saved caption for {code}: {KICE_DB_PATH + f'/{code[2:5]}/{code}/{code}_caption.pdf'}")
 
 
-from utils.parse_code import *
+from utils.path import *
 def save_caption_from_original_indie(item_code):
     new_doc = fitz.open()
     overlayer = Overlayer(new_doc)

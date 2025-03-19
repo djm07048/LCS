@@ -8,7 +8,6 @@ from utils.solution_info import SolutionInfo
 from utils.overlay_object import *
 from utils.coord import Coord
 from utils.path import *
-from utils.parse_code import *
 from item_cropper import ItemCropper
 from modules.squeeze_main import MainsolBuilder
 import json

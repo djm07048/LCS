@@ -8,7 +8,6 @@ from utils.solution_info import SolutionInfo
 from utils.overlay_object import *
 from utils.coord import Coord
 from utils.path import *
-from utils.parse_code import *
 from item_cropper import ItemCropper
 import json
 # KC이면 문항은 original, 해설은 Main에서 가져옴

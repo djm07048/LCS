@@ -1,4 +1,4 @@
-from utils.parse_code import *
+from utils.path import *
 from utils.ratio import Ratio
 import fitz
 import traceback

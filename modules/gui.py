@@ -1,5 +1,4 @@
 from utils.path import *
-from utils.parse_code import *
 from os import environ
 import subprocess
 import sys
@@ -16,7 +15,6 @@ from PyQt5.QtGui import QIcon
 from hwps.multi_printer import *
 from rasterizer import *
 from utils.path import *
-from utils.parse_code import *
 from utils.coord import Coord
 from utils.ratio import Ratio
 
