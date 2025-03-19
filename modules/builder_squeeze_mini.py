@@ -1,7 +1,7 @@
 import json
 import fitz
 from modules.squeeze_mini_toc import TocBuilder
-from modules.squeeze_mini_main import MainsolBuilder
+from modules.squeeze_mini_main import MainsolBuilderSqueezeMini
 from modules.squeeze_mini_ans import AnswerBuilderSqueezeMini
 from modules.overlayer import Overlayer
 from utils.overlay_object import *
@@ -19,6 +19,7 @@ class SQMiniBuilder:
         self.items = dict()
         self.proitems = dict()
         self.mainitems = dict()
+        # proitems would be empty
         for item in items:
             topic = item['topic_in_book']
             if topic in self.items:
@@ -83,14 +84,14 @@ class SQMiniBuilder:
 
             if log_callback:
                 log_callback("  (2) Building Main Solution...")
-            mb = MainsolBuilder(main_topic_set[0], main_topic_set[1])
+            mb = MainsolBuilderSqueezeMini(main_topic_set[0], main_topic_set[1])
             new_doc = mb.build()
             flag = 0
             if new_doc is not None:
                 flag = 1
                 overlayer = Overlayer(result)
                 overlayer.add_page(
-                    Component(RESOURCES_PATH + "/squeeze_pro_resources.pdf", 4, result.load_page(0).rect))
+                    Component(RESOURCES_PATH + "/squeeze_pro_resources.pdf", 4, total.load_page(0).rect))
                 result.insert_pdf(new_doc)
                 if log_callback:
                     log_callback("Done!")

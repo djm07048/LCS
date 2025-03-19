@@ -69,11 +69,16 @@ class AnswerBuilder:
         component = self.get_component_on_resources(2+(num-1)%3)
         unit_cover = AreaOverlayObject(0, Coord(0,0,0), Ratio.mm_to_px(20))
         unit_cover.add_child(ComponentOverlayObject(0, Coord(0,0,0), component))
-        unit_title = f'{num-1}. {self.get_unit_title(unit_code)}' if unit_code != 'Main' else '주요 문항 A to Z'
+        if unit_code == 'Main':
+            unit_title = '주요 문항 A to Z'
+        elif unit_code == 'Mini':
+            unit_title = f'주요 문항 총정리'
+        else:
+            unit_title = f'{num-1}. {self.get_unit_title(unit_code)}'
         unit_cover.add_child(TextOverlayObject(0, Coord(Ratio.mm_to_px(49), Ratio.mm_to_px(6), 1), "Pretendard-ExtraBold.ttf", 13, f"{unit_title}", tuple([0, 0, 0, int(num%3 == 0)]), fitz.TEXT_ALIGN_CENTER))
         return unit_cover
 
-    def bake_unit(self, unit_code, num, problem_num, unit_problem_answers):
+    def bake_unit(self, unit_code, num, unit_problem_numbers, unit_problem_answers):
         unit = self.bake_unit_cover(unit_code, num)
         component = self.get_component_on_resources(5+(num-1)%3)
         cnt = len(unit_problem_answers)
@@ -101,11 +106,11 @@ class AnswerBuilder:
 
         if unit_code == 'Main':
             for i in range(len(unit_problem_answers)):
-                unit.add_child(TextOverlayObject(0, Coord(default_num_x+Ratio.mm_to_px(19.6)*(i%5), default_y+Ratio.mm_to_px(11)*(i//5), 1), "Montserrat-Bold.ttf", 13, f"{chr(65 + i)}", tuple([0, 0, 0, int(num%3 == 0)]), fitz.TEXT_ALIGN_CENTER))
+                unit.add_child(TextOverlayObject(0, Coord(default_num_x+Ratio.mm_to_px(19.6)*(i%5), default_y+Ratio.mm_to_px(11)*(i//5), 1), "Montserrat-Bold.ttf", 13, f"{unit_problem_numbers[i]}", tuple([0, 0, 0, int(num%3 == 0)]), fitz.TEXT_ALIGN_CENTER))
                 unit.add_child(TextOverlayObject(0, Coord(default_ans_x+Ratio.mm_to_px(19.6)*(i%5), default_y+Ratio.mm_to_px(11)*(i//5), 1), "NanumSquareNeo-cBd.ttf", 13, f"{unit_problem_answers[i]}", (0, 0, 0, 1), fitz.TEXT_ALIGN_CENTER))
         else:
             for i in range(len(unit_problem_answers)):
-                unit.add_child(TextOverlayObject(0, Coord(default_num_x+Ratio.mm_to_px(19.6)*(i%5), default_y+Ratio.mm_to_px(11)*(i//5), 1), "Pretendard-ExtraBold.ttf", 13, f"{i+problem_num}", tuple([0, 0, 0, int(num%3 == 0)]), fitz.TEXT_ALIGN_CENTER))
+                unit.add_child(TextOverlayObject(0, Coord(default_num_x+Ratio.mm_to_px(19.6)*(i%5), default_y+Ratio.mm_to_px(11)*(i//5), 1), "Pretendard-ExtraBold.ttf", 13, f"{unit_problem_numbers[i]}", tuple([0, 0, 0, int(num%3 == 0)]), fitz.TEXT_ALIGN_CENTER))
                 unit.add_child(TextOverlayObject(0, Coord(default_ans_x+Ratio.mm_to_px(19.6)*(i%5), default_y+Ratio.mm_to_px(11)*(i//5), 1), "NanumSquareNeo-cBd.ttf", 13, f"{unit_problem_answers[i]}", (0, 0, 0, 1), fitz.TEXT_ALIGN_CENTER))
         return unit
 
@@ -124,21 +129,24 @@ class AnswerBuilder:
 
         paragraph_cnt = 0
         unit_problem_answers = []
+        unit_problem_numbers = []
         unit_num = 0
 
         mainitems_whole = []
         for topic_set in self.mainitems:
             mainitems_whole.extend(topic_set[1])
-        mainitems_whole.sort(key=lambda x: x['mainsub'])
-        for item in mainitems_whole:
-            if not item['item_num']:
-                item['item_num'] = item['mainsub']
-        mainitems_whole = [('Main', mainitems_whole)]
 
+        def custom_sort_key(item):
+            mainsub = item['mainsub']
+            try:
+                return (0, int(mainsub))
+            except ValueError:
+                return (1, mainsub)
 
+        mainitems_whole.sort(key=custom_sort_key)
 
         if isinstance(self.proitems, dict):
-            proitems_list = list(self.proitems.items())
+                proitems_list = list(self.proitems.items())
         else:
             proitems_list = list(dict(self.proitems).items())
         proitems_list.insert(0, mainitems_whole[0])
@@ -149,10 +157,17 @@ class AnswerBuilder:
             for item in topic_set[1]:
                 item_code = item["item_code"]
                 item_pdf = code2pdf(item_code)
+                if item_code[5:7] == 'KC':
+                    number = item['item_num']
+                else:
+                    number = item['mainsub']
+                unit_problem_numbers.append(number)
                 unit_problem_answers.append(self.get_problem_answer(item_pdf))
             unit_num += 1
-            unit = self.bake_unit(topic_set[0], unit_num, topic_set[1][0]['item_num'], unit_problem_answers)
+
+            unit = self.bake_unit(topic_set[0], unit_num, unit_problem_numbers, unit_problem_answers)
             unit_problem_answers = []
+            unit_problem_numbers = []
             paragraph_cnt = self.add_child_to_paragraph(paragraph, unit, paragraph_cnt, self.overlayer, base)
             paragraph.add_child(AreaOverlayObject(0, Coord(0,0,0), Ratio.mm_to_px(15)))
 

@@ -57,7 +57,7 @@ class MainsolBuilder:
         return component
 
     def bake_origin(self, item_code):
-        if item_code[5:7] == 'KC':
+        if item_code[5:7] == 'KC' or item_code[5:7] == 'NC':
             source = code2cite(item_code)
             to = TextOverlayObject(0, Coord(0, 0, 0), "Pretendard-Regular.ttf", 12, source, (0, 0, 0, 0),
                                    fitz.TEXT_ALIGN_CENTER)
@@ -72,6 +72,19 @@ class MainsolBuilder:
                 compo = Component(RESOURCES_PATH + "/squeeze_pro_resources.pdf", 6, file.load_page(6).rect)
                 box = ComponentOverlayObject(0, Coord(0, 0, 0), compo)
                 box.rect = compo.src_rect  # Ensure the rect attribute is set
+        return box
+
+    def bake_topic(self, item_code):
+        topic_code = item_code[2:5]
+        topic = self.get_unit_title(topic_code)
+        to = TextOverlayObject(0, Coord(0, 0, 0), "Pretendard-Regular.ttf", 12, topic, (0, 0, 0, 0),
+                               fitz.TEXT_ALIGN_CENTER)
+        to.get_width()
+        box = ShapeOverlayObject(0, Coord(0, 0, 0),
+                                 Rect(0, 0, Ratio.mm_to_px(4) + to.get_width(), Ratio.mm_to_px(5.5)),
+                                 (0, 0, 0, 0.5), 0.5 / 5.5)
+        to.coord = Coord(box.rect.width / 2, Ratio.mm_to_px(4.3), 0)
+        box.add_child(to)
         return box
 
     def build_right(self, item_code, page_num):
