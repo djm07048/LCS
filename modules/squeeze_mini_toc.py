@@ -25,30 +25,24 @@ class TocBuilderSqueezeMini(TocBuilder):
             pro_page = toc_pages[i][1]["Problem"]
 
             topic_area = AreaOverlayObject(topic_loc[0], Coord(0, 0, 1), 0)
-            component = Component(self.resources_pdf, 5, self.resources_doc.load_page(5).rect)
+            component = Component(self.resources_pdf, 7, self.resources_doc.load_page(7).rect)
             to_object = ComponentOverlayObject(0, Coord(0, 0, 1), component)
             topic_area.height += to_object.get_height()
             unit_title = self.get_unit_title(toc_pages[i][0])
 
             # Component를 새로 하나 만들고, 거기에 to_title, to_flow, to_main, to_pro를 overlay
-            to_num = TextOverlayObject(0, Coord(Ratio.mm_to_px(34.5), Ratio.mm_to_px(47), 1), "Montserrat-Bold.ttf",
-                                       100, f"{int(i + 1)}", (0, 0, 0, 0), fitz.TEXT_ALIGN_CENTER)
-            to_title = TextOverlayObject(0, Coord(Ratio.mm_to_px(80), Ratio.mm_to_px(21), 1), "Pretendard-Bold.ttf",
+            to_num = TextOverlayObject(0, Coord(Ratio.mm_to_px(34.5), Ratio.mm_to_px(57), 1), "Montserrat-Bold.ttf",
+                                       120, f"*", (0, 0, 0, 0), fitz.TEXT_ALIGN_CENTER)
+            to_title = TextOverlayObject(0, Coord(Ratio.mm_to_px(80), Ratio.mm_to_px(37), 1), "Pretendard-Bold.ttf",
                                          23.5, f"{unit_title}", (1, 0, 0, 0),
                                          fitz.TEXT_ALIGN_LEFT)
-            to_flow = TextOverlayObject(0, Coord(Ratio.mm_to_px(217), Ratio.mm_to_px(36), 1), "Pretendard-Bold.ttf", 16,
-                                        f"{flow_page}", (0, 0, 0, 1), fitz.TEXT_ALIGN_RIGHT)
-            to_main = TextOverlayObject(0, Coord(Ratio.mm_to_px(217), Ratio.mm_to_px(45), 1), "Pretendard-Bold.ttf", 16,
-                                        f"{main_page}", (0, 0, 0, 1), fitz.TEXT_ALIGN_RIGHT)
-            to_pro = TextOverlayObject(0, Coord(Ratio.mm_to_px(217), Ratio.mm_to_px(54), 1), "Pretendard-Bold.ttf", 16,
-                                       f"{pro_page}", (0, 0, 0, 1), fitz.TEXT_ALIGN_RIGHT)
+            to_title_page = TextOverlayObject(0, Coord(Ratio.mm_to_px(217), Ratio.mm_to_px(37-1), 1), "Pretendard-Bold.ttf", 16,
+                                        f"{5}", (0, 0, 0, 1), fitz.TEXT_ALIGN_RIGHT)
 
             topic_area.add_child(to_object)
             topic_area.add_child(to_num)
             topic_area.add_child(to_title)
-            topic_area.add_child(to_flow)
-            topic_area.add_child(to_main)
-            topic_area.add_child(to_pro)
+            topic_area.add_child(to_title_page)
 
             topic_area.overlay(overlayer=Overlayer(total_doc), absolute_coord=topic_loc[1])
 

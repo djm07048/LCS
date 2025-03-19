@@ -1,9 +1,9 @@
 import os
 from utils.path import *
 
-KICE_DB_PATH = 'T:/THedu/KiceDB'
-ITEM_DB_PATH = 'T:/THedu/ItemDB'
-NICE_DB_PATH = 'T:/THedu/NiceDB'
+KICE_DB_PATH = r'T:\THedu\KiceDB'
+ITEM_DB_PATH = r'T:\THedu\ItemDB'
+NICE_DB_PATH = r'T:\THedu\NiceDB'
 
 RESOURCES_PATH = 'T:/Software/LCS/resources'
 
@@ -11,12 +11,12 @@ INPUT_PATH = r'T:\Software\LCS\input'
 OUTPUT_PATH = r'T:\Software\LCS\output'
 BOOK_DB_PATH = r'T:\Software\LCS\input\BookDB'
 
-MONTH_DICT = {"01": "예비시행", "06": "6월", "09": "9월", "11": "대수능", "03": "3월", "04": "4월", "07": "7월", "10": "10월"}
+MONTH_DICT = {"01": "예비시행", "06": "6월", "09": "9월", "11": "대수능", "03": "3월", "04": "4월", "05": "5월", "07": "7월", "10": "10월"}
 MONTH_REV_DICT = {v: k for k, v in MONTH_DICT.items()}
 SUBJECT_DICT = {"E1": "지1", "E2": "지2", "C1": "화1", "C2": "화2", "P1": "물1", "P2": "물2", "B1": "생1", "B2": "생2", "XS": "통과"}
 SUBJECT_REV_DICT = {v: k for k, v in SUBJECT_DICT.items()}
 
-SECTION_DICT = {"01": "KC", "06": "KC", "09": "KC", "11": "KC", "03": "NC", "04": "NC", "07": "NC", "10": "NC"}
+SECTION_DICT = {"01": "KC", "06": "KC", "09": "KC", "11": "KC", "03": "NC", "04": "NC", "05": "NC", "07": "NC", "10": "NC"}
 
 def get_item_path(item_code):
     if item_code[5:7] == 'KC':
@@ -46,7 +46,14 @@ def code2cite(code: str) -> str:
     mo = MONTH_DICT[parsed_code["number"][2:4]]
     nn = int(parsed_code["number"][4:])
     subject = SUBJECT_DICT[parsed_code["subject"]]
-    return f"{yyyy}학년도 {mo} {nn}번 {subject}"
+    if parsed_code["section"] == "KC":
+        unit = "학년도"
+    elif parsed_code["section"] == "NC":
+        unit = "년"
+    else:
+        unit = "학년도"
+
+    return f"{yyyy}{unit} {mo} {nn}번 {subject}"
 
 @staticmethod
 def cite2code(citation: str, topic: str) -> str:
@@ -73,6 +80,7 @@ def code2folder(item_code: str) -> str:
 @staticmethod
 def code2pdf(code: str) -> str:
     return os.path.join(code2folder(code), f"{code}.pdf")
+
 
 @staticmethod
 def code2caption(code: str) -> str:

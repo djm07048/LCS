@@ -915,7 +915,12 @@ class DatabaseManager(QMainWindow):
 
     def open_item_hwp(self, item_code):
         # Base folder selection
-        base_path = KICE_DB_PATH if item_code[5:7] == 'KC' else ITEM_DB_PATH
+        if item_code[5:7] == 'KC':
+            base_path = KICE_DB_PATH
+        elif item_code[5:7] == 'NC':
+            base_path = NICE_DB_PATH
+        else:
+            base_path = ITEM_DB_PATH
         topic = item_code[2:5]
 
         # Construct and normalize path
@@ -929,7 +934,12 @@ class DatabaseManager(QMainWindow):
 
     def open_item_folder(self, item_code):
         # Base folder selection
-        base_path = KICE_DB_PATH if item_code[5:7] == 'KC' else ITEM_DB_PATH
+        if item_code[5:7] == 'KC':
+            base_path = KICE_DB_PATH
+        elif item_code[5:7] == 'NC':
+            base_path = NICE_DB_PATH
+        else:
+            base_path = ITEM_DB_PATH
         topic = item_code[2:5]
 
         # Construct and normalize path
@@ -951,13 +961,24 @@ class DatabaseManager(QMainWindow):
 
             if ok and len(new_code) == 13:
                 # 원본 코드의 정보 파싱
-                old_base_path = KICE_DB_PATH if item_code[5:7] == 'KC' else ITEM_DB_PATH
+                if item_code[5:7] == 'KC':
+                    old_base_path = KICE_DB_PATH
+                elif item_code[5:7] == 'NC':
+                    old_base_path = NICE_DB_PATH
+                else:
+                    old_base_path = ITEM_DB_PATH
+                topic = item_code[2:5]
                 old_topic = item_code[2:5]
                 old_topic_path = os.path.join(old_base_path, old_topic)
                 old_item_path = os.path.join(old_topic_path, item_code)
 
                 # 새 코드의 정보 파싱
-                new_base_path = KICE_DB_PATH if new_code[5:7] == 'KC' else ITEM_DB_PATH
+                if item_code[5:7] == 'KC':
+                    new_base_path = KICE_DB_PATH
+                elif item_code[5:7] == 'NC':
+                    new_base_path = NICE_DB_PATH
+                else:
+                    new_base_path = ITEM_DB_PATH
                 new_topic = new_code[2:5]
                 new_topic_path = os.path.join(new_base_path, new_topic)
                 new_item_path = os.path.join(new_topic_path, new_code)

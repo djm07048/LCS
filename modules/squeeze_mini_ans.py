@@ -33,7 +33,7 @@ class AnswerBuilderSqueezeMini(AnswerBuilder):
             mainitems_whole.extend(topic_set[1])
 
         def custom_sort_key(item):
-            mainsub = item['mainsub']
+            mainsub = item["mainsub"]
             try:
                 return (0, int(mainsub))
             except ValueError:
@@ -42,8 +42,8 @@ class AnswerBuilderSqueezeMini(AnswerBuilder):
         mainitems_whole.sort(key=custom_sort_key)
 
         for item in mainitems_whole:
-            if not item['item_num']:
-                item['item_num'] = item['mainsub']
+            if not item["item_num"]:
+                item["item_num"] = item["mainsub"]
         mainitems_whole = [('Mini', mainitems_whole)]
 
         for topic_set in mainitems_whole:
@@ -51,9 +51,9 @@ class AnswerBuilderSqueezeMini(AnswerBuilder):
                 item_code = item["item_code"]
                 item_pdf = code2pdf(item_code)
                 if item_code[5:7] == 'KC':
-                    number = item['item_num']
+                    number = item["item_num"]
                 else:
-                    number = item['mainsub']
+                    number = item["mainsub"]
                 unit_problem_numbers.append(number)
                 unit_problem_answers.append(self.get_problem_answer(item_pdf))
             unit_num += 1

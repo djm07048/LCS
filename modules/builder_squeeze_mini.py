@@ -1,6 +1,6 @@
 import json
 import fitz
-from modules.squeeze_mini_toc import TocBuilder
+from modules.squeeze_mini_toc import TocBuilderSqueezeMini
 from modules.squeeze_mini_main import MainsolBuilderSqueezeMini
 from modules.squeeze_mini_ans import AnswerBuilderSqueezeMini
 from modules.overlayer import Overlayer
@@ -42,7 +42,7 @@ class SQMiniBuilder:
                     self.mainitems[topic].append(item)
 
     def add_page_num(self, overlayer):
-        for num in range(4, overlayer.doc.page_count):  # 4P부터 시작
+        for num in range(5, overlayer.doc.page_count):  # 5P부터 시작
             if num % 2:
                 page_num_object = TextOverlayObject(num - 1, Coord(Ratio.mm_to_px(244), Ratio.mm_to_px(358.5), -1),
                                                     "Pretendard-Bold.ttf", 14, f"{num}", (0, 0, 0, 1),
@@ -58,7 +58,7 @@ class SQMiniBuilder:
             log_callback("squeeze mini Paper Build Start")
         total = fitz.open()
 
-        tb = TocBuilder()
+        tb = TocBuilderSqueezeMini()
         tb.topic_num = len(self.topics)
         new_doc = tb.build_empty()  # empty page 격의 toc를 overlay
         total.insert_pdf(new_doc)
@@ -139,7 +139,7 @@ class SQMiniBuilder:
         total.insert_pdf(fitz.open(RESOURCES_PATH + "/squeeze_toc_resources.pdf"), from_page=6, to_page=6)
 
         # Overlay TOC to the total document
-        bake_toc = TocBuilder()
+        bake_toc = TocBuilderSqueezeMini()
         bake_toc.bake_topic_toc(total, toc_pages, ans_page, sol_page)
 
         if log_callback:
