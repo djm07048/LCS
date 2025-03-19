@@ -88,6 +88,10 @@ class SolutionBuilder:
     def bake_solutions(self, commentary_data, item_pdf, solutions_info, sTF):
         solutions = []
         for solution_info in solutions_info:
+            if solution_info.hexcode not in commentary_data:
+                # Handle the missing key case
+                print(f"Warning: Hexcode {solution_info.hexcode} not found in commentary data {item_pdf}.")
+                continue
             if commentary_data[solution_info.hexcode] == "answer":
                 continue
             solution_object = AreaOverlayObject(0, Coord(0,0,0), 0)

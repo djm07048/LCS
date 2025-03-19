@@ -6,7 +6,7 @@ import os
 import json
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QComboBox, QMessageBox, QLineEdit, QMenu,
                              QHBoxLayout, QPushButton, QTableWidget, QTableWidgetItem, QGridLayout, QInputDialog,
-                             QHeaderView, QCheckBox, QDialog, QVBoxLayout, QLabel, QSizePolicy)
+                             QHeaderView, QCheckBox, QDialog, QVBoxLayout, QLabel, QSizePolicy, QTextEdit)
 from PyQt5.QtCore import (Qt, QThread, pyqtSignal)
 from PyQt5.QtGui import QColor
 from main import build_squeeze_paper
@@ -35,8 +35,6 @@ class QPushButton(QPushButton):
         super().__init__(parent)
         self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
 
-# Add the following import at the top
-from PyQt5.QtWidgets import QTextEdit
 
 class PDFCreationThread(QThread):
     progress_signal = pyqtSignal(str)
