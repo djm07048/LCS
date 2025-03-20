@@ -1,463 +1,750 @@
 import sys
-import math
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QLabel
-from PyQt5.QtCore import Qt, QPoint, QRect
-from PyQt5.QtGui import QPainter, QColor, QBrush, QPen
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
+                             QHBoxLayout, QLabel, QScrollArea)
+from PyQt5.QtCore import Qt, QRect, QPoint
+from PyQt5.QtGui import QPainter, QColor, QBrush, QPen, QFont, QMouseEvent, QFontDatabase
+import random
 
 
-class Marker:
-    def __init__(self, x, y, size=10, index=0):
-        self.x = int(x)  # x 좌표 (고정됨)
-        self.y = int(y)  # y 좌표 (변경 가능)
-        self.size = int(size)  # 마커 크기
-        self.original_y = int(y)  # 원래 y 좌표 (초기값 저장)
-        self.attached_object = None  # 부착된 객체
-        self.index = index  # 마커 인덱스
-
-    def contains(self, point):
-        # 포인트가 마커 내에 있는지 확인
-        return (abs(point.x() - self.x) <= self.size and
-                abs(point.y() - self.y) <= self.size)
-
-    def get_rect(self):
-        # 마커의 사각형 영역 반환
-        return QRect(self.x - self.size // 2, self.y - self.size // 2,
-                     self.size, self.size)
-
-
-class DraggableObject:
-    def __init__(self, x, y, width, height, color, obj_id):
-        self.x = int(x)  # x 좌표
-        self.y = int(y)  # y 좌표
-        self.width = int(width)  # 객체 너비
-        self.height = int(height)  # 객체 높이
-        self.color = color  # 객체 색상
-        self.obj_id = obj_id  # 객체 고유 ID
-        self.attached_marker = None  # 현재 부착된 마커
-        self.original_marker = None  # 원래 부착된 마커
-        self.is_dragging = False  # 드래그 중인지 여부
-        self.drag_offset_x = 0  # 드래그 시 x 오프셋
-        self.drag_offset_y = 0  # 드래그 시 y 오프셋
+class Object:
+    def __init__(self, id, rect, activated=False, column=None, order=None):
+        self.id = id
+        self.rect = rect
+        self.activated = activated
+        self.column = column
+        self.order = order
+        # Random color will be assigned in init_objects
+        self.color = QColor(255, 200, 100)  # Default color for objects
+        self.is_dragging = False
+        self.drag_offset = QPoint()
 
     def contains(self, point):
-        # 포인트가 객체 내에 있는지 확인
-        return (self.x <= point.x() <= self.x + self.width and
-                self.y <= point.y() <= self.y + self.height)
+        return self.rect.contains(point)
 
-    def get_rect(self):
-        # 객체의 사각형 영역 반환
-        return QRect(self.x, self.y, self.width, self.height)
+    def draw(self, painter):
+        # Draw with rounded corners for a nicer look
+        painter.setBrush(QBrush(self.color))
+        painter.setPen(QPen(Qt.black, 2))
 
-    def get_top_left(self):
-        # 객체의 좌상단 좌표 반환
-        return QPoint(self.x, self.y)
+        # Draw rounded rectangle
+        painter.drawRoundedRect(self.rect, 10, 10)
 
-    def get_bottom_right(self):
-        # 객체의 우하단 좌표 반환
-        return QPoint(self.x + self.width, self.y + self.height)
+        # Draw the object number in the center only if activated
+        if self.activated:
+            # Create a contrasting color for text based on background brightness
+            brightness = (self.color.red() * 299 + self.color.green() * 587 + self.color.blue() * 114) / 1000
+            text_color = QColor(0, 0, 0) if brightness > 128 else QColor(255, 255, 255)
+
+            painter.setFont(QFont('Arial', 12, QFont.Bold))
+            painter.setPen(QPen(text_color))
+            painter.drawText(self.rect, Qt.AlignCenter, str(self.id))
 
 
-class MarkerSnapApp(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.initUI()
+class Column:
+    def __init__(self, name, rect):
+        self.name = name
+        self.rect = rect
+        self.color = QColor(200, 200, 255, 100)  # Light blue with transparency
+        self.objects = []  # Objects in this column
 
-    def initUI(self):
-        # UI 초기화
-        self.setWindowTitle('마커 스냅 애플리케이션')
-        self.setGeometry(50, 50, 1600, 900)  # 윈도우 크기 증가
+    def contains(self, point):
+        return self.rect.contains(point)
 
-        # 현재 드래그 중인 객체
-        self.dragging_object = None
+    def draw(self, painter):
+        # Draw with a solid fill to prevent transparency artifacts
+        painter.setBrush(QBrush(self.color))
+        painter.setPen(QPen(Qt.black, 1))
+        painter.drawRect(self.rect)
 
-        # 상태 표시 레이블
-        self.status_label = QLabel('객체를 드래그하여 마커에 스냅하세요', self)
-        self.status_label.setGeometry(10, 10, 700, 30)
+        # Draw column name
+        painter.setFont(QFont('Arial', 10))
+        painter.drawText(self.rect.left() + 5, self.rect.top() + 15, self.name)
 
-        # 마커 초기 위치 설정
-        self.init_markers()
 
-        # 객체 생성
+class ObjectManagerWidget(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setMinimumSize(800, 600)
+
+        # Set fixed column width
+        self.fixed_column_width = 100  # Fixed width for each column in pixels
+
+        # Initialize columns
+        self.columns = []
+        self.init_columns()
+
+        # Initialize objects
+        self.objects = []
         self.init_objects()
 
-        self.show()
+        # Set dragging variables
+        self.dragging_object = None
+        self.start_drag_pos = QPoint()
 
-    def init_markers(self):
-        # 8개 컬럼에 각 3개의 마커 생성 (총 24개)
-        marker_size = 10
-        columns = 8
-        rows = 3
+        # Object numbering dictionary
+        self.object_numbering = {}
+        self.update_object_numbering()
 
-        # 마커 간격 계산
-        window_width = 1500
-        window_height = 700
-        h_margin = 100
-        v_margin = 100
+        # Setup UI
+        self.setMouseTracking(True)
 
-        column_width = (window_width - 2 * h_margin) / (columns - 1)
-        row_height = (window_height - 2 * v_margin) / (rows - 1)
+    def init_columns(self):
+        # Clear old columns first
+        self.columns = []
 
-        # 마커 생성
-        self.markers = []
-        marker_index = 0
+        # Define column dimensions
+        column_height = 500  # 고정된 높이 (픽셀)
 
-        for col in range(columns):
-            x = h_margin + col * column_width
-            for row in range(rows):
-                y = v_margin + row * row_height
-                self.markers.append(Marker(x, y, marker_size, marker_index))
-                marker_index += 1
+        # Create 8 columns (1L, 1R, 2L, 2R, 3L, 3R, 4L, 4R) with fixed width
+        column_names = ["1L", "1R", "2L", "2R", "3L", "3R", "4L", "4R"]
 
-        # 마커 레이블 생성
-        self.marker_labels = []
-        for i, marker in enumerate(self.markers):
-            label = QLabel(f"{i + 1}", self)  # 1부터 시작하는 번호 표시
-            label.setGeometry(int(marker.x - 15), int(marker.y - 15), 30, 30)
-            label.setAlignment(Qt.AlignCenter)
-            label.setStyleSheet("color: red; font-weight: bold;")
-            self.marker_labels.append(label)
+        for i, name in enumerate(column_names):
+            x = i * self.fixed_column_width
+            y = 0
+            rect = QRect(x, y, self.fixed_column_width, column_height)
+            self.columns.append(Column(name, rect))
 
     def init_objects(self):
-        # 20개의 객체 생성
-        object_width = 100  # 너비를 줄여 화면에 맞게 조정
+        # Create some initial objects in the unactivated area with varying heights and colors
+        object_width = 80
+        unactivated_area_y = int(self.height() * 0.7) if self.height() > 0 else 450
+        unactivated_area_height = int(self.height() * 0.3) if self.height() > 0 else 150
 
-        # 다양한 높이와 색상으로 객체 생성
+        # Define a variety of colors
         colors = [
-            QColor(255, 100, 100),  # 빨간색
-            QColor(100, 100, 255),  # 파란색
-            QColor(100, 255, 100),  # 초록색
-            QColor(255, 255, 100),  # 노란색
-            QColor(255, 100, 255),  # 분홍색
-            QColor(100, 255, 255),  # 하늘색
-            QColor(255, 150, 50),  # 주황색
-            QColor(150, 50, 255),  # 보라색
-            QColor(50, 150, 150),  # 청록색
-            QColor(200, 100, 50)  # 갈색
+            QColor(255, 200, 100),  # Original orange
+            QColor(100, 200, 255),  # Light blue
+            QColor(255, 150, 150),  # Light red
+            QColor(150, 255, 150),  # Light green
+            QColor(200, 150, 255),  # Light purple
+            QColor(255, 255, 150),  # Light yellow
+            QColor(150, 255, 200),  # Mint
+            QColor(255, 180, 180)  # Pink
         ]
 
-        # 20개 객체 생성
-        self.objects = []
-        for i in range(20):
-            # 객체 높이는 50~100 사이에서 변화
-            height = 50 + (i % 6) * 10
-            # 색상은 반복해서 사용
+        # Calculate spacing to distribute objects evenly
+        total_width = self.width()
+        objects_count = 10
+        padding = 20  # Horizontal padding between objects
+
+        # Calculate the total width needed for all objects with padding
+        total_objects_width = objects_count * object_width + (objects_count - 1) * padding
+
+        # Calculate the starting x position to center the objects
+        start_x = (total_width - total_objects_width) // 2
+
+        for i in range(10):  # Create 10 initial objects
+            # Randomize height between 40 and 80 pixels
+            object_height = 40 + (i % 5) * 10  # Heights: 40, 50, 60, 70, 80 pixels
+
+            # Choose color based on index (distribute colors evenly)
             color = colors[i % len(colors)]
 
-            # 초기 위치 설정
-            if i < 8:  # 처음 8개 객체는 첫 번째 행의 마커에 배치
-                x = self.markers[i * 3].x
-                y = self.markers[i * 3].y
-                obj = DraggableObject(x, y, object_width, height, color, i)
-                self.objects.append(obj)
-                self.attach_object_to_marker(obj, self.markers[i * 3])
-            else:  # 나머지 객체는 화면 하단에 분산 배치
-                x = 100 + (i % 8) * 180
-                y = 750 + (i // 8) * 60
-                self.objects.append(DraggableObject(x, y, object_width, height, color, i))
+            # Calculate x position with even spacing
+            x = start_x + (i * (object_width + padding))
+            y = unactivated_area_y
 
-        # 마커 위치 재조정
-        self.adjust_marker_positions()
+            rect = QRect(x, y, object_width, object_height)
 
-    def attach_object_to_marker(self, obj, marker):
-        # 객체를 마커에 부착하는 함수
+            # Create object with the specific height and color
+            obj = Object(i + 1, rect)
+            obj.color = color
+            self.objects.append(obj)
 
-        # 이전에 부착된 마커가 있으면 연결 해제
-        if obj.attached_marker:
-            obj.attached_marker.attached_object = None
 
-        # 새 마커에 부착
-        obj.x = int(marker.x)
-        obj.y = int(marker.y)
-        obj.attached_marker = marker
-        marker.attached_object = obj
+    def update_object_numbering(self):
+        # Sort objects by column and then by order within column
+        activated_objects = [obj for obj in self.objects if obj.activated]
+        unactivated_objects = [obj for obj in self.objects if not obj.activated]
 
-        # 원래 마커가 설정되지 않았으면 설정
-        if obj.original_marker is None:
-            obj.original_marker = marker
+        # Sort activated objects by column name and then by order
+        activated_objects.sort(key=lambda o: (
+            self.get_column_index(o.column),
+            o.order if o.order is not None else 0
+        ))
 
-        self.update_status(f"객체 {obj.obj_id + 1}이(가) 마커 {marker.index + 1}에 부착됨")
+        # Renumber all objects
+        self.object_numbering = {}
+        counter = 1
 
-    def update_status(self, message):
-        # 상태 메시지 업데이트
-        if hasattr(self, 'status_label'):
-            self.status_label.setText(message)
-        print(message)  # 콘솔에도 출력하여 디버깅에 도움
+        # Number activated objects only
+        for obj in activated_objects:
+            obj.id = counter
+            self.object_numbering[counter] = f"Object {counter}"
+            counter += 1
 
-    def update_marker_labels(self):
-        # 마커 레이블 위치 업데이트
-        for i, marker in enumerate(self.markers):
-            # float 값을 정수로 변환
-            x = int(marker.x - 15)
-            y = int(marker.y - 15)
-            self.marker_labels[i].setGeometry(x, y, 30, 30)
+        # Print debug info
+        print("Object numbering updated:")
+        for obj in activated_objects:
+            print(f"Object {obj.id}: column={obj.column}, order={obj.order}, activated={obj.activated}")
+
+    def get_column_index(self, column_name):
+        for i, col in enumerate(self.columns):
+            if col.name == column_name:
+                return i
+        return -1
+
+    def get_column_by_name(self, name):
+        for col in self.columns:
+            if col.name == name:
+                return col
+        return None
+
+    def get_column_at_point(self, point):
+        for col in self.columns:
+            if col.contains(point):
+                return col
+        return None
+
+    def adjust_objects_position(self):
+        # 각 컬럼의 객체 위치 조정
+        for column in self.columns:
+            objects_in_column = [obj for obj in self.objects if obj.activated and obj.column == column.name]
+
+            if not objects_in_column:
+                continue
+
+            # 순서대로 객체 정렬
+            objects_in_column.sort(key=lambda o: o.order if o.order is not None else 0)
+
+            # 컬럼 크기 정의
+            column_width = column.rect.width()
+            column_height = column.rect.height()
+            total_objects = len(objects_in_column)
+
+            if total_objects == 1:
+                # 하나의 객체만 있을 때는 중앙 정렬
+                obj = objects_in_column[0]
+                # 수평 중앙 정렬
+                obj_width = obj.rect.width()
+                center_x = column.rect.left() + (column_width - obj_width) // 2
+                # 수직 중앙 정렬 (또는 원하는 위치)
+                obj.rect.moveLeft(center_x)
+                obj.rect.moveTop(column.rect.top() + 20)  # 상단에서 약간 여백 추가
+                obj.order = 0  # 순서 설정
+            else:
+                # 여러 객체가 있을 경우
+                # 객체들의 총 높이 계산
+                total_object_height = sum(obj.rect.height() for obj in objects_in_column)
+
+                # 객체 간 간격 계산
+                available_height = column_height - total_object_height - 40  # 상하 여백 40px
+                spacing = available_height // (total_objects - 1) if total_objects > 1 else 0
+
+                # 계산된 간격으로 각 객체 배치
+                current_y = column.rect.top() + 20  # 상단 여백 시작
+
+                for i, obj in enumerate(objects_in_column):
+                    # 수평 중앙 정렬
+                    obj_width = obj.rect.width()
+                    center_x = column.rect.left() + (column_width - obj_width) // 2
+                    obj.rect.moveLeft(center_x)
+
+                    # 마지막 객체인 경우 컬럼 하단을 넘지 않도록 조정
+                    if i == total_objects - 1:
+                        bottom_pos = column.rect.bottom() - 20  # 하단 여백
+                        if obj.rect.height() + current_y > bottom_pos:
+                            current_y = bottom_pos - obj.rect.height()
+
+                    # 드래그 중인 객체는 이동하지 않음
+                    if hasattr(obj, 'is_dragging') and obj.is_dragging:
+                        continue
+
+                    obj.rect.moveTop(current_y)
+                    current_y += obj.rect.height() + spacing
+
+    def transfer_object(self, obj, release_point):
+        target_column = self.get_column_at_point(release_point)
+
+        if obj.activated:
+            # 이미 활성화된 객체인 경우
+            if target_column is None:
+                # Case 1: 비활성화 - 컬럼 밖으로 드롭
+                obj.activated = False
+                obj.column = None
+                obj.order = None
+
+            elif target_column.name == obj.column:
+                # Case 2: 같은 컬럼 내 이동
+                objects_in_column = [o for o in self.objects if
+                                     o.activated and o.column == target_column.name and o != obj]
+
+                if not objects_in_column:
+                    # 컬럼 내 유일한 객체인 경우
+                    obj.order = 0
+                else:
+                    # 드래그한 객체의 현재 순서
+                    original_order = obj.order
+
+                    # 다른 객체들을 순서대로 정렬
+                    objects_in_column.sort(key=lambda o: o.order if o.order is not None else 0)
+
+                    # 마우스 위치에 따른 목표 위치 찾기
+                    target_position = -1
+                    for i, other_obj in enumerate(objects_in_column):
+                        if release_point.y() < other_obj.rect.center().y():
+                            target_position = i
+                            break
+
+                    if target_position == -1:  # 목표 위치를 찾지 못했다면 맨 끝에 배치
+                        target_position = len(objects_in_column)
+
+                    # 순서 업데이트 - 스마트폰 스타일 재정렬
+                    if original_order < target_position:
+                        # 아래로 이동 - 기존 위치와 새 위치 사이의 객체들은 위로 이동
+                        for o in objects_in_column:
+                            if original_order < o.order <= target_position:
+                                o.order -= 1
+                        obj.order = target_position
+                    elif original_order > target_position:
+                        # 위로 이동 - 새 위치와 기존 위치 사이의 객체들은 아래로 이동
+                        for o in objects_in_column:
+                            if target_position <= o.order < original_order:
+                                o.order += 1
+                        obj.order = target_position
+
+            else:
+                # Case 3: Intercolumn transfer - 다른 컬럼으로 이동
+                new_column = target_column
+                old_column_name = obj.column
+                original_order = obj.order
+
+                # 새 컬럼에 이미 3개의 객체가 있는지 확인
+                objects_in_new_column = [o for o in self.objects if o.activated and o.column == new_column.name]
+                objects_in_old_column = [o for o in self.objects if
+                                         o.activated and o.column == old_column_name and o != obj]
+
+                # 스왑이 필요한지 확인
+                if len(objects_in_new_column) >= 3:
+                    # 가장 가까운 객체와 스왑
+                    # Y좌표 기준으로 가장 가까운 객체 찾기
+                    objects_in_new_column.sort(key=lambda o: abs(o.rect.center().y() - release_point.y()))
+                    object_to_swap = objects_in_new_column[0]  # 가장 가까운 객체
+
+                    # 스왑할 객체의 원래 위치 저장
+                    swap_original_column = object_to_swap.column
+                    swap_original_order = object_to_swap.order
+
+                    # 스왑할 객체를 드래그한 객체의 출발 위치로 이동
+                    object_to_swap.column = old_column_name
+                    object_to_swap.order = original_order
+
+                    # 드래그한 객체를 새 컬럼으로 이동
+                    obj.column = new_column.name
+
+                    # 새 컬럼에서 순서 결정
+                    remaining_objects = [o for o in objects_in_new_column if o != object_to_swap]
+
+                    # Y 좌표에 따른 위치 결정
+                    target_position = -1
+                    for i, other_obj in enumerate(sorted(remaining_objects, key=lambda o: o.order)):
+                        if release_point.y() < other_obj.rect.center().y():
+                            target_position = i
+                            break
+
+                    if target_position == -1:
+                        target_position = len(remaining_objects)
+
+                    # 새 순서 할당
+                    obj.order = target_position
+
+                    # 삽입 지점 이후 객체들의 순서 조정
+                    for o in remaining_objects:
+                        if o.order >= target_position:
+                            o.order += 1
+
+                    # 이전 컬럼의 객체들 재정렬
+                    if objects_in_old_column:
+                        objects_in_old_column.sort(key=lambda o: o.order if o.order is not None else 0)
+                        for i, o in enumerate(objects_in_old_column):
+                            o.order = i
+
+                elif len(objects_in_new_column) < 3:
+                    # 스왑 불필요, 객체 컬럼 업데이트
+                    obj.column = new_column.name
+
+                    # 새 컬럼에서 순서 결정
+                    objects_in_new_column.sort(key=lambda o: o.order if o.order is not None else 0)
+
+                    # Y 좌표에 따른 목표 위치 찾기
+                    target_position = -1
+                    for i, other_obj in enumerate(objects_in_new_column):
+                        if release_point.y() < other_obj.rect.center().y():
+                            target_position = i
+                            break
+
+                    if target_position == -1:
+                        target_position = len(objects_in_new_column)
+
+                    # 새 순서 할당
+                    obj.order = target_position
+
+                    # 삽입 지점 이후 객체들의 순서 조정
+                    for o in objects_in_new_column:
+                        if o.order >= target_position:
+                            o.order += 1
+
+                    # 이전 컬럼의 객체들 재정렬
+                    if objects_in_old_column:
+                        objects_in_old_column.sort(key=lambda o: o.order if o.order is not None else 0)
+                        for i, o in enumerate(objects_in_old_column):
+                            o.order = i
+
+        else:
+            # 비활성화된 객체인 경우
+            if target_column is not None:
+                # Case 4: 활성화 - 비활성화된 객체가 컬럼에 드롭됨
+                new_column = target_column
+
+                # 새 컬럼에 이미 3개의 객체가 있는지 확인
+                objects_in_new_column = [o for o in self.objects if o.activated and o.column == new_column.name]
+
+                if len(objects_in_new_column) >= 3:
+                    # 가장 가까운 객체와 스왑해야 함
+                    # Y 좌표 기준으로 가장 가까운 객체 찾기
+                    objects_in_new_column.sort(key=lambda o: abs(o.rect.center().y() - release_point.y()))
+                    object_to_swap = objects_in_new_column[0]  # 가장 가까운 객체
+
+                    # 스왑할 객체를 비활성화하고 드래그한 객체의 원래 위치로 이동
+                    object_to_swap.activated = False
+                    object_to_swap.column = None
+                    object_to_swap.order = None
+
+                    # 드래그한 객체 활성화 및 새 컬럼에 배치
+                    obj.activated = True
+                    obj.column = new_column.name
+
+                    # 새 컬럼에서 위치 결정
+                    remaining_objects = [o for o in objects_in_new_column if o != object_to_swap]
+
+                    # Y 좌표에 따른 위치 결정
+                    target_position = -1
+                    for i, other_obj in enumerate(sorted(remaining_objects, key=lambda o: o.order)):
+                        if release_point.y() < other_obj.rect.center().y():
+                            target_position = i
+                            break
+
+                    if target_position == -1:
+                        target_position = len(remaining_objects)
+
+                    # 새 순서 할당
+                    obj.order = target_position
+
+                    # 삽입 지점 이후 객체들의 순서 조정
+                    for o in remaining_objects:
+                        if o.order >= target_position:
+                            o.order += 1
+
+                else:
+                    # 스왑 불필요, 객체 활성화
+                    obj.activated = True
+                    obj.column = new_column.name
+
+                    # 새 컬럼에서 순서 결정
+                    objects_in_new_column.sort(key=lambda o: o.order if o.order is not None else 0)
+
+                    # Y 좌표에 따른 위치 찾기
+                    target_position = -1
+                    for i, other_obj in enumerate(objects_in_new_column):
+                        if release_point.y() < other_obj.rect.center().y():
+                            target_position = i
+                            break
+
+                    if target_position == -1:
+                        target_position = len(objects_in_new_column)
+
+                    # 새 순서 할당
+                    obj.order = target_position
+
+                    # 삽입 지점 이후 객체들의 순서 조정
+                    for o in objects_in_new_column:
+                        if o.order >= target_position:
+                            o.order += 1
 
     def paintEvent(self, event):
-        # 화면 그리기 이벤트
         painter = QPainter(self)
+
+        # Enable antialiasing for smoother drawing
         painter.setRenderHint(QPainter.Antialiasing)
 
-        # 마커 그리기
-        painter.setPen(QPen(Qt.black, 2))
-        painter.setBrush(QBrush(Qt.red))
-        for marker in self.markers:
-            painter.drawEllipse(marker.get_rect())
+        # Clear the entire widget area first to prevent artifacts
+        painter.fillRect(self.rect(), QColor(240, 240, 240))
 
-        # 객체 그리기
+        # Calculate the total width needed for all columns
+        total_columns_width = len(self.columns) * self.fixed_column_width
+
+        # Draw columns
+        for column in self.columns:
+            # Only draw columns if they are visible in the viewport
+            if column.rect.right() >= 0 and column.rect.left() <= self.width():
+                column.draw(painter)
+
+        # Draw unactivated area
+        unactivated_area = QRect(0, int(self.height() * 0.7), self.width(), int(self.height() * 0.3))
+        painter.setBrush(QBrush(QColor(220, 220, 220)))
+        painter.setPen(QPen(Qt.black, 1))
+        painter.drawRect(unactivated_area)
+        painter.drawText(10, int(self.height() * 0.7) + 20, "Unactivated Objects Area")
+
+        # Draw objects
         for obj in self.objects:
-            painter.setBrush(QBrush(obj.color))
-            painter.drawRect(obj.get_rect())
+            if obj != self.dragging_object:  # Don't draw the object being dragged here
+                # Only draw objects that are visible in the viewport
+                if obj.rect.right() >= 0 and obj.rect.left() <= self.width():
+                    obj.draw(painter)
+
+        # Draw the dragging object on top
+        if self.dragging_object:
+            self.dragging_object.draw(painter)
+
+        # Ensure painter is ended properly
+        painter.end()
+
+    def resizeEvent(self, event):
+        # Recalculate column dimensions on resize
+        old_columns = self.columns.copy()
+        self.columns = []  # Clear current columns
+        self.init_columns()
+
+        # Update object positions based on new column positions
+        for i, obj in enumerate(self.objects):
+            if obj.activated and obj.column:
+                # Find the matching new column
+                for new_col in self.columns:
+                    if obj.column == new_col.name:
+                        # Keep the same relative position in the new column
+                        obj.rect.moveLeft(new_col.rect.left())
+
+        # Completely adjust all object positions
+        self.adjust_objects_position()
+
+        # Force a complete repaint
+        self.update()
+
+        super().resizeEvent(event)
 
     def mousePressEvent(self, event):
-        # 마우스 누름 이벤트
         if event.button() == Qt.LeftButton:
-            # 객체가 클릭되었는지 확인
-            for obj in self.objects:
+            # Check if we're clicking on an object
+            for obj in reversed(self.objects):  # Check from top to bottom
                 if obj.contains(event.pos()):
-                    # 드래그 시작
                     self.dragging_object = obj
-                    obj.is_dragging = True
-                    # 드래그 오프셋 설정 (객체 내 클릭 위치)
-                    obj.drag_offset_x = event.pos().x() - obj.x
-                    obj.drag_offset_y = event.pos().y() - obj.y
+                    self.dragging_object.is_dragging = True
+                    self.dragging_object.drag_offset = event.pos() - obj.rect.topLeft()
+                    self.start_drag_pos = event.pos()
 
-                    # 드래그 시작 상태 업데이트
-                    self.update_status(f"객체 {obj.obj_id + 1} 드래그 시작")
+                    # Move the dragging object to the end of the list so it's drawn on top
+                    self.objects.remove(obj)
+                    self.objects.append(obj)
                     break
 
     def mouseMoveEvent(self, event):
-        # 마우스 이동 이벤트
-        if self.dragging_object:
-            # 객체 위치 업데이트 (정수로 변환)
-            self.dragging_object.x = int(event.pos().x() - self.dragging_object.drag_offset_x)
-            self.dragging_object.y = int(event.pos().y() - self.dragging_object.drag_offset_y)
+        if self.dragging_object and self.dragging_object.is_dragging:
+            # Move the object with the mouse
+            new_pos = event.pos() - self.dragging_object.drag_offset
 
-            # Move 상태 표시
-            self.update_status(
-                f"Move: 객체 {self.dragging_object.obj_id + 1} 이동 중 ({self.dragging_object.x}, {self.dragging_object.y})")
-            self.update()  # 화면 갱신
+            # Constrain horizontal position within the widget
+            new_pos.setX(max(0, min(new_pos.x(), self.width() - self.dragging_object.rect.width())))
+
+            # Constrain vertical position within the widget
+            new_pos.setY(max(0, min(new_pos.y(), self.height() - self.dragging_object.rect.height())))
+
+            self.dragging_object.rect.moveTopLeft(new_pos)
+
+            # Dynamic reordering during drag (preview effect)
+            if self.dragging_object.activated:
+                current_column = self.get_column_at_point(event.pos())
+                if current_column and current_column.name == self.dragging_object.column:
+                    # We're dragging within the same column - do a live preview reordering
+                    objects_in_column = [o for o in self.objects if
+                                         o.activated and
+                                         o.column == current_column.name and
+                                         o != self.dragging_object]
+
+                    if objects_in_column:
+                        # Get current order of dragged object
+                        original_order = self.dragging_object.order
+
+                        # Find where the dragged object would be inserted
+                        target_position = -1
+                        for i, other_obj in enumerate(sorted(objects_in_column, key=lambda o: o.order)):
+                            if event.pos().y() < other_obj.rect.center().y():
+                                target_position = i
+                                break
+
+                        if target_position == -1:  # If we didn't find a position, it would go at the end
+                            target_position = len(objects_in_column)
+
+                        # Calculate temporary positions for smooth animation
+                        column_height = current_column.rect.height()
+                        object_height = self.dragging_object.rect.height()
+
+                        # Calculate spacing between objects
+                        available_height = column_height - (
+                                    len(objects_in_column) + 1) * object_height - 40  # 40px for padding
+                        spacing = available_height // (len(objects_in_column)) if len(objects_in_column) > 0 else 0
+
+                        # Update objects - simulate the move without actually changing orders
+                        temp_positions = {}
+
+                        # Determine which objects need to move
+                        if original_order < target_position:
+                            # Moving downward - objects between old and new position move up
+                            for o in objects_in_column:
+                                if original_order < o.order <= target_position:
+                                    # This object should move up one position
+                                    temp_positions[o] = o.order - 1
+                                else:
+                                    # This object stays in place
+                                    temp_positions[o] = o.order
+                        elif original_order > target_position:
+                            # Moving upward - objects between new and old position move down
+                            for o in objects_in_column:
+                                if target_position <= o.order < original_order:
+                                    # This object should move down one position
+                                    temp_positions[o] = o.order + 1
+                                else:
+                                    # This object stays in place
+                                    temp_positions[o] = o.order
+                        else:
+                            # No change in position
+                            for o in objects_in_column:
+                                temp_positions[o] = o.order
+
+                        # Now animate the objects toward their temporary positions
+                        for o in objects_in_column:
+                            temp_order = temp_positions[o]
+                            target_top = current_column.rect.top() + 20 + temp_order * (object_height + spacing)
+
+                            # Ensure the target position is within column boundaries
+                            if target_top + o.rect.height() > current_column.rect.bottom() - 20:
+                                target_top = current_column.rect.bottom() - 20 - o.rect.height()
+
+                            current_top = o.rect.top()
+
+                            # Smooth animation - move a portion of the way to the target
+                            animation_step = 0.1  # 이 값을 낮추면 부드럽게 밀리는 속도가 감소합니다
+                            new_top = int(current_top + animation_step * (target_top - current_top))
+
+                            # Ensure the new position is within column boundaries
+                            new_top = max(current_column.rect.top() + 20,
+                                          min(new_top, current_column.rect.bottom() - 20 - o.rect.height()))
+
+                            o.rect.moveTop(new_top)
+
+            self.update()  # Redraw
 
     def mouseReleaseEvent(self, event):
-        # 마우스 릴리즈 이벤트
         if event.button() == Qt.LeftButton and self.dragging_object:
             try:
-                # 드래그 중인 객체와 원래 마커 저장
-                dragged_obj = self.dragging_object
-                source_marker = dragged_obj.attached_marker
+                # Make sure the event position is within widget bounds
+                # If mouse is released outside the widget, use the last valid position
+                contained_pos = QPoint(
+                    max(0, min(event.pos().x(), self.width() - 1)),
+                    max(0, min(event.pos().y(), self.height() - 1))
+                )
 
-                if source_marker is None:
-                    # 부착된 마커가 없으면 원래 마커로 설정
-                    if dragged_obj.original_marker:
-                        source_marker = dragged_obj.original_marker
-                    else:
-                        # 원래 마커도 없으면 첫 번째 마커로 설정
-                        source_marker = self.markers[0]
-                        dragged_obj.original_marker = source_marker
+                # Store the original state before transfer for potential restore
+                original_state = {
+                    'activated': self.dragging_object.activated,
+                    'column': self.dragging_object.column,
+                    'order': self.dragging_object.order,
+                    'rect': QRect(self.dragging_object.rect)
+                }
 
-                # 객체의 좌상단 위치 가져오기
-                object_top_left = dragged_obj.get_top_left()
+                # Remember original positions of all objects
+                original_positions = {}
+                for obj in self.objects:
+                    original_positions[obj] = QRect(obj.rect)
 
-                # 가장 가까운 마커 찾기 (현재 부착된 마커 제외)
-                closest_marker = None
-                closest_distance = float('inf')
+                # Transfer the object based on release position
+                self.transfer_object(self.dragging_object, contained_pos)
 
-                for marker in self.markers:
-                    # 현재 부착된 마커는 건너뛰기
-                    if marker == source_marker:
-                        continue
+                # Reset dragging state
+                self.dragging_object.is_dragging = False
+                drag_obj = self.dragging_object
+                self.dragging_object = None
 
-                    # 마커와 객체 좌상단 거리 계산
-                    distance = math.sqrt(
-                        (marker.x - object_top_left.x()) ** 2 +
-                        (marker.y - object_top_left.y()) ** 2
-                    )
+                # Adjust positions and update numbering
+                self.adjust_objects_position()
+                self.update_object_numbering()
 
-                    # 더 가까운 마커 발견 시 업데이트
-                    if distance < closest_distance:
-                        closest_distance = distance
-                        closest_marker = marker
+                # If the dragged object returned to its original position, display status message
+                if (drag_obj.activated == original_state['activated'] and
+                        drag_obj.column == original_state['column'] and
+                        drag_obj.order == original_state['order']):
+                    self.parent().statusBar().showMessage("Transfer not allowed due to constraints", 3000)
 
-                # Transfer vs Retrieve 결정 (거리가 100 이하면 Transfer)
-                if closest_marker is not None and closest_distance <= 100:
-                    # Transfer - 객체를 새 마커로 이동
-                    self.update_status(
-                        f"Transfer: 객체 {dragged_obj.obj_id + 1}을(를) 마커 {closest_marker.index + 1}로 이동 (거리: {closest_distance:.1f})")
-                    self.handle_transfer(dragged_obj, closest_marker, source_marker)
-                else:
-                    # Retrieve - 객체를 원래 마커로 되돌림
-                    self.update_status(f"Retrieve: 객체 {dragged_obj.obj_id + 1}을(를) 마커 {source_marker.index + 1}로 복귀")
-                    self.attach_object_to_marker(dragged_obj, source_marker)
+                # Ensure all objects are redrawn correctly
+                for obj in self.objects:
+                    if obj.activated:
+                        print(f"After transfer: Object {obj.id} in column {obj.column} with order {obj.order}")
 
-                # 마커 위치 재조정
-                self.adjust_marker_positions()
-
+                self.update()  # Redraw
             except Exception as e:
-                # 예외 발생 시 출력 (디버깅용)
+                # Handle any errors during mouse release
+                print(f"Error in mouse release: {e}")
                 import traceback
-                print(f"Error in mouseReleaseEvent: {e}")
                 traceback.print_exc()
-            finally:
-                # 드래그 상태 초기화 (예외가 발생해도 실행됨)
+                # Reset dragging state in case of error
                 if self.dragging_object:
                     self.dragging_object.is_dragging = False
                     self.dragging_object = None
-                self.update()  # 화면 갱신
-                self.update_marker_labels()  # 마커 레이블 위치 업데이트
-
-    def handle_transfer(self, obj, target_marker, source_marker):
-        # Transfer 처리 함수
-        try:
-            print(f"handle_transfer: 객체 {obj.obj_id + 1}을(를) 마커 {target_marker.index + 1}로 이동")
-
-            # 대상 마커에 이미 객체가 있는 경우 AutoTransfer 처리
-            displaced_object = target_marker.attached_object
-            if displaced_object and displaced_object != obj:
-                print(f"AutoTransfer: 마커 {target_marker.index + 1}에 있던 객체 {displaced_object.obj_id + 1} 이동")
-
-                # 같은 x 좌표를 가진 마커 중 적절한 마커 찾기
-                x_coord = target_marker.x
-
-                # 자동 이동할 마커 선택 (같은 x좌표)
-                same_column_markers = [m for m in self.markers
-                                       if m.x == x_coord and m != target_marker]
-
-                # 빈 마커가 있는지 확인
-                empty_markers = [m for m in same_column_markers if m.attached_object is None]
-
-                if empty_markers:
-                    # 빈 마커가 있으면, 그 중 하나로 이동
-                    best_marker = empty_markers[0]
-                    print(f"빈 마커 찾음: 객체 {displaced_object.obj_id + 1}을(를) 마커 {best_marker.index + 1}로 이동")
-
-                    # 객체 연결 해제 후 새 마커에 부착
-                    target_marker.attached_object = None
-                    displaced_object.attached_marker = None
-                    self.attach_object_to_marker(displaced_object, best_marker)
-                else:
-                    # 빈 마커가 없으면, 원래 객체가 있던 마커(source_marker)로 이동
-                    if source_marker:
-                        print(f"스왑: 객체 {displaced_object.obj_id + 1}을(를) 마커 {source_marker.index + 1}로 이동")
-
-                        # 완전한 스왑을 위해 객체와 마커 관계 모두 해제
-                        if source_marker.attached_object:
-                            temp_obj = source_marker.attached_object
-                            temp_obj.attached_marker = None
-                            source_marker.attached_object = None
-
-                        # 대상 마커에서 객체 연결 해제
-                        target_marker.attached_object = None
-                        displaced_object.attached_marker = None
-
-                        # 먼저 displaced_object를 source_marker에 부착
-                        self.attach_object_to_marker(displaced_object, source_marker)
-                    else:
-                        # source_marker가 없는 경우, 화면 하단으로 이동
-                        print(f"적절한 스왑 대상이 없음: 객체 {displaced_object.obj_id + 1}을(를) 화면 하단으로 이동")
-
-                        # 객체 연결 해제
-                        target_marker.attached_object = None
-                        displaced_object.attached_marker = None
-
-                        # 새 위치로 이동
-                        displaced_object.x = 300 + (displaced_object.obj_id * 50)
-                        displaced_object.y = 750
-
-            # 드래그한 객체를 대상 마커에 부착
-            # 기존 연결 해제
-            if obj.attached_marker:
-                obj.attached_marker.attached_object = None
-            obj.attached_marker = None
-
-            # 새 마커에 부착
-            self.attach_object_to_marker(obj, target_marker)
-
-        except Exception as e:
-            # 예외 발생 시 출력 (디버깅용)
-            import traceback
-            print(f"Error in handle_transfer: {e}")
-            traceback.print_exc()
-
-    def adjust_marker_positions(self):
-        # 마커 위치 재조정 함수
-        try:
-            # x 좌표별로 마커 그룹화 (컬럼)
-            columns = {}
-            for marker in self.markers:
-                if marker.x not in columns:
-                    columns[marker.x] = []
-                columns[marker.x].append(marker)
-
-            # 각 컬럼별로 마커 위치 조정
-            for x, markers_in_column in columns.items():
-                print(f"\n컬럼 {x}의 마커 위치 조정 시작")
-
-                # 원래 y 위치로 마커 정렬
-                markers_in_column.sort(key=lambda m: m.original_y)
-
-                # 컬럼의 상단과 하단 경계 결정
-                top_marker = min(markers_in_column, key=lambda m: m.original_y)
-                bottom_marker = max(markers_in_column, key=lambda m: m.original_y)
-                top_boundary = top_marker.original_y
-                bottom_boundary = bottom_marker.original_y
-
-                print(f"  상단 경계: {top_boundary}, 하단 경계: {bottom_boundary}")
-
-                # 객체 또는 마커의 높이 정보 수집
-                elements_info = []
-                for marker in markers_in_column:
-                    if marker.attached_object:
-                        # 객체가 부착된 경우
-                        obj = marker.attached_object
-                        print(f"  마커 {marker.index + 1}에 객체 {obj.obj_id + 1} 부착됨, 높이: {obj.height}")
-                        elements_info.append((marker, obj.height))
-                    else:
-                        # 객체가 없는 경우 마커 자체 높이 사용
-                        print(f"  마커 {marker.index + 1}에 부착된 객체 없음")
-                        elements_info.append((marker, marker.size))
-
-                # 총 공간과 요소 간 간격 계산
-                total_space = bottom_boundary - top_boundary
-                total_element_height = sum(height for _, height in elements_info)
-                num_gaps = len(elements_info) - 1
-
-                print(f"  총 공간: {total_space}, 총 요소 높이: {total_element_height}, 간격 수: {num_gaps}")
-
-                # 간격이 없으면 (마커가 1개면) 조정 필요 없음
-                if num_gaps <= 0:
-                    print("  마커가 1개뿐이므로 조정 불필요")
-                    continue
-
-                # 요소 간 간격 계산
-                gap_size = max(10, (total_space - total_element_height) / num_gaps)
-                print(f"  계산된 간격 크기: {gap_size}")
-
-                # 새 위치 설정
-                current_y = top_boundary
-
-                for idx, (marker, height) in enumerate(elements_info):
-                    # 마커 위치 업데이트
-                    marker.y = int(current_y)
-                    print(f"  마커 {marker.index + 1} 위치 조정: y={marker.y}")
-
-                    # 부착된 객체 위치도 업데이트
-                    if marker.attached_object:
-                        marker.attached_object.y = int(current_y)
-                        print(f"  객체 {marker.attached_object.obj_id + 1} 위치 조정: y={marker.attached_object.y}")
-
-                    # 다음 요소의 위치 계산
-                    if idx < len(elements_info) - 1:
-                        current_y += height + gap_size
-
-        except Exception as e:
-            # 예외 발생 시 출력 (디버깅용)
-            import traceback
-            print(f"Error in adjust_marker_positions: {e}")
-            traceback.print_exc()
-
-        # 마커 레이블 위치 업데이트
-        self.update_marker_labels()
+                self.update()  # Ensure UI is updated
 
 
-if __name__ == '__main__':
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Column Object Manager")
+        self.setGeometry(100, 100, 800, 600)
+
+        # Central widget with scroll area
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
+
+        # Main layout
+        main_layout = QVBoxLayout(self.central_widget)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Create scroll area
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        main_layout.addWidget(self.scroll_area)
+
+        # Container widget for the object manager
+        self.container = QWidget()
+        self.scroll_area.setWidget(self.container)
+
+        # Layout for container
+        container_layout = QVBoxLayout(self.container)
+        container_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Object manager widget
+        self.object_manager = ObjectManagerWidget()
+        container_layout.addWidget(self.object_manager)
+
+        # Status bar
+        self.statusBar().showMessage("Ready")
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        # Make sure the container is at least as wide as needed for all columns
+        total_width = self.object_manager.fixed_column_width * 8  # 8 columns
+        self.container.setMinimumWidth(total_width)
+        # Update the entire window after resize
+        self.update()
+
+
+if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = MarkerSnapApp()
+
+    # Set application-wide attributes for better rendering
+    app.setAttribute(Qt.AA_EnableHighDpiScaling, True)
+    app.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
+
+    window = MainWindow()
+    window.show()
     sys.exit(app.exec_())
