@@ -117,3 +117,29 @@ class MainsolBuilderSqueezeMini(MainsolBuilder):
         left_page.add_child(solving_bar)
 
         return left_page
+
+    def build(self):
+        new_doc = fitz.open()
+
+        self.resources_pdf = RESOURCES_PATH + "/squeeze_main_resources.pdf"
+        self.resources_doc = fitz.open(self.resources_pdf)
+
+        self.overlayer = Overlayer(new_doc)
+
+        item_list = self.get_item_list()
+        if len(item_list) == 0:
+            return None
+
+        for i in range(len(item_list)):
+            self.overlayer.add_page(self.get_component_on_resources(12))
+            right_page = self.build_right(item_list[i]['item_code'], i*2)
+            right_page.overlay(self.overlayer, Coord(0,0,0))
+            self.overlayer.add_page(self.get_component_on_resources(45))
+            left_page = self.build_left(item_list[i]['item_code'], i*2+1)
+            left_page.overlay(self.overlayer, Coord(0,0,0))
+
+        for page_num in range(self.overlayer.doc.page_count):
+            self.add_unit_title(page_num, self.get_unit_title(self.topic))
+
+        self.resources_doc.close()
+        return new_doc

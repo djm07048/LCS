@@ -29,9 +29,14 @@ class AnswerBuilder:
     def __init__(self, proitems, mainitems):
         self.proitems = proitems
         self.mainitems = mainitems
+
+    def get_proitems_list(self):
+        # Return the list of proitems directly
+        return list(self.proitems)
+
     def get_component_on_resources(self, page_num):
         return Component(self.resources_pdf, page_num, self.resources_doc.load_page(page_num).rect)
-    
+
     def append_new_list_to_paragraph(self, paragraph: ParagraphOverlayObject, num, overlayer, base):
         if num % 2 == 0:
             overlayer.add_page(base)
@@ -59,12 +64,12 @@ class AnswerBuilder:
             solutions_info = ic.get_solution_infos_from_file(file, 10)
             answer = ic.get_answer_from_file(file)
             return answer
-        
+
     def get_unit_title(self, unit_code):
         with open(RESOURCES_PATH + "/topic.json", encoding='UTF8') as file:
             topic_data = json.load(file)
         return topic_data[unit_code]
-    
+
     def bake_unit_cover(self, unit_code, num):
         component = self.get_component_on_resources(2+(num-1)%3)
         unit_cover = AreaOverlayObject(0, Coord(0,0,0), Ratio.mm_to_px(20))
@@ -114,11 +119,9 @@ class AnswerBuilder:
                 unit.add_child(TextOverlayObject(0, Coord(default_ans_x+Ratio.mm_to_px(19.6)*(i%5), default_y+Ratio.mm_to_px(11)*(i//5), 1), "NanumSquareNeo-cBd.ttf", 13, f"{unit_problem_answers[i]}", (0, 0, 0, 1), fitz.TEXT_ALIGN_CENTER))
         return unit
 
-
-
     def build(self):
         new_doc = fitz.open()
-        
+
         self.resources_pdf = RESOURCES_PATH + "/squeeze_ans_resources.pdf"
         self.resources_doc = fitz.open(self.resources_pdf)
 
@@ -135,23 +138,21 @@ class AnswerBuilder:
         mainitems_whole = []
         for topic_set in self.mainitems:
             mainitems_whole.extend(topic_set[1])
+        mainitems_whole.sort(key=lambda x: x['mainsub'])
 
-        def custom_sort_key(item):
-            mainsub = item['mainsub']
-            try:
-                return (0, int(mainsub))
-            except ValueError:
-                return (1, mainsub)
+        proitems_list = self.get_proitems_list()
 
-        mainitems_whole.sort(key=custom_sort_key)
+        # Ensure each element in proitems_list is a tuple with exactly two elements
+        valid_proitems_list = []
+        for item in proitems_list:
+            if isinstance(item, tuple) and len(item) == 2:
+                valid_proitems_list.append(item)
+            else:
+                print(f"Warning: Invalid item in proitems_list: {item}")
 
-        if isinstance(self.proitems, dict):
-                proitems_list = list(self.proitems.items())
-        else:
-            proitems_list = list(dict(self.proitems).items())
-        proitems_list.insert(0, mainitems_whole[0])
+        combined_items = [("Main", mainitems_whole)] + valid_proitems_list
 
-        self.proitems = dict(proitems_list)
+        self.proitems = dict(combined_items)
 
         for topic_set in self.proitems.items():
             for item in topic_set[1]:
@@ -169,11 +170,8 @@ class AnswerBuilder:
             unit_problem_answers = []
             unit_problem_numbers = []
             paragraph_cnt = self.add_child_to_paragraph(paragraph, unit, paragraph_cnt, self.overlayer, base)
-            paragraph.add_child(AreaOverlayObject(0, Coord(0,0,0), Ratio.mm_to_px(15)))
+            paragraph.add_child(AreaOverlayObject(0, Coord(0, 0, 0), Ratio.mm_to_px(15)))
 
-
-        paragraph.overlay(self.overlayer, Coord(0,0,0))
-        #new_doc.save("output/squeeze_ans_test.pdf")
+        paragraph.overlay(self.overlayer, Coord(0, 0, 0))
         self.resources_doc.close()
         return new_doc
-        pass

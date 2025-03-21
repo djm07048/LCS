@@ -60,11 +60,25 @@ class Column:
         painter.setFont(QFont('Arial', 10))
         painter.drawText(self.rect.left() + 5, self.rect.top() + 15, self.name)
 
+class Container:
+    def __init__(self, rect):
+        self.rect = rect
+        self.color = QColor(200, 200, 200, 100)  # Light gray with transparency
+        self.objects = []  # Objects in this container
+
+    def contains(self, point):
+        return self.rect.contains(point)
+
+    def draw(self, painter):
+        # Draw with a solid fill to prevent transparency artifacts
+        painter.setBrush(QBrush(self.color))
+        painter.setPen(QPen(Qt.black, 1))
+        painter.drawRect(self.rect)
 
 class ObjectManagerWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setMinimumSize(800, 600)
+        self.setMinimumSize(1200, 1000)
 
         # Set fixed column width
         self.fixed_column_width = 100  # Fixed width for each column in pixels
@@ -76,6 +90,10 @@ class ObjectManagerWidget(QWidget):
         # Initialize objects
         self.objects = []
         self.init_objects()
+
+        # Initialize container
+        self.container = Container(QRect(0, 500, 1500, 500))    # 여기서 container의 높이를 조절해야 함
+        self.init_container()
 
         # Set dragging variables
         self.dragging_object = None
@@ -103,6 +121,13 @@ class ObjectManagerWidget(QWidget):
             y = 0
             rect = QRect(x, y, self.fixed_column_width, column_height)
             self.columns.append(Column(name, rect))
+
+    def init_container(self):
+        self.container = None
+
+        container_height = 500  # 고정된 높이 (픽셀)
+
+        self.container = QRect(0, 500, self.width(), container_height)
 
     def init_objects(self):
         # Create some initial objects in the unactivated area with varying heights and colors
@@ -196,7 +221,7 @@ class ObjectManagerWidget(QWidget):
                 return col
         return None
 
-    def adjust_objects_position(self):
+    def adjust_objects_in_columns(self):
         # 각 컬럼의 객체 위치 조정
         for column in self.columns:
             objects_in_column = [obj for obj in self.objects if obj.activated and obj.column == column.name]
@@ -252,6 +277,39 @@ class ObjectManagerWidget(QWidget):
 
                     obj.rect.moveTop(current_y)
                     current_y += obj.rect.height() + spacing
+
+    def adjust_objects_in_container(self):
+        # 컨테이너의 객체 위치 조정
+        container = self.container
+        objects_in_container = [obj for obj in self.objects if not obj.activated]
+
+        if objects_in_container:
+            # 순서대로 객체 정렬
+            objects_in_container.sort(key=lambda o: o.order if o.order is not None else 0)
+            total_objects = len(objects_in_container)
+
+            # 여러 객체가 있을 경우
+            # 객체들의 총 너비 계산
+            total_object_width = sum(obj.rect.width() for obj in objects_in_container)
+
+            # 객체 간 간격 계산
+            available_width = container.rect.width - total_object_width - 40  # 좌우 여백 40px
+            spacing = available_width // (total_objects - 1) if total_objects > 1 else 0
+
+            # 계산된 간격으로 각 객체 배치
+            current_x = container.rect.left() + 20  # 좌측 여백 시작
+            currnet_y = container.rect.top() + 20  # 상단 여백 시작
+
+            for i, obj in enumerate(objects_in_container):
+                # 수직 top 정렬
+                obj.rect.moveTop(currnet_y)
+
+                # 드래그 중인 객체는 이동하지 않음
+                if hasattr(obj, 'is_dragging') and obj.is_dragging:
+                    continue
+
+                obj.rect.moveLeft(current_x)
+                current_x += obj.rect.width() + spacing
 
     def transfer_object(self, obj, release_point):
         target_column = self.get_column_at_point(release_point)
@@ -516,7 +574,7 @@ class ObjectManagerWidget(QWidget):
                         obj.rect.moveLeft(new_col.rect.left())
 
         # Completely adjust all object positions
-        self.adjust_objects_position()
+        self.adjust_objects_in_columns()
 
         # Force a complete repaint
         self.update()
@@ -666,7 +724,7 @@ class ObjectManagerWidget(QWidget):
                 self.dragging_object = None
 
                 # Adjust positions and update numbering
-                self.adjust_objects_position()
+                self.adjust_objects_in_columns()
                 self.update_object_numbering()
 
                 # If the dragged object returned to its original position, display status message

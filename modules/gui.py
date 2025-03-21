@@ -30,7 +30,7 @@ def suppress_qt_warnings():
     environ["QT_SCALE_FACTOR"] = "1"
 
 
-class QPushButton(QPushButton):
+class QPushButtonGui(QPushButton):
     def __init__(self, parent = None):
         super().__init__(parent)
         self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
@@ -78,8 +78,8 @@ class DatabaseManager(QMainWindow):
 
         # Top buttons for Pool
         pool_top_layout = QVBoxLayout()
-        self.deselect_btn = QPushButton('DESELECT POOL')
-        self.sort_btn = QPushButton('SORT POOL')
+        self.deselect_btn = QPushButtonGui('DESELECT POOL')
+        self.sort_btn = QPushButtonGui('SORT POOL')
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText('Search Item Code...')
 
@@ -113,11 +113,11 @@ class DatabaseManager(QMainWindow):
 
         # Middle buttons
         button_layout = QVBoxLayout()
-        self.transfer_btn = QPushButton('→')
-        self.add_btn = QPushButton('+')
-        self.remove_btn = QPushButton('-')
-        self.up_btn = QPushButton('▲')
-        self.down_btn = QPushButton('▼')
+        self.transfer_btn = QPushButtonGui('→')
+        self.add_btn = QPushButtonGui('+')
+        self.remove_btn = QPushButtonGui('-')
+        self.up_btn = QPushButtonGui('▲')
+        self.down_btn = QPushButtonGui('▼')
         button_layout.addWidget(self.transfer_btn)
         button_layout.addWidget(self.add_btn)
         button_layout.addWidget(self.remove_btn)
@@ -129,9 +129,9 @@ class DatabaseManager(QMainWindow):
 
         # Top buttons for List
         list_top_layout = QVBoxLayout()
-        self.list_deselect_btn = QPushButton('DESELECT LIST')
-        self.list_sort_btn = QPushButton('SORT LIST')
-        self.list_renumber_btn = QPushButton('RENUMBER')
+        self.list_deselect_btn = QPushButtonGui('DESELECT LIST')
+        self.list_sort_btn = QPushButtonGui('SORT LIST')
+        self.list_renumber_btn = QPushButtonGui('RENUMBER')
         list_top_layout.addWidget(self.list_deselect_btn)
         list_top_layout.addWidget(self.list_sort_btn)
         list_top_layout.addWidget(self.list_renumber_btn)
@@ -172,16 +172,16 @@ class DatabaseManager(QMainWindow):
         right_button_layout = QVBoxLayout()
         self.book_name_input = QComboBox()
         self.load_book_names()
-        self.delete_pdfs_btn = QPushButton('DELETE PDFs As Shown')
-        self.create_pdfs_btn = QPushButton('CREATE PDFs As Shown')
-        self.merge_pdfs_btn = QPushButton('MERGE PDFs As Shown')
-        self.export_json_btn = QPushButton('EXPORT JSON to DB')
-        self.build_squeeze_paper_by_gui_btn = QPushButton('BUILD squeeze from DB')
-        self.build_squeeze_mini_paper_by_gui_btn = QPushButton('BUILD squeeze mini from DB')
-        self.rasterize_pdf_btn = QPushButton('RASTERIZE PDF from DB')
-        self.open_merged_pdf_btn = QPushButton('OPEN MERGED PDF')
-        self.open_naive_pdf_btn = QPushButton('OPEN NAIVE PDF')
-        self.open_rasterized_pdf_btn = QPushButton('OPEN RASTERIZED PDF')
+        self.delete_pdfs_btn = QPushButtonGui('DELETE PDFs As Shown')
+        self.create_pdfs_btn = QPushButtonGui('CREATE PDFs As Shown')
+        self.merge_pdfs_btn = QPushButtonGui('MERGE PDFs As Shown')
+        self.export_json_btn = QPushButtonGui('EXPORT JSON to DB')
+        self.build_squeeze_paper_by_gui_btn = QPushButtonGui('BUILD squeeze from DB')
+        self.build_squeeze_mini_paper_by_gui_btn = QPushButtonGui('BUILD squeeze mini from DB')
+        self.rasterize_pdf_btn = QPushButtonGui('RASTERIZE PDF from DB')
+        self.open_merged_pdf_btn = QPushButtonGui('OPEN MERGED PDF')
+        self.open_naive_pdf_btn = QPushButtonGui('OPEN NAIVE PDF')
+        self.open_rasterized_pdf_btn = QPushButtonGui('OPEN RASTERIZED PDF')
         self.log_window = QTextEdit()
         self.log_window.setReadOnly(True)
 
@@ -652,14 +652,41 @@ class DatabaseManager(QMainWindow):
                     except Exception as e:
                         self.log_message(f"Error deleting PDF: {e}")
 
+    def refresh_folder(self, folder_path):
+        """Windows API를 사용하여 폴더를 새로고침합니다."""
+        try:
+            import ctypes
+            from ctypes import wintypes
+
+            # SHChangeNotify 함수를 사용하여 폴더 새로고침
+            SHCNE_UPDATEDIR = 0x00001000
+            SHCNF_PATH = 0x0001
+
+            shell32 = ctypes.WinDLL('shell32')
+            shell32.SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATH, folder_path, None)
+            print(f"폴더 새로고침 완료: {folder_path}")
+            return True
+        except Exception as e:
+            print(f"폴더 새로고침 실패: {e}")
+            return False
+
     def create_pdfs_gui(self):
         if not self.show_warning_dialog("Are you sure you want to create PDFs?"):
             return
         item_list = []
+        item_folder_list = []
         for row in range(self.list_table.rowCount()):
             item_code = self.list_table.item(row, 0).text() if self.list_table.item(row, 0) else None
             item_list.append(item_code)
+            item_folder = code2folder(item_code)
+            item_folder_list.append(item_folder)
         self.log_message("Starting PDF creation...")
+
+        for item_folder in item_folder_list:
+            if os.path.exists(item_folder):
+                self.refresh_folder(item_folder)
+
+        time.sleep(3)
 
         self.pdf_thread = PDFCreationThread(item_list)
         self.pdf_thread.progress_signal.connect(self.log_message)
@@ -1074,9 +1101,9 @@ class FilterDialog(QDialog):
 
         # 상단 버튼들
         top_buttons = QHBoxLayout()
-        select_all_btn = QPushButton('Select All')
-        select_none_btn = QPushButton('Select None')
-        apply_btn = QPushButton('Apply Filter')
+        select_all_btn = QPushButtonGui('Select All')
+        select_none_btn = QPushButtonGui('Select None')
+        apply_btn = QPushButtonGui('Apply Filter')
         top_buttons.addWidget(select_all_btn)
         top_buttons.addWidget(select_none_btn)
         top_buttons.addWidget(apply_btn)
@@ -1102,7 +1129,7 @@ class FilterDialog(QDialog):
 
         for i, (category, group) in enumerate(grouped_topics.items()):
             # 카테고리 버튼은 왼쪽 레이아웃에 추가
-            category_btn = QPushButton(title_factors[i] + ': ' + category)
+            category_btn = QPushButtonGui(title_factors[i] + ': ' + category)
             category_layout.addWidget(category_btn)
             category_layout.setStretch(i, stretch_factors[i])
 
