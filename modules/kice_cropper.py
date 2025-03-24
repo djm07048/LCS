@@ -15,15 +15,14 @@ from modules.overlayer import Overlayer
 
 #warning: 2014학년도 대수능 지2: 22문항이 정상임
 
-#TODO: problem.rect width를 110으로 확대하였음!!
-#TODO: problem.rect를 KICEcoord.json에 저장
-#TODO: KICEcoord.json을 이용하여 problem.rect를 잘라내어 저장하기
+# problem.rect width를 110으로 확대하였음!!
 
 
 class KiceCropper:
     def __init__(self, pdf_name: str) -> None:
         self.pdf_name = pdf_name
         self.base_name = os.path.basename(self.pdf_name)
+        self.KICEtopic = None
     def get_problems_area(self, page: Page, accuracy = 1, offset = 1, padding = (0,0,0,0)) -> Rect:
         #trim left and right
         rect = page.rect
@@ -121,7 +120,8 @@ class KiceCropper:
             page = file.load_page(page_num)
             rects = self.get_problem_rects(page, accuracy)
             for rect in rects:
-                ret.append(ProblemInfo(page_num, rect))
+                if rect.height > Ratio.mm_to_px(25):        #TODO: 임시로 해둔것
+                    ret.append(ProblemInfo(page_num, rect))
         ret.pop()
         return ret
 
@@ -130,39 +130,18 @@ class KiceCropper:
             self.infos = self.get_problem_infos_from_file(file, accuracy)
             return len(self.infos)
 
-    def get_question_code(self, key: str) -> str | None:
-        subject_code = {
-            '물1': 'P1',
-            '물2': 'P2',
-            '화1': 'C1',
-            '화2': 'C2',
-            '생1': 'B1',
-            '생2': 'B2',
-            '지1': 'E1',
-            '지2': 'E2',
-        }
-        month_code = {
-            '6월': '06',
-            '9월': '09',
-            '대수능': '11',
-            '예비시행': '01',
-        }
-        with open(RESOURCES_PATH + "/KICEtopic.json", encoding="UTF-8") as file:
-            topic_code = json.load(file)
-
-        parts = key.split(' ')
-        if key not in topic_code:
+    def cite_from_json(self, cite: str) -> str | None:
+        if cite not in self.KICEtopic:
             return None
-        code = topic_code[key]
+        code = self.KICEtopic[cite]
         return code
 
     def save_original(self) -> None:            #TODO: key값이 없을 때 처리
         with open(RESOURCES_PATH + "/KICEtopic.json", encoding="UTF-8") as file:
-            KICEtopic = json.load(file)
+            self.KICEtopic = json.load(file)
         with fitz.open(self.pdf_name) as kice_doc:
             for i in range(len(self.infos)):
                 key = f'{self.base_name[:-7]} {i+1}번 {self.base_name[-6:-4]}'
-                code = self.get_question_code(key)
                 problem_rect = self.infos[i].rect
                 kice_page = kice_doc.load_page(self.infos[i].page_num)
 
@@ -202,28 +181,14 @@ class KiceCropper:
                 new_page.set_cropbox(new_page.rect)
                 new_page.draw_rect(fitz.Rect(0, 0, Ratio.mm_to_px(4), Ratio.mm_to_px(5)), color=(0, 0, 0, 0), fill=(0, 0, 0, 0))
 
+                code = self.cite_from_json(key)
                 if code is None:
-                    PdfUtils.save_to_pdf(new_doc, KICE_DB_PATH + f"/others/{key}_original.pdf", garbage=4)
+                    PdfUtils.save_to_pdf(new_doc, KICE_DB_PATH + f"/XS/{key}_original.pdf", garbage=4)
+                    print(f"saved original for {key}: {KICE_DB_PATH + f'/XS/{key}_original.pdf'}")
                 else:
                     PdfUtils.save_to_pdf(new_doc, code2original(code), garbage=4)
                     print(f"saved original for {code}: {code2original(code)}")
                 #new_doc.save(f"output/original/{self.base_name[:-7]} {i+1}번 {self.base_name[-6:-4]}_original.pdf")
-
-    def save_caption(self, caption_point: tuple, font_size: int) -> None:
-        with fitz.open(self.pdf_name) as file:
-            for i in range(len(self.infos)):
-                rect = self.infos[i].rect
-                new_doc = fitz.open()
-                new_page = new_doc.new_page(width=rect.width, height=rect.height+Ratio.mm_to_px(caption_point[1]))
-                new_page.show_pdf_page(fitz.Rect(0, Ratio.mm_to_px(caption_point[1]),rect.width,rect.height+Ratio.mm_to_px(caption_point[1])), file, self.infos[i].page_num, clip=rect)
-                new_page.draw_rect(fitz.Rect(0, Ratio.mm_to_px(caption_point[1]), Ratio.mm_to_px(6), Ratio.mm_to_px(caption_point[1]+5)), color=(0, 0, 0, 0), fill=(0, 0, 0, 0))
-                font = fitz.Font(fontfile="Eulyoo1945-Regular.ttf")
-                tw = fitz.TextWriter(new_page.rect)
-                tw.append((Ratio.mm_to_px(caption_point[0]), font_size), f"{os.path.basename(self.pdf_name)[:-4]} {i+1}번 지1", font, font_size)
-                tw.write_text(new_page, color=(0, 0, 0, 1))
-                PdfUtils.save_to_pdf(new_doc,f"output/caption/{self.base_name[:-7]} {i+1}번 {self.base_name[-6:-4]}_caption.pdf", garbage=4)
-                #PdfUtils.extract_to_pdf(file, infos[i].page_num, infos[i].rect, f"output/caption/{os.path.basename(pdf_name)[:-4]} {i+1}번 지1_caption.pdf")
-
 
     def bake_origin(self, source):
         text = TextOverlayObject(0, Coord(0,0,0), "Pretendard-Regular.ttf", 12, source, (0, 0, 0, 0), fitz.TEXT_ALIGN_CENTER)
@@ -232,37 +197,21 @@ class KiceCropper:
         text.coord = Coord(box.rect.width/2, Ratio.mm_to_px(4.3), 0)
         box.add_child(text)
         return box
-
-    def code_to_text(self, problem_code):
-        subject_text = {
-            'P1' : '물1',
-            'P2' : '물2',
-            'C1' : '화1',
-            'C2' : '화2',
-            'B1' : '생1',
-            'B2' : '생2',
-            'E1' : '지1',
-            'E2' : '지2',
-        }
-        month_text = {
-            '06' : '6월',
-            '09' : '9월',
-            '11' : '대수능',
-            '01' : '예비시행',
-        }
-        return f"20{problem_code[7:9]}학년도 {month_text[problem_code[9:11]]} {int(problem_code[11:13])}번 {subject_text[problem_code[0:2]]}"
-
     def save_caption_from_original(self):
+        with open(RESOURCES_PATH + "/KICEtopic.json", encoding="UTF-8") as file:
+            self.KICEtopic = json.load(file)
+
         for i in range(len(self.infos)):
             new_doc = fitz.open()
             overlayer = Overlayer(new_doc)
-            key = f'{self.base_name[:-7]} {i+1}번 {self.base_name[-6:-4]}'
-            code = self.get_question_code(key)
-            if code is None:
-                continue
-            origin = self.bake_origin(self.code_to_text(code))
+            cite = f'{self.base_name[:-7]} {i+1}번 {self.base_name[-6:-4]}'
+            if self.cite_from_json(cite):
+                code = self.cite_from_json(cite)
+                original_pdf = code2original(code)
+            else:
+                original_pdf = KICE_DB_PATH + f"/XS/{cite}_original.pdf"
+            origin = self.bake_origin(cite)
             origin.coord = Coord(Ratio.mm_to_px(0.25), Ratio.mm_to_px(0.25), 0)
-            original_pdf = code2original(code)
             with fitz.open(original_pdf) as file:
                 page = file.load_page(0)
                 component = Component(original_pdf, 0, page.rect)
@@ -272,8 +221,9 @@ class KiceCropper:
             base.add_child(co)
             new_doc.new_page(width=component.src_rect.width, height=base.get_height())
             base.overlay(overlayer, Coord(0,0,0))
-            PdfUtils.save_to_pdf(new_doc, KICE_DB_PATH + f"/{code[2:5]}/{code}/{code}_caption.pdf", garbage=4)
-            print(f"saved caption for {code}: {KICE_DB_PATH + f'/{code[2:5]}/{code}/{code}_caption.pdf'}")
+
+            PdfUtils.save_to_pdf(new_doc, original_pdf.replace("_original.pdf", "_caption.pdf"), garbage=4)
+            print(f"saved caption for {cite}: {original_pdf.replace('_original.pdf', '_caption.pdf')}")
 
 
 from utils.path import *
@@ -320,7 +270,7 @@ def save_caption_from_original_indie(item_code):
 if __name__ == '__main__':
     from pathlib import Path
 
-    folder_path = Path(r"T:\Software\LCS\input\1617")
+    folder_path = Path(r"T:\Software\LCS\input\t")
     pdf_files = sorted(folder_path.glob('*.pdf'))
 
     for pdf_file in pdf_files:
@@ -332,4 +282,3 @@ if __name__ == '__main__':
         print(f'extracted {ret} items')
         kc.save_original()
         kc.save_caption_from_original()
-
