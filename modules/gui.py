@@ -1175,11 +1175,12 @@ class FilterDialog(QDialog):
     def group_topics_by_category(self, topics):
         grouped_topics = {}
         for key, value in topics.items():
-            category = value[0]
-            if category in grouped_topics:
-                grouped_topics[category].append((key, value))
-            else:
-                grouped_topics[category] = [(key, value)]
+            if key[0] != 'z':       #z로 시작하는 것은 특수하므로 제외
+                category = value[0]
+                if category in grouped_topics:
+                    grouped_topics[category].append((key, value))
+                else:
+                    grouped_topics[category] = [(key, value)]
         return grouped_topics
 
     def toggle_category(self, category):
