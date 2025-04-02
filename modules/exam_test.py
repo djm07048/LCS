@@ -34,28 +34,28 @@ class Exam():
         # 1P
         # 38 (header의 시작 위치) + 49 (header의 세로 길이) + 4 (header 하단 여백) = 91
         # 420 (페이지 높이) - 13.5 (꼬리말 높이) - 30 (아래 여백 높이) = 376.5
-        # 31 (좌 여백 너비)
-        # 31 (좌 여백 너비) + 112 (단 너비) = 143
-        # 31 (좌 여백 너비) + 112 (단 너비) + 6 (단과 단 사이 여백) = 149
-        # 31 (좌 여백 너비) + 112 (단 너비) + 6 (단과 단 사이 여백) + 112 (단 너비) = 261
+        # 33.5 (좌 여백 너비)
+        # 33.5 (좌 여백 너비) + 112 (단 너비) = 145.5
+        # 33.5 (좌 여백 너비) + 112 (단 너비) + 6 (단과 단 사이 여백) = 151.5
+        # 33.5 (좌 여백 너비) + 112 (단 너비) + 6 (단과 단 사이 여백) + 112 (단 너비) = 263.5
 
-        rect_1L = Rect(31, 91, 143, 376.5)
-        rect_1R = Rect(149, 91, 261, 376.5)
+        rect_1L = Rect(33.5, 91, 145.5, 376.5)
+        rect_1R = Rect(151.5, 91, 263.5, 376.5)
 
 
         # 2P
         # 56.6 (위 여백 높이)
-        rect_2L = Rect(31, 56.5, 143, 376.5)
-        rect_2R = Rect(149, 56.5, 261, 376.5)
+        rect_2L = Rect(33.5, 56.5, 145.5, 376.5)
+        rect_2R = Rect(151.5, 56.5, 263.5, 376.5)
 
         # 3P
-        rect_3L = Rect(31, 56.5, 143, 376.5)
-        rect_3R = Rect(149, 56.5, 261, 376.5)
+        rect_3L = Rect(33.5, 56.5, 145.5, 376.5)
+        rect_3R = Rect(151.5, 56.5, 263.5, 376.5)
 
         # 4P
         # 376.5 (box의 끝 위치) - 22.34 (box의 세로 길이) - 5 (box 상단 여백) = 349.16
-        rect_4L = Rect(31, 56.5, 143, 376.5)
-        rect_4R = Rect(149, 56.5, 261, 349.16)
+        rect_4L = Rect(33.5, 56.5, 145.5, 376.5)
+        rect_4R = Rect(151.5, 56.5, 263.5, 349.16)
 
         dict = {
             "1L": rect_1L,
@@ -67,6 +67,12 @@ class Exam():
             "4L": rect_4L,
             "4R": rect_4R
         }
+
+        for rect in dict.values():
+            rect.x0 = Ratio.mm_to_px(rect.x0)
+            rect.y0 = Ratio.mm_to_px(rect.y0)
+            rect.x1 = Ratio.mm_to_px(rect.x1)
+            rect.y1 = Ratio.mm_to_px(rect.y1)
 
         return dict
 
@@ -103,10 +109,6 @@ class Exam():
 
     def bake_problem(self, item_code):
         problem = AreaOverlayObject(0, Coord(0, 0, 0), 0)
-        problem_number = self.exam_info[item_code]['number']
-        compo = self.get_number_compo(problem_number)
-        no = ComponentOverlayObject(0, Coord(0, 0, 0), compo)
-        problem.add_child(no)
 
         if item_code[5:7] == 'KC':  # kice problem
             if os.path.exists(code2original(item_code).replace(".pdf", "_trimmed.pdf")):
@@ -117,8 +119,8 @@ class Exam():
             with fitz.open(item_pdf) as file:
                 page = file.load_page(0)
                 component = Component(item_pdf, 0, page.rect)
-                problem_object = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(2), problem.height, 0), component)
-                white_box = ShapeOverlayObject(0, Coord(Ratio.mm_to_px(2), 0, 0), Rect(0, 0, Ratio.mm_to_px(3), Ratio.mm_to_px(5.5)),
+                problem_object = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(2 - 0.83), problem.height, 0), component)
+                white_box = ShapeOverlayObject(0, Coord(Ratio.mm_to_px(2 - 0.83), 0, 0), Rect(0, 0, Ratio.mm_to_px(3), Ratio.mm_to_px(5.5)),
                                                (0, 0, 0, 0))
         else:
             item_pdf = code2pdf(item_code)
@@ -126,11 +128,17 @@ class Exam():
                 ic = ItemCropper()
                 prect = ic.get_problem_rect_from_file(file, 10)
                 component = Component(item_pdf, 0, prect)
-                problem_object = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(2), problem.height, 0), component)
-                white_box = ShapeOverlayObject(0, Coord(2, 0, 0), Rect(0, 0, Ratio.mm_to_px(3), Ratio.mm_to_px(5.5)),
+                problem_object = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(2 - 0.83), problem.height, 0), component)
+                white_box = ShapeOverlayObject(0, Coord(Ratio.mm_to_px(2 - 0.83), 0, 0), Rect(0, 0, Ratio.mm_to_px(3), Ratio.mm_to_px(5.5)),
                                                (0, 0, 0, 0))
         problem_object.add_child(white_box)
         problem.add_child(problem_object)
+
+        problem_number = self.exam_info[item_code]['number']
+        compo = self.get_number_compo(problem_number)
+        no = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(- 0.83), Ratio.mm_to_px(0.65), 10), compo)
+        problem.add_child(no)
+
         problem.height += problem_object.get_height()
         return problem
 
@@ -139,21 +147,34 @@ class Exam():
         paragraph.add_child(problem)
         pass
 
+    def get_component_on_resources(self, number):
+        resources_pdf = RESOURCES_PATH + "/exam_test_resources.pdf"
+        resources_doc = fitz.open(resources_pdf)
+        component = Component(resources_pdf, number, resources_doc.load_page(number).rect)
+        return component
+
     def build_test(self):
         test_doc = fitz.open()
         self.overlayer = Overlayer(test_doc)
 
+        for i in range(4):
+            self.overlayer.add_page(self.get_component_on_resources(i))
+
         paragraph = ParagraphOverlayObject()
         para_dict = self.get_para_dict()
         item_list = self.get_item_list_on_paragraph()
+        print(f'item_list: {item_list}')
+        print(f'para_dict: {para_dict.items()}')
+        i = 0
         for para_code, rect in para_dict.items():
             # 4L만 semijustify, 나머지는 justify
-            align = 0 if para_code == '4R' else 1
+            align = 2 if para_code == '4R' else 1
             paragraph_list = ListOverlayObject(int(para_code[0:1]) - 1, Coord(rect.x0, rect.y0, 0), rect.height, align)
-            paragraph.add_paragraph_list(paragraph_list=paragraph_list)
-            for item_code in item_list[int(para_code[0:1]) - 1]:
+            for item_code in item_list[i]:
                 problem = self.bake_problem(item_code)
                 paragraph_list.add_child(problem)
+            paragraph.add_paragraph_list(paragraph_list=paragraph_list)
+            i += 1
 
         paragraph.overlay(self.overlayer, Coord(0, 0, 0))
 
@@ -161,7 +182,8 @@ class Exam():
 
 if __name__ == "__main__":
     exam = Exam('EX_01회')
-    exam.build_test()
+    test_doc = exam.build_test()
+    test_doc.save(os.path.join(OUTPUT_PATH, 'EX_01회.pdf'))
 
     pass
 
