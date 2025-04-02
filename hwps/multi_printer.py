@@ -108,6 +108,7 @@ def convert_hwp_to_pdf(hwp_path):
             if os.path.exists(hwp_path) and os.path.exists(pdf_path):
                 hwp_time = os.path.getmtime(hwp_path)
                 pdf_time = os.path.getmtime(pdf_path)
+                # TODO: Main pdf은 if 없이 무조건 생성됨
                 # PDF가 HWP보다 나중에 생성되었으며 10kb 이상이면서 font_integrity_test를 통과하면 변환 불필요
                 if pdf_time > hwp_time:
                     pdf_size = os.path.getsize(pdf_path)

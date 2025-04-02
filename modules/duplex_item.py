@@ -328,7 +328,7 @@ class DuplexItemBuilder:
         solution_object.add_child(ComponentOverlayObject(0, Coord(Ratio.mm_to_px(5), Ratio.mm_to_px(8), 2), solution_component))
         solution_object.height = solution_component.src_rect.height + Ratio.mm_to_px(8 + 5)
 
-        return solution_object  #TODO: linking1의 경우에 대한 처리 필요
+        return solution_object
 
     def build_page_sd(self):
         sd_doc = fitz.open()
@@ -351,22 +351,35 @@ class DuplexItemBuilder:
             so = None
             sol_commentary_data = self.get_commentary_data()
             if solution_info.hexcode in sol_commentary_data:        #commentary data에 hexcode가 있는 경우
-                if sol_commentary_data[solution_info.hexcode] == 'SA':
-                    so = AreaOverlayObject(0, Coord(0, 0, 0), 0)
-                    solution_component = Component(code2pdf(self.unit_item_code), 0, solution_info.rect)
-                    content_height = solution_component.src_rect.height + Ratio.mm_to_px(5)
-                    bubble = ShapeOverlayObject(0, Coord(0, 0, 0),
-                                                Rect(0, 0, Ratio.mm_to_px(105), content_height),
-                                                (0, 0, 0, 0.2), 2.5/content_height)
-                    handle = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(90), content_height, 0),
-                                                    self.get_component_on_resources(27))
-                    compo = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(2.5), Ratio.mm_to_px(2.5), 2), solution_component)
+                if sol_commentary_data[solution_info.hexcode] == 'SA':      #말풍선
+                        so = AreaOverlayObject(0, Coord(0, 0, 0), 0)
+                        solution_component = Component(code2pdf(self.unit_item_code), 0, solution_info.rect)
+                        print(Ratio.px_to_mm(solution_component.src_rect.height))
+                        bubble_height = solution_component.src_rect.height + Ratio.mm_to_px(5)
 
-                    so.add_child(bubble)
-                    so.add_child(handle)
-                    so.add_child(compo)
+                        # SA 내용 줄 수에 따른 변화
+                        # 7.575 -> 13.008 -> 18.441 -> 23.874 -> 29.307
 
-                    so.height = content_height + Ratio.mm_to_px(3 + 7.5)
+                        if bubble_height < Ratio.mm_to_px(13.008 - 1):
+                            bubble_compo = 32
+                        elif bubble_height < Ratio.mm_to_px(18.441 - 1):
+                            bubble_compo = 33
+                        elif bubble_height < Ratio.mm_to_px(23.874 - 1):
+                            bubble_compo = 34
+                        elif bubble_height < Ratio.mm_to_px(29.307 - 1):
+                            bubble_compo = 35
+                        else:
+                            bubble_compo = 36
+
+                        bubble = ComponentOverlayObject(0, Coord(0, 0, 0),
+                                                        self.get_component_on_resources(bubble_compo))
+                        compo = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(2.5), Ratio.mm_to_px(2.5), 2),
+                                                       solution_component)
+
+                        so.add_child(bubble)
+                        so.add_child(compo)
+
+                        so.height = bubble_height + Ratio.mm_to_px(3 + 7.5)
                 else:
                     so = self.bake_solution_object(solution_info, sTF[solution_info.hexcode],
                                                    code2pdf(self.unit_item_code))
@@ -423,7 +436,7 @@ class DuplexItemBuilder:
 
                     problem.height -= Ratio.mm_to_px(20)
                 problem.height += Ratio.mm_to_px(12.5)
-        else:  #TODO item problem, kice problem과 동기화 해야 함
+        else:
             item_pdf = code2pdf(item_code)
             with fitz.open(item_pdf) as file:
                 ic = ItemCropper()
@@ -597,23 +610,34 @@ class DuplexItemBuilder:
                 so = None
                 sol_commentary_data = self.get_commentary_data()
                 if solution_info.hexcode in sol_commentary_data:  # commentary data에 hexcode가 있는 경우
-                    if sol_commentary_data[solution_info.hexcode] == 'SA':
+                    if sol_commentary_data[solution_info.hexcode] == 'SA':      #말풍선
                         so = AreaOverlayObject(0, Coord(0, 0, 0), 0)
                         solution_component = Component(code2pdf(item_code), 0, solution_info.rect)
-                        content_height = solution_component.src_rect.height + Ratio.mm_to_px(5)
-                        bubble = ShapeOverlayObject(0, Coord(0, 0, 0),
-                                                    Rect(0, 0, Ratio.mm_to_px(105), content_height),
-                                                    (0, 0, 0, 0.2), 2.5 / content_height)
-                        handle = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(90), content_height, 0),
-                                                        self.get_component_on_resources(27))
+                        bubble_height = solution_component.src_rect.height + Ratio.mm_to_px(5)
+
+                        # SA 내용 줄 수에 따른 변화
+                        # 7.575 -> 13.008 -> 18.441 -> 23.874 -> 29.307
+
+                        if bubble_height < Ratio.mm_to_px(13.008 - 1):
+                            bubble_compo = 32
+                        elif bubble_height < Ratio.mm_to_px(18.441 - 1):
+                            bubble_compo = 33
+                        elif bubble_height < Ratio.mm_to_px(23.874 - 1):
+                            bubble_compo = 34
+                        elif bubble_height < Ratio.mm_to_px(29.307 - 1):
+                            bubble_compo = 35
+                        else:
+                            bubble_compo = 36
+
+                        bubble = ComponentOverlayObject(0, Coord(0, 0, 0),
+                                                        self.get_component_on_resources(bubble_compo))
                         compo = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(2.5), Ratio.mm_to_px(2.5), 2),
                                                        solution_component)
 
                         so.add_child(bubble)
-                        so.add_child(handle)
                         so.add_child(compo)
 
-                        so.height = content_height + Ratio.mm_to_px(3 + 7.5)
+                        so.height = bubble_height + Ratio.mm_to_px(3 + 7.5)
                     else:
                         so = self.bake_solution_object(solution_info, sTF[solution_info.hexcode],
                                                        code2pdf(item_code))
@@ -642,7 +666,7 @@ if __name__ == "__main__":
     new_doc = fitz.open()
 
     item_dict = [["E1ebhSV260612", ["E1caiZG250009", "E1dbdKC170909", "E1dbeKC230606"], ["WIND UP 고체편 120p", "WIND UP 고체편 121p", "WIND UP 고체편 122p"]],
-                 ["E1lecWL260819", ["E1caiZG250010", "E1dbdKC170909"], ["WIND UP 천체편 80p", "WIND UP 천체편 81p"]]]
+                 ["E1lecWL260819", ["E1caiZG250010", "E1dbdKC170909"], ["WIND UP 천체편 80p", "WIND UP 천체편 81p", "WIND UP 천체편 82p", "WIND UP 천체편 83p", "WIND UP 천체편 84p"]]]
 
     for i in item_dict:
         builder = DuplexItemBuilder(i[0], i[1], i[2], 0)

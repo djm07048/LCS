@@ -176,7 +176,6 @@ class ObjectManagerWidget(QWidget):
             obj.color = color
             self.objects.append(obj)
 
-
     def update_object_numbering(self):
         # Sort objects by column and then by order within column
         activated_objects = [obj for obj in self.objects if obj.activated]
