@@ -180,6 +180,30 @@ class Exam():
 
         return test_doc
 
+    def get_problem_answer(self, item_pdf):
+        with fitz.open(item_pdf) as file:
+            ic = ItemCropper()
+            solutions_info = ic.get_solution_infos_from_file(file, 10)
+            answer = ic.get_answer_from_file(file)
+            return answer
+
+    def get_answer(self):
+        pass
+
+    def build_ans(self):
+        ans_doc = fitz.open()
+        self.overlayer = Overlayer(ans_doc)
+        self.overlayer.add_page(self.get_component_on_resources(4))     #4p는 정답지
+
+        # 정답지에 문제 번호 넣기
+        for i in range(1, 21, 1):
+            item_code = next((item_code for item_code, info in self.exam_info.items() if info['number'] == i), None)
+            answer = self.get_problem_answer(item_code)
+            score = self.exam_info[item_code]['score']
+
+            # answer_compo
+            # score_compo
+
 if __name__ == "__main__":
     exam = Exam('EX_01회')
     test_doc = exam.build_test()

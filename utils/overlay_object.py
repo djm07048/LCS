@@ -34,25 +34,34 @@ class ListOverlayObject(OverlayObject):
         self.ls = []
         self.height = height
         self.align = align
-        self.left_height = height
+        self.left_height = height       #남아있는 height
 
     def overlay(self, overlayer, absolute_coord):
         #TODO
-        if self.align == 0:
+        if self.align == 0:         #align
             curr_height = 0
             for oo in self.child:
                 oo.overlay(overlayer, absolute_coord + Coord(0, curr_height, 0))
                 curr_height += oo.get_height()
-        elif self.align == 1:
+        elif self.align == 1:       #justify
             curr_height = 0
             for oo in self.child:
                 oo.overlay(overlayer, absolute_coord + Coord(0, curr_height, 0))
                 curr_height += oo.get_height() + self.left_height / max(len(self.child)-1, 1)
-        elif self.align == 2:
+        elif self.align == 2:      #semi-#justify
             curr_height = 0
             for oo in self.child:
                 oo.overlay(overlayer, absolute_coord + Coord(0, curr_height, 0))
                 curr_height += oo.get_height() + self.left_height / len(self.child)
+        elif self.align == 3:       # bottom
+            from utils.ratio import Ratio
+            curr_height = self.left_height
+            for oo in self.child:
+                oo.overlay(overlayer, absolute_coord + Coord(0, curr_height, 0))
+                print(f'Before: curr_height: {Ratio.px_to_mm(curr_height)}, oo.get_height(): {Ratio.px_to_mm(oo.get_height())}')
+                curr_height += oo.get_height()
+                print(f'After: curr_height: {Ratio.px_to_mm(curr_height)}')
+
         pass
     def add_child(self, obj: OverlayObject):
         if obj.get_height() > self.left_height:
@@ -61,7 +70,10 @@ class ListOverlayObject(OverlayObject):
             super().add_child(obj)
             self.left_height -= obj.get_height()
         return True
-    
+
+    def reverse_child(self):
+        self.child.reverse()
+
     def set_height(self, height):
         self.height = height
         self.left_height = height
