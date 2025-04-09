@@ -213,14 +213,15 @@ class MainsolBuilder:
 
         problem_height = component.src_rect.height + Ratio.mm_to_px(15)
 
-        # solution part
+        left_page_sol = AreaOverlayObject(page_num, Coord(0, 0, 0), Ratio.mm_to_px(371))
+        '''# solution part
         left_page_sol = ParagraphOverlayObject()
         left_page_sol_list_lt = ListOverlayObject(page_num, Coord(Ratio.mm_to_px(18), problem_height + Ratio.mm_to_px(59), 0),
                                                   Ratio.mm_to_px(347 - 59) - problem_height, 3)
-        left_page_sol_list_rt = ListOverlayObject(page_num, Coord(Ratio.mm_to_px(134), Ratio.mm_to_px(59), 0),
-                                                  Ratio.mm_to_px(347 - 59), 3)
+        left_page_sol_list_rt = ListOverlayObject(page_num, Coord(Ratio.mm_to_px(134), Ratio.mm_to_px(15.59), 0),
+                                                  Ratio.mm_to_px(347 - 15.59), 3)
         left_page_sol.add_paragraph_list(left_page_sol_list_lt)
-        left_page_sol.add_paragraph_list(left_page_sol_list_rt)
+        left_page_sol.add_paragraph_list(left_page_sol_list_rt)'''
 
         main_pdf = code2Main(item_code) if item_code[5:7] == 'KC' else code2pdf(item_code)
         with fitz.open(main_pdf) as file:
@@ -228,9 +229,23 @@ class MainsolBuilder:
             solutions_info = ic.get_solution_infos_from_file(file, 10)
             sTF = ic.get_TF_of_solutions_from_file(file, 10)
 
-        solving_bar_component = self.get_component_on_resources(38)
-        solving_bar = ComponentOverlayObject(0, Coord(0,0, 0), solving_bar_component)
-        left_page_sol.add_child(solving_bar)
+        linking = ListOverlayObject(0, Coord(Ratio.mm_to_px(134), Ratio.mm_to_px(46), 0), Ratio.mm_to_px(347), 0)
+        solving = ListOverlayObject(0, Coord(Ratio.mm_to_px(134), Ratio.mm_to_px(347), 0), Ratio.mm_to_px(347), 0)
+        for solution_info in solutions_info:
+            sol_commentary_data = self.get_commentary_data()
+            if solution_info.hexcode not in sol_commentary_data:
+                continue
+            so = self.bake_solution_object(solution_info, sTF[solution_info.hexcode], main_pdf)
+            if so is None:
+                continue
+            if sol_commentary_data[solution_info.hexcode][:1] != 'S':
+                solving.add_child(so)
+
+        solving.coord.y -= solving.get_height()
+
+        linking_bar_component = self.get_component_on_resources(46)
+        linking_bar = ComponentOverlayObject(0, Coord(linking.coord.x, linking.coord.y, 0), linking_bar_component)
+        linking.add_child(linking_bar)
 
         for solution_info in solutions_info:
             sol_commentary_data = self.get_commentary_data()
@@ -239,13 +254,23 @@ class MainsolBuilder:
             so = self.bake_solution_object(solution_info, sTF[solution_info.hexcode], main_pdf)
             if so is None:
                 continue
-            left_page_sol.add_child(so)
+            if sol_commentary_data[solution_info.hexcode][:1] == 'S':
+                linking.add_child(so)
 
-        #left_page_sol_list_rt.reverse_child()
-        #left_page_sol_list_lt.reverse_child()
+        if solving.get_height() + linking.get_height() > Ratio.mm_to_px(347 - 46 - 20):
+            linking.coord.x = Ratio.mm_to_px(18)
+            linking.coord.y = Ratio.mm_to_px(343) - linking.get_height()
 
-        return left_page, left_page_sol
-    
+        solving_bar_component = self.get_component_on_resources(38)
+        solving_bar = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(134), Ratio.mm_to_px(
+            347) - solving_bar_component.src_rect.height - solving.get_height(), 0), solving_bar_component)
+        left_page.add_child(solving)
+        left_page.add_child(solving_bar)
+
+        left_page.add_child(linking)
+
+        return left_page
+
     def get_unit_title(self, unit_code):
         with open(RESOURCES_PATH + "/topic.json", encoding='UTF8') as file:
             topic_data = json.load(file)
@@ -272,10 +297,9 @@ class MainsolBuilder:
             self.overlayer.add_page(self.get_component_on_resources(12))
             right_page = self.build_right(item_list[i]['item_code'], i*2)
             right_page.overlay(self.overlayer, Coord(0,0,0))
-            self.overlayer.add_page(self.get_component_on_resources(11))
-            left_page, left_page_sol = self.build_left(item_list[i]['item_code'], i*2+1)
+            self.overlayer.add_page(self.get_component_on_resources(45))
+            left_page = self.build_left(item_list[i]['item_code'], i*2+1)
             left_page.overlay(self.overlayer, Coord(0,0,0))
-            left_page_sol.overlay(self.overlayer, Coord(0,0,0))
 
         for page_num in range(self.overlayer.doc.page_count):
             self.add_unit_title(page_num, self.get_unit_title(self.topic))
