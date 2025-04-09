@@ -19,7 +19,7 @@ import json
 # sol = 해설지
 
 
-class Exam():
+class ExamTest():
     def __init__(self, exam_code):
         self.exam_code = exam_code
         path = os.path.join(INPUT_PATH, 'ExamDB', f'{self.exam_code}.json')
@@ -205,7 +205,7 @@ class Exam():
             # score_compo
 
 if __name__ == "__main__":
-    exam = Exam('EX_01회')
+    exam = ExamTest('EX_01회')
     test_doc = exam.build_test()
     test_doc.save(os.path.join(OUTPUT_PATH, 'EX_01회.pdf'))
 
