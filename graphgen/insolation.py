@@ -34,7 +34,7 @@ def laskar(start_time=-1000, end_time=20):
     try:
         # 데이터 로드 - 여러 경로 시도
         possible_paths = [
-            'graphgen/milan.csv']
+            'milan.csv']
 
         orbit = None
         for path in possible_paths:
