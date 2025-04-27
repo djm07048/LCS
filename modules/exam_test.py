@@ -34,28 +34,38 @@ class ExamTest():
         # 1P
         # 38 (header의 시작 위치) + 49 (header의 세로 길이) + 4 (header 하단 여백) = 91
         # 420 (페이지 높이) - 13.5 (꼬리말 높이) - 30 (아래 여백 높이) = 376.5
-        # 33.5 (좌 여백 너비)
-        # 33.5 (좌 여백 너비) + 112 (단 너비) = 145.5
-        # 33.5 (좌 여백 너비) + 112 (단 너비) + 6 (단과 단 사이 여백) = 151.5
-        # 33.5 (좌 여백 너비) + 112 (단 너비) + 6 (단과 단 사이 여백) + 112 (단 너비) = 263.5
+        # 31 (좌 여백 너비)
+        # 31 (좌 여백 너비) + 112 (단 너비) = 143
+        # 31 (좌 여백 너비) + 112 (단 너비) + 11 (단과 단 사이 여백) = 154
+        # 31 (좌 여백 너비) + 112 (단 너비) + 11 (단과 단 사이 여백) + 112 (단 너비) = 266
 
-        rect_1L = Rect(33.5, 91, 145.5, 376.5)
-        rect_1R = Rect(151.5, 91, 263.5, 376.5)
+        LxL = 31
+        LxR = 143
+        RxL = 154
+        RxR = 266
+
+        yT1 = 91
+        yT234 = 56.5
+        yB = 376.5
+        yB4R = 349.16
+
+        rect_1L = Rect(LxL, yT1, LxR, yB)
+        rect_1R = Rect(RxL, yT1, RxR, yB)
 
 
         # 2P
         # 56.6 (위 여백 높이)
-        rect_2L = Rect(33.5, 56.5, 145.5, 376.5)
-        rect_2R = Rect(151.5, 56.5, 263.5, 376.5)
+        rect_2L = Rect(LxL, yT234, LxR, yB)
+        rect_2R = Rect(RxL, yT234, RxR, yB)
 
         # 3P
-        rect_3L = Rect(33.5, 56.5, 145.5, 376.5)
-        rect_3R = Rect(151.5, 56.5, 263.5, 376.5)
+        rect_3L = Rect(LxL, yT234, LxR, yB)
+        rect_3R = Rect(RxL, yT234, RxR, yB)
 
         # 4P
         # 376.5 (box의 끝 위치) - 22.34 (box의 세로 길이) - 5 (box 상단 여백) = 349.16
-        rect_4L = Rect(33.5, 56.5, 145.5, 376.5)
-        rect_4R = Rect(151.5, 56.5, 263.5, 349.16)
+        rect_4L = Rect(LxL, yT234, LxR, yB)
+        rect_4R = Rect(RxL, yT234, RxR, yB4R)
 
         dict = {
             "1L": rect_1L,
@@ -80,7 +90,7 @@ class ExamTest():
         # 견명조, 13.0pt
         number_resources_pdf = RESOURCES_PATH + "/exam_number_resources.pdf"
         number_resources_doc = fitz.open(number_resources_pdf)
-        number_compo = Component(number_resources_pdf, int(number) - 1, number_resources_doc.load_page(number).rect)
+        number_compo = Component(number_resources_pdf, int(number) - 1, number_resources_doc.load_page(int(number) - 1).rect)
         return number_compo
 
     def get_item_list_on_paragraph(self):
@@ -119,8 +129,8 @@ class ExamTest():
             with fitz.open(item_pdf) as file:
                 page = file.load_page(0)
                 component = Component(item_pdf, 0, page.rect)
-                problem_object = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(2 - 0.83), problem.height, 0), component)
-                white_box = ShapeOverlayObject(0, Coord(Ratio.mm_to_px(2 - 0.83), 0, 0), Rect(0, 0, Ratio.mm_to_px(3), Ratio.mm_to_px(5.5)),
+                problem_object = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(4 - 0.83), problem.height, 0), component)
+                white_box = ShapeOverlayObject(0, Coord(Ratio.mm_to_px(0), 0, 0), Rect(0, 0, Ratio.mm_to_px(3), Ratio.mm_to_px(5.5)),
                                                (0, 0, 0, 0))
         else:
             item_pdf = code2pdf(item_code)
@@ -128,15 +138,15 @@ class ExamTest():
                 ic = ItemCropper()
                 prect = ic.get_problem_rect_from_file(file, 10)
                 component = Component(item_pdf, 0, prect)
-                problem_object = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(2 - 0.83), problem.height, 0), component)
-                white_box = ShapeOverlayObject(0, Coord(Ratio.mm_to_px(2 - 0.83), 0, 0), Rect(0, 0, Ratio.mm_to_px(3), Ratio.mm_to_px(5.5)),
+                problem_object = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(4 - 0.83), problem.height, 0), component)
+                white_box = ShapeOverlayObject(0, Coord(Ratio.mm_to_px(0), 0, 0), Rect(0, 0, Ratio.mm_to_px(3), Ratio.mm_to_px(5.5)),
                                                (0, 0, 0, 0))
         problem_object.add_child(white_box)
         problem.add_child(problem_object)
 
         problem_number = self.exam_info[item_code]['number']
         compo = self.get_number_compo(problem_number)
-        no = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(- 0.83), Ratio.mm_to_px(0.65), 10), compo)
+        no = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(0.65), 10), compo)
         problem.add_child(no)
 
         problem.height += problem_object.get_height()
@@ -177,6 +187,8 @@ class ExamTest():
             i += 1
 
         paragraph.overlay(self.overlayer, Coord(0, 0, 0))
+
+
 
         return test_doc
 
