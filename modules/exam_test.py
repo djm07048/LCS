@@ -19,7 +19,7 @@ import json
 # sol = 해설지
 
 
-class ExamTest():
+class ExamTestBuilder():
     def __init__(self, exam_code):
         self.exam_code = exam_code
         path = os.path.join(INPUT_PATH, 'ExamDB', f'{self.exam_code}.json')
@@ -188,9 +188,8 @@ class ExamTest():
 
         paragraph.overlay(self.overlayer, Coord(0, 0, 0))
 
-
-
-        return test_doc
+        PdfUtils.save_to_pdf(test_doc, os.path.join(OUTPUT_PATH, f'{self.exam_code}_test.pdf'), garbage=4)
+        test_doc.close()
 
     def get_problem_answer(self, item_pdf):
         with fitz.open(item_pdf) as file:
@@ -215,11 +214,3 @@ class ExamTest():
 
             # answer_compo
             # score_compo
-
-if __name__ == "__main__":
-    exam = ExamTest('EX_01회')
-    test_doc = exam.build_test()
-    test_doc.save(os.path.join(OUTPUT_PATH, 'EX_01회.pdf'))
-
-    pass
-

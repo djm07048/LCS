@@ -83,8 +83,8 @@ class WindupBuilder:
         new_doc.close()
 
 if __name__ == '__main__':
-    input_file = r"C:\Users\user\Desktop\LAB\Duplex\WIND UP 고체편.pdf"
-    output_folder = r"C:\Users\user\Desktop\LAB\Duplex\output"
+    input_file = r"T:\Management\Duplex\WIND UP 고체편.pdf"
+    output_folder = r"T:\Management\Duplex\output"
 
     builder = WindupBuilder()
     with fitz.open(input_file) as file:

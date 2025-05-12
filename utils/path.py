@@ -10,6 +10,8 @@ RESOURCES_PATH = 'T:/Software/LCS/resources'
 INPUT_PATH = r'T:\Software\LCS\input'
 OUTPUT_PATH = r'T:\Software\LCS\output'
 BOOK_DB_PATH = r'T:\Software\LCS\input\BookDB'
+EXAM_DB_PATH = r'T:\Software\LCS\input\ExamDB'
+
 
 MONTH_DICT = {"01": "예비시행", "06": "6월", "09": "9월", "11": "대수능", "03": "3월", "04": "4월", "05": "5월", "07": "7월", "10": "10월"}
 MONTH_REV_DICT = {v: k for k, v in MONTH_DICT.items()}

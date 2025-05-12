@@ -38,6 +38,7 @@ def get_related_item_reference(item_code):
     return None
 
 class DuplexItemBuilder:
+    ## itme by item으로 build 하게됨.
     def __init__(self, unit_item_code, list_rel_item_code, list_theory_piece_code, page):
         self.unit_item_code = unit_item_code        #이번 unit의 item_code를 일컫음.
         self.list_rel_item_code = list_rel_item_code
@@ -660,36 +661,3 @@ class DuplexItemBuilder:
             sol_item_doc.close()
 
         return sol_whole_doc
-
-
-if __name__ == "__main__":
-    new_doc = fitz.open()
-
-    item_dict = [["E1ebhSV260612", ["E1caiZG250009", "E1dbdKC170909", "E1dbeKC230606"], ["WIND UP 고체편 120p", "WIND UP 고체편 121p", "WIND UP 고체편 122p"]],
-                 ["E1lecWL260819", ["E1caiZG250010", "E1dbdKC170909"], ["WIND UP 천체편 80p", "WIND UP 천체편 81p", "WIND UP 천체편 82p", "WIND UP 천체편 83p", "WIND UP 천체편 84p"]]]
-
-    for i in item_dict:
-        builder = DuplexItemBuilder(i[0], i[1], i[2], 0)
-
-        doc_sd = builder.build_page_sd()
-
-        #builder.page += doc_sd.page_count
-        doc_rel = builder.build_page_rel()
-
-        #builder.page += doc_rel.page_count
-        doc_theory = builder.build_page_theory()
-
-        #builder.page += doc_theory.page_count
-        doc_sol = builder.build_page_sol()
-
-        new_doc.insert_pdf(doc_sd)
-        new_doc.insert_pdf(doc_rel)
-        new_doc.insert_pdf(doc_theory)
-        new_doc.insert_pdf(doc_sol)
-
-    new_doc.save(OUTPUT_PATH + "/duplex_item.pdf")
-    new_doc.close()
-    doc_sd.close()
-    doc_rel.close()
-    doc_theory.close()
-    doc_sol.close()

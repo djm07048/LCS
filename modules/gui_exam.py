@@ -9,8 +9,8 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QComboBox, QMes
                              QHeaderView, QCheckBox, QDialog, QVBoxLayout, QLabel, QSizePolicy, QTextEdit)
 from PyQt5.QtCore import (Qt, QThread, pyqtSignal)
 from PyQt5.QtGui import QColor
-from main import build_squeeze_paper
-from main import build_squeeze_mini_paper
+from main import build_exam_test
+from main import build_duplex
 from PyQt5.QtGui import QIcon
 from hwps.multi_printer import *
 from rasterizer import *
@@ -65,7 +65,7 @@ class DatabaseManager(QMainWindow):
 
     def initUI(self):
         self.setWindowTitle('Database Manager')
-        self.setGeometry(100, 100, 1300, 600)  # Adjusted width to accommodate log window
+        self.setGeometry(100, 100, 1300, 650)  # Adjusted width to accommodate log window
 
         # Main widget and layout
         main_widget = QWidget()
@@ -91,7 +91,7 @@ class DatabaseManager(QMainWindow):
         # Pool table with fixed dimensions
         self.pool_table = QTableWidget()
         self.pool_table.setColumnCount(3)
-        self.pool_table.setFixedHeight(550)
+        self.pool_table.setFixedHeight(600)
         pool_layout.addWidget(self.pool_table)
         self.pool_table.setHorizontalHeaderLabels(['Item Code', 'Topic', 'Order'])
 
@@ -130,19 +130,16 @@ class DatabaseManager(QMainWindow):
         # Top buttons for List
         list_top_layout = QVBoxLayout()
         self.list_deselect_btn = QPushButtonGui('DESELECT LIST')
-        self.list_sort_btn = QPushButtonGui('SORT LIST')
         self.list_renumber_btn = QPushButtonGui('RENUMBER')
         list_top_layout.addWidget(self.list_deselect_btn)
-        list_top_layout.addWidget(self.list_sort_btn)
         list_top_layout.addWidget(self.list_renumber_btn)
         list_layout.addLayout(list_top_layout)
 
         # List table with fixed dimensions
         self.list_table = QTableWidget()
         self.list_table.setColumnCount(6)
-        self.list_table.setFixedHeight(550)
-        self.list_table.setHorizontalHeaderLabels(['Item Code', 'Item Num',
-                                                   'FC_para', 'Mainsub', 'Topic in Book', 'Order'])
+        self.list_table.setFixedHeight(650)
+        self.list_table.setHorizontalHeaderLabels(['Item Code', 'number', 'score', 'para', 'list_rel_item_code', 'list_theory_piece_code'])
 
         # Set fixed column widths for List table
         self.list_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Fixed)
@@ -154,17 +151,14 @@ class DatabaseManager(QMainWindow):
 
         # Set exact column widths
         self.list_table.setColumnWidth(0, 140)  # Item Code
-        self.list_table.setColumnWidth(1, 80)  # Item Num
-        self.list_table.setColumnWidth(2, 80)  # FC_para
-        self.list_table.setColumnWidth(3, 80)  # Mainsub
-        self.list_table.setColumnWidth(4, 100)  # Topic in Book
-        self.list_table.setColumnWidth(5, 0)  # Order (hidden)
+        self.list_table.setColumnWidth(1, 80)  # number
+        self.list_table.setColumnWidth(2, 80)  # score
+        self.list_table.setColumnWidth(3, 80)  # para
+        self.list_table.setColumnWidth(4, 140)  # list_rel_item_code
+        self.list_table.setColumnWidth(5, 140)  # list_theory_piece_code
 
         # Calculate and set fixed total width
-        total_width = sum([self.list_table.columnWidth(i) for i in range(5)])  # Exclude hidden Order column
-        self.list_table.setFixedWidth(550)
-        # Hide Order column
-        self.list_table.hideColumn(5)
+        self.list_table.setFixedWidth(700)
 
         list_layout.addWidget(self.list_table)
 
@@ -176,8 +170,8 @@ class DatabaseManager(QMainWindow):
         self.create_pdfs_btn = QPushButtonGui('CREATE PDFs As Shown')
         self.merge_pdfs_btn = QPushButtonGui('MERGE PDFs As Shown')
         self.export_json_btn = QPushButtonGui('EXPORT JSON to DB')
-        self.build_squeeze_paper_by_gui_btn = QPushButtonGui('BUILD squeeze from DB')
-        self.build_squeeze_mini_paper_by_gui_btn = QPushButtonGui('BUILD squeeze mini from DB')
+        self.build_exam_test_by_gui_btn = QPushButtonGui('BUILD exam test from DB')
+        self.build_duplex_paper_by_gui_btn = QPushButtonGui('BUILD duplex from DB')
         self.rasterize_pdf_btn = QPushButtonGui('RASTERIZE PDF from DB')
         self.open_merged_pdf_btn = QPushButtonGui('OPEN MERGED PDF')
         self.open_naive_pdf_btn = QPushButtonGui('OPEN NAIVE PDF')
@@ -190,8 +184,8 @@ class DatabaseManager(QMainWindow):
         right_button_layout.addWidget(self.create_pdfs_btn)
         right_button_layout.addWidget(self.merge_pdfs_btn)
         right_button_layout.addWidget(self.export_json_btn)
-        right_button_layout.addWidget(self.build_squeeze_paper_by_gui_btn)
-        right_button_layout.addWidget(self.build_squeeze_mini_paper_by_gui_btn)
+        right_button_layout.addWidget(self.build_exam_test_by_gui_btn)
+        right_button_layout.addWidget(self.build_duplex_paper_by_gui_btn)
         right_button_layout.addWidget(self.rasterize_pdf_btn)
         right_button_layout.addWidget(self.open_naive_pdf_btn)
         right_button_layout.addWidget(self.open_rasterized_pdf_btn)
@@ -199,7 +193,6 @@ class DatabaseManager(QMainWindow):
         right_button_layout.addStretch()
 
         right_button_layout.addWidget(self.log_window)
-        self.log_window.setFixedHeight(300)
         # Log window
 
 
@@ -230,19 +223,17 @@ class DatabaseManager(QMainWindow):
         self.down_btn.clicked.connect(self.move_row_down)
 
         self.list_deselect_btn.clicked.connect(self.deselect_list_items)
-        self.list_sort_btn.clicked.connect(self.sort_list_by_order)
         self.list_renumber_btn.clicked.connect(self.renumber_list_items)
 
         self.pool_table.horizontalHeader().sectionClicked.connect(self.show_filter_dialog)
-        self.list_table.horizontalHeader().sectionClicked.connect(self.sort_list)
 
         self.book_name_input.currentIndexChanged.connect(self.load_selected_book)
         self.delete_pdfs_btn.clicked.connect(self.delete_pdfs_gui)
         self.create_pdfs_btn.clicked.connect(self.create_pdfs_gui)
         self.merge_pdfs_btn.clicked.connect(self.merge_pdfs_gui)
         self.export_json_btn.clicked.connect(self.export_to_json)
-        self.build_squeeze_paper_by_gui_btn.clicked.connect(self.build_squeeze_paper_by_gui)
-        self.build_squeeze_mini_paper_by_gui_btn.clicked.connect(self.build_squeeze_mini_paper_by_gui)
+        self.build_exam_test_by_gui_btn.clicked.connect(self.build_exam_test_by_gui)
+        self.build_duplex_paper_by_gui_btn.clicked.connect(self.build_duplex_by_gui)
         self.rasterize_pdf_btn.clicked.connect(self.rasterize_pdf_by_gui)
         self.open_merged_pdf_btn.clicked.connect(self.open_merged_pdf)
         self.open_naive_pdf_btn.clicked.connect(self.open_naive_pdf)
@@ -262,7 +253,7 @@ class DatabaseManager(QMainWindow):
     def check_and_remove_empty_rows(self):
         for row in range(self.list_table.rowCount() - 1, -1, -1):
             is_empty = True
-            for col in range(self.list_table.columnCount() - 1):  # order 컬럼 제외
+            for col in range(self.list_table.columnCount()):
                 item = self.list_table.item(row, col)
                 if item and item.text().strip():  # 내용이 있으면
                     is_empty = False
@@ -358,9 +349,6 @@ class DatabaseManager(QMainWindow):
                             'order': order
                         })
                         serial_num += 1
-
-
-
         self.update_pool_table()
 
     def update_pool_table(self, data=None):
@@ -412,19 +400,21 @@ class DatabaseManager(QMainWindow):
                 self.list_table.insertRow(current_row)
 
                 self.list_table.setItem(current_row, 0, QTableWidgetItem(item_code))
-                self.list_table.setItem(current_row, 1, QTableWidgetItem(str(current_row + 1)))
-                self.list_table.setItem(current_row, 2, QTableWidgetItem(""))
-                self.list_table.setItem(current_row, 3, QTableWidgetItem(""))
-                self.list_table.setItem(current_row, 4, QTableWidgetItem(parsed["topic"]))
-                self.list_table.setItem(current_row, 5, QTableWidgetItem(order))
+                self.list_table.setItem(current_row, 1, QTableWidgetItem(int(current_row + 1)))
+                self.list_table.setItem(current_row, 2, QTableWidgetItem(2))
+                self.list_table.setItem(current_row, 3, QTableWidgetItem("1L"))
+                self.list_table.setItem(current_row, 4, QTableWidgetItem(list()))
+                self.list_table.setItem(current_row, 5, QTableWidgetItem(list()))
 
     def add_empty_row(self):
         current_row = self.list_table.rowCount()
         self.list_table.insertRow(current_row)
-
-        self.list_table.setItem(current_row, 0, QTableWidgetItem(str(current_row + 1)))
-        for i in range(1, 6):
-            self.list_table.setItem(current_row, i, QTableWidgetItem(""))
+        self.list_table.setItem(current_row, 0, QTableWidgetItem(""))
+        self.list_table.setItem(current_row, 1, QTableWidgetItem(int(current_row + 1)))
+        self.list_table.setItem(current_row, 2, QTableWidgetItem(2))
+        self.list_table.setItem(current_row, 3, QTableWidgetItem("1L"))
+        self.list_table.setItem(current_row, 4, QTableWidgetItem(list()))
+        self.list_table.setItem(current_row, 5, QTableWidgetItem(list()))
 
     def sort_pool_by_order(self):
         # Get currently displayed items
@@ -502,68 +492,6 @@ class DatabaseManager(QMainWindow):
 
         self.check_and_remove_empty_rows()
 
-    def sort_list(self, column):
-        if column in self.list_sort_order:
-            self.list_sort_order[column] = not self.list_sort_order[column]
-        else:
-            self.list_sort_order[column] = True
-
-        data = []
-        for row in range(self.list_table.rowCount()):
-            row_data = []
-            for col in range(self.list_table.columnCount()):
-                item = self.list_table.item(row, col)
-                row_data.append(item.text() if item else "")
-            data.append(row_data)
-
-        reverse = not self.list_sort_order[column]
-        if column == 1:  # Item Num column
-            data.sort(key=lambda x: float('inf') if not x[column] else int(x[column]), reverse=reverse)
-        else:
-            data.sort(key=lambda x: x[column], reverse=reverse)
-
-        for i, row_data in enumerate(data):
-            for j, cell_data in enumerate(row_data):
-                self.list_table.setItem(i, j, QTableWidgetItem(cell_data))
-
-    def order_column(self, item_code):
-        parsed = self.parse_code(item_code)
-        order = parsed["topic"] + parsed["section"] + parsed["number"] + parsed["subject"]
-        return order
-
-    def sort_list_by_order(self):
-        if not self.show_warning_dialog("Are you sure you want to sort the list by order?"):
-            return
-
-        # Extract all data from the table
-        data = []
-        for row in range(self.list_table.rowCount()):
-            row_data = {
-                'item_code': self.list_table.item(row, 0).text() if self.list_table.item(row, 0) else "",
-                'item_num': self.list_table.item(row, 1).text() if self.list_table.item(row, 1) else "",
-                'fc_para': self.list_table.item(row, 2).text() if self.list_table.item(row, 2) else "",
-                'mainsub': self.list_table.item(row, 3).text() if self.list_table.item(row, 3) else "",
-                'topic_in_book': self.list_table.item(row, 4).text() if self.list_table.item(row, 4) else "",
-                'order': self.list_table.item(row,4).text() + parse_code(self.list_table.item(row, 0).text())["section"] +
-                parse_code(self.list_table.item(row, 0).text())["number"] + parse_code(self.list_table.item(row, 0).text())["subject"]
-            }
-            data.append(row_data)
-
-        # Sort data by order
-        data.sort(key=lambda x: x['order'])
-
-        # Update table with sorted data and reassign order values
-        self.list_table.setRowCount(0)
-        for idx, row_data in enumerate(data):
-            row_count = self.list_table.rowCount()
-            self.list_table.insertRow(row_count)
-            self.list_table.setItem(row_count, 0, QTableWidgetItem(row_data['item_code']))
-            self.list_table.setItem(row_count, 1, QTableWidgetItem(row_data['item_num']))
-            self.list_table.setItem(row_count, 2, QTableWidgetItem(row_data['fc_para']))
-            self.list_table.setItem(row_count, 3, QTableWidgetItem(row_data['mainsub']))
-            self.list_table.setItem(row_count, 4, QTableWidgetItem(row_data['topic_in_book']))
-            self.list_table.setItem(row_count, 5, QTableWidgetItem(str(idx + 1)))  # Update order column
-
     # Add a similar method for the list table
     def update_list_table(self, data=None):
         if data is None:
@@ -588,11 +516,11 @@ class DatabaseManager(QMainWindow):
 
             # 나머지 컬럼들도 같은 색상 적용
             columns = [
-                str(item.get('item_num', '')),
-                str(item.get('FC_para', '')),
-                str(item.get('mainsub', '')),
-                str(item.get('topic_in_book', '')),
-                str(item.get('order', ''))
+                str(item.get('number', '')),
+                str(item.get('score', '')),
+                str(item.get('para', '')),
+                str(item.get('list_rel_item_code', '')),
+                str(item.get('list_theory_piece_code', ''))
             ]
 
             for col, value in enumerate(columns, 1):  # 1부터 시작해서 나머지 컬럼 처리
@@ -609,20 +537,11 @@ class DatabaseManager(QMainWindow):
         if not self.show_warning_dialog("Are you sure you want to renumber the list items?"):
             return
         next_item_number = 1
-        next_main_number = 1
         for i in range(self.list_table.rowCount()):
-            section = parse_code(self.list_table.item(i, 0).text())["section"]
-            item_num = self.list_table.item(i, 1)
-            main_num = self.list_table.item(i, 3)
-
-            # 비어있지 않은 경우에만 번호 매기기
-            if section == "KC":
+            if self.list_table.item(i, 0).text():
+                # 비어있지 않은 경우에만 번호 매기기
                 self.list_table.setItem(i, 1, QTableWidgetItem(str(next_item_number)))
                 next_item_number += 1
-            # -1과 0은 그대로 유지
-            if section != "KC":
-                self.list_table.setItem(i, 3, QTableWidgetItem(chr(next_main_number+64)))
-                next_main_number += 1
 
     def delete_pdfs_gui(self):
         if not self.show_warning_dialog("Are you sure you want to DELETE PDFs?"):
@@ -656,15 +575,23 @@ class DatabaseManager(QMainWindow):
         if not self.show_warning_dialog("Are you sure you want to create PDFs?"):
             return
         item_list = []
+        item_folder_list = []
         for row in range(self.list_table.rowCount()):
             item_code = self.list_table.item(row, 0).text() if self.list_table.item(row, 0) else None
             item_list.append(item_code)
+            item_folder = code2folder(item_code)
+            item_folder_list.append(item_folder)
         self.log_message("Starting PDF creation...")
+
+        for item_folder in item_folder_list:
+            if os.path.exists(item_folder):
+                self.refresh_folder(item_folder)
+
+        time.sleep(3)
 
         self.pdf_thread = PDFCreationThread(item_list)
         self.pdf_thread.progress_signal.connect(self.log_message)
         self.pdf_thread.start()
-    # Sort ComboBox Options
 
     def merge_pdfs_gui(self):
         if not self.show_warning_dialog("Are you sure you want to merge PDFs?"):
@@ -674,10 +601,10 @@ class DatabaseManager(QMainWindow):
         try:
             pdf_list = []
             for row in range(self.list_table.rowCount()):
-                if self.list_table.item(row, 3):
+                if self.list_table.item(row, 1):
                     item_code = self.list_table.item(row, 0).text()
                     pdf_path = code2pdf(item_code)
-                    item_num = self.list_table.item(row, 3).text()
+                    item_num = self.list_table.item(row, 1).text()
                     pdf_list.append((item_num, item_code, pdf_path))
                 else:
                     pass
@@ -720,13 +647,13 @@ class DatabaseManager(QMainWindow):
 
     def load_book_names(self):
         self.book_name_input.clear()
-        book_names = [file_name for file_name in os.listdir(BOOK_DB_PATH) if file_name.endswith('.json')]
+        book_names = [file_name for file_name in os.listdir(EXAM_DB_PATH) if file_name.endswith('.json')]
         book_names.sort()  # Sort book names in ascending order
         self.book_name_input.addItems(book_names)
 
     def load_selected_book(self):
         book_name = self.book_name_input.currentText()
-        book_path = os.path.join(BOOK_DB_PATH, book_name)
+        book_path = os.path.join(EXAM_DB_PATH, book_name)
 
         # 기존 내용 초기화
         self.list_table.setRowCount(0)
@@ -745,22 +672,21 @@ class DatabaseManager(QMainWindow):
                 if row_data.get('item_code') is not None:
                     item_code = row_data['item_code']
                     self.list_table.setItem(row_count, 0, QTableWidgetItem(str(item_code)))
-                    # order 값 생성
-                    parsed = self.parse_code(item_code)
-                    order = parsed["topic"] + parsed["section"] + parsed["number"] + parsed["subject"]
-                    self.list_table.setItem(row_count, 5, QTableWidgetItem(order))
 
-                if row_data.get('item_num') is not None:
-                    self.list_table.setItem(row_count, 1, QTableWidgetItem(str(row_data['item_num'])))
+                if row_data.get('number') is not None:
+                    self.list_table.setItem(row_count, 1, QTableWidgetItem(str(row_data['number'])))
 
-                if row_data.get('FC_para') is not None:
-                    self.list_table.setItem(row_count, 2, QTableWidgetItem(str(row_data['FC_para'])))
+                if row_data.get('score') is not None:
+                    self.list_table.setItem(row_count, 2, QTableWidgetItem(str(row_data['score'])))
 
-                if row_data.get('mainsub') is not None:
-                    self.list_table.setItem(row_count, 3, QTableWidgetItem(str(row_data['mainsub'])))
+                if row_data.get('para') is not None:
+                    self.list_table.setItem(row_count, 3, QTableWidgetItem(str(row_data['para'])))
 
-                if row_data.get('topic_in_book') is not None:
-                    self.list_table.setItem(row_count, 4, QTableWidgetItem(str(row_data['topic_in_book'])))
+                if row_data.get('list_rel_item_code') is not None:
+                    self.list_table.setItem(row_count, 4, QTableWidgetItem(str(row_data['list_rel_item_code'])))
+
+                if row_data.get('list_theory_piece_code') is not None:
+                    self.list_table.setItem(row_count, 5, QTableWidgetItem(str(row_data['list_theory_piece_code'])))
 
         except Exception as e:
             self.log_message(f"Error loading book: {e}")
@@ -775,14 +701,15 @@ class DatabaseManager(QMainWindow):
         # 컬럼과 JSON 키 매핑
         column_mapping = {
             0: 'item_code',  # 첫 번째 컬럼은 item_code
-            1: 'item_num',  # 두 번째 컬럼은 item_num
-            2: 'FC_para',  # 세 번째 컬럼은 FC_para
-            3: 'mainsub',  # 네 번째 컬럼은 mainsub
-            4: 'topic_in_book'  # 다섯 번째 컬럼은 topic_in_book
+            1: 'number', # 두 번째 컬럼은 number
+            2: 'score',  # 세 번째 컬럼은 score
+            3: 'para',  # 네 번째 컬럼은 para
+            4: 'list_rel_item_code',  # 다섯 번째 컬럼은 list_rel_item_code
+            5: 'list_theory_piece_code'  # 여섯 번째 컬럼은 list_theory_piece_code
         }
 
         # JSON에서 원하는 키 순서
-        json_order = ['item_num', 'item_code', 'FC_para', 'mainsub', 'topic_in_book']
+        json_order = ['item_num', 'number', 'score', 'para', 'list_rel_item_code', 'list_theory_piece_code']
 
         for row in range(self.list_table.rowCount()):
             temp_data = {}
@@ -790,10 +717,7 @@ class DatabaseManager(QMainWindow):
             for col, key in column_mapping.items():
                 item = self.list_table.item(row, col)
                 if item is not None and item.text().strip():
-                    if key in ['FC_para', 'item_num']:
-                        temp_data[key] = int(item.text())
-                    else:
-                        temp_data[key] = item.text()
+                    temp_data[key] = item.text()
                 else:
                     temp_data[key] = None
 
@@ -803,38 +727,38 @@ class DatabaseManager(QMainWindow):
 
         self.log_message("Starting JSON export...")
         try:
-            with open(os.path.join(BOOK_DB_PATH, book_name), 'w', encoding='utf-8') as f:
+            with open(os.path.join(EXAM_DB_PATH, book_name), 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=4)
             self.log_message("JSON export completed successfully.")
         except Exception as e:
             self.log_message(f"Error during JSON export: {e}")
 
-    def build_squeeze_paper_by_gui(self):
-        if not self.show_warning_dialog("Are you sure you want to build the squeeze paper?"):
+    def build_exam_test_by_gui(self):
+        if not self.show_warning_dialog("Are you sure you want to build the EXAM TEST?"):
             return
         if not self.show_warning_dialog("Please Ensure that Every PDF file is Updated"):
             return
         book_name = self.book_name_input.currentText()
-        input_path = os.path.join(BOOK_DB_PATH, book_name)
+        input_path = os.path.join(EXAM_DB_PATH, book_name)
         output_path = os.path.join(OUTPUT_PATH, book_name.replace('.json', '.pdf'))
         self.log_message("Starting squeeze paper build...")
         try:
-            build_squeeze_paper(input=input_path, output=output_path, log_callback=self.log_message)
+            build_exam_test(input=input_path, output=output_path, log_callback=self.log_message)
         except Exception as e:
             error_message = f"Error during squeeze paper build: {e}\n{traceback.format_exc()}"
             self.log_message(error_message)
 
-    def build_squeeze_mini_paper_by_gui(self):
-        if not self.show_warning_dialog("Are you sure you want to build the squeeze paper?"):
+    def build_duplex_by_gui(self):
+        if not self.show_warning_dialog("Are you sure you want to build the DUPLEX paper?"):
             return
         if not self.show_warning_dialog("Please Ensure that Every PDF file is Updated"):
             return
         book_name = self.book_name_input.currentText()
-        input_path = os.path.join(BOOK_DB_PATH, book_name)
+        input_path = os.path.join(EXAM_DB_PATH, book_name)
         output_path = os.path.join(OUTPUT_PATH, book_name.replace('.json', '.pdf'))
         self.log_message("Starting squeeze mini paper build...")
         try:
-            build_squeeze_mini_paper(input=input_path, output=output_path, log_callback=self.log_message)
+            build_duplex(input=input_path, output=output_path, log_callback=self.log_message)
         except Exception as e:
             error_message = f"Error during squeeze mini paper build: {e}\n{traceback.format_exc()}"
             self.log_message(error_message)

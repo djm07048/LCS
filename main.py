@@ -1,6 +1,9 @@
 from modules.kice_cropper import KiceCropper
 from modules.builder_squeeze import SQBuilder
 from modules.builder_squeeze_mini import SQMiniBuilder
+from modules.builder_duplex import DXBuilder
+from modules.exam_test import ExamTestBuilder
+
 from pathlib import Path
 import json
 from utils.path import *
@@ -36,6 +39,24 @@ def build_squeeze_mini_paper(input, output, log_callback=None):
         items = json.load(file)
     bd = SQMiniBuilder(items)
     bd.build(output, log_callback=log_callback)
+
+def build_duplex(input, output, log_callback=None):
+    if log_callback:
+        log_callback("Duplex Paper Build Start")
+        log_callback(f"Building {input} to {output}")
+    with open(input, encoding='UTF8') as file:
+        items = json.load(file)
+    bd = DXBuilder(items)
+    bd.build(output, log_callback=log_callback)
+
+def build_exam_test(input, output, log_callback=None):
+    if log_callback:
+        log_callback("Exam Test Paper Build Start")
+        log_callback(f"Building {input} to {output}")
+    with open(input, encoding='UTF8') as file:
+        items = json.load(file)
+    bd = ExamTestBuilder(exam_code=)
+    bd.build_test()
 
 if __name__ == '__main__':
     build_squeeze_paper()
