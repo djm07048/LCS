@@ -39,33 +39,33 @@ class ExamTest():
         # 31 (좌 여백 너비) + 112 (단 너비) + 11 (단과 단 사이 여백) = 154
         # 31 (좌 여백 너비) + 112 (단 너비) + 11 (단과 단 사이 여백) + 112 (단 너비) = 266
 
-        LxL = 31
-        LxR = 143
-        RxL = 154
-        RxR = 266
+        xLL = 31
+        xLR = 143
+        xRL = 154
+        xRR = 266
 
         yT1 = 91
         yT234 = 56.5
         yB = 376.5
         yB4R = 349.16
 
-        rect_1L = Rect(LxL, yT1, LxR, yB)
-        rect_1R = Rect(RxL, yT1, RxR, yB)
+        rect_1L = Rect(xLL, yT1, xLR, yB)
+        rect_1R = Rect(xRL, yT1, xRR, yB)
 
 
         # 2P
         # 56.6 (위 여백 높이)
-        rect_2L = Rect(LxL, yT234, LxR, yB)
-        rect_2R = Rect(RxL, yT234, RxR, yB)
+        rect_2L = Rect(xLL, yT234, xLR, yB)
+        rect_2R = Rect(xRL, yT234, xRR, yB)
 
         # 3P
-        rect_3L = Rect(LxL, yT234, LxR, yB)
-        rect_3R = Rect(RxL, yT234, RxR, yB)
+        rect_3L = Rect(xLL, yT234, xLR, yB)
+        rect_3R = Rect(xRL, yT234, xRR, yB)
 
         # 4P
         # 376.5 (box의 끝 위치) - 22.34 (box의 세로 길이) - 5 (box 상단 여백) = 349.16
-        rect_4L = Rect(LxL, yT234, LxR, yB)
-        rect_4R = Rect(RxL, yT234, RxR, yB4R)
+        rect_4L = Rect(xLL, yT234, xLR, yB)
+        rect_4R = Rect(xRL, yT234, xRR, yB4R)
 
         dict = {
             "1L": rect_1L,
