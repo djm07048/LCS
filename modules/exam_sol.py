@@ -20,11 +20,8 @@ import json
 
 
 class ExamSol():
-    def __init__(self, exam_code):
-        self.exam_code = exam_code
-        path = os.path.join(INPUT_PATH, 'ExamDB', f'{self.exam_code}.json')
-        with open(path, 'r') as f:
-            self.exam_info = json.load(f)
+    def __init__(self, items):
+        self.items = items
         # {item_code1: {'number': 1, 'score': 2, 'para': '1L'},
         #  item_code2: {'number': 2, 'score': 2, 'para': '1R'}, ...}
 

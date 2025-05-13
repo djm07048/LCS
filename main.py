@@ -55,8 +55,8 @@ def build_exam_test(input, output, log_callback=None):
         log_callback(f"Building {input} to {output}")
     with open(input, encoding='UTF8') as file:
         items = json.load(file)
-    bd = ExamTestBuilder(exam_code=)
-    bd.build_test()
+    bd = ExamTestBuilder(items)
+    bd.build_test(output)
 
 if __name__ == '__main__':
     build_squeeze_paper()

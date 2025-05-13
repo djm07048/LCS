@@ -65,8 +65,8 @@ class DuplexItemBuilder:
 
     def bake_title_sd(self):
         source = sdcode2cite(self.unit_item_code)
-        text_exam = source.split(" ")[2] + " " + source.split(" ")[3]
-        text_number = source.split(" ")[4]
+        text_exam = source.split(" ")[1] + " " + source.split(" ")[2]
+        text_number = source.split(" ")[3]
 
         compo = Component(self.resources_pdf, 0, self.resources_doc.load_page(0).rect)
         box = ComponentOverlayObject(0, Coord(0,0,0), compo)
@@ -95,7 +95,7 @@ class DuplexItemBuilder:
 
         if item_code[5:7] == 'KC' or item_code[5:7] == 'NC':
             source = code2cite(item_code)
-            text_exam = source.split(" ")[0] + " " + source.split(" ")[1] + " " + " " + source.split(" ")[3]
+            text_exam = source.split(" ")[0] + " " + source.split(" ")[1] + " " + source.split(" ")[3]
             text_number = source.split(" ")[2]
         else:
             source = get_related_item_reference(item_code)
@@ -103,7 +103,7 @@ class DuplexItemBuilder:
             text_number = source.split("_")[2]
 
         source = sdcode2cite(self.unit_item_code)
-        text_unit = source.split(" ")[2] + " " + source.split(" ")[3] + " " + source.split(" ")[4] + " " + "연계"
+        text_unit = source.split(" ")[1] + " " + source.split(" ")[2] + " " + source.split(" ")[3] + " " + "연계"
 
         to_exam = TextOverlayObject(0, Coord(Ratio.mm_to_px(7), Ratio.mm_to_px(20), 0), "Pretendard-SemiBold.ttf", 24,
                                     text_exam, (0.2, 0, 0, 1), fitz.TEXT_ALIGN_LEFT)
@@ -139,7 +139,7 @@ class DuplexItemBuilder:
         text_number = ', '.join([list_piece_code[i].split(" ")[3] for i in range(len(list_piece_code))])
 
         source = sdcode2cite(self.unit_item_code)
-        text_unit = source.split(" ")[2] + " " + source.split(" ")[3] + " " + source.split(" ")[4] + " " + "개념"
+        text_unit = source.split(" ")[1] + " " + source.split(" ")[2] + " " + source.split(" ")[3] + " " + "개념"
 
         to_exam = TextOverlayObject(0, Coord(Ratio.mm_to_px(7), Ratio.mm_to_px(20), 0),
                                     "Pretendard-SemiBold.ttf", 24,
@@ -167,7 +167,7 @@ class DuplexItemBuilder:
 
         if item_code[5:7] == 'KC' or item_code[5:7] == 'NC':
             source = code2cite(item_code)
-            text_exam = source.split(" ")[0] + " " + source.split(" ")[1] + " " + " " + source.split(" ")[3]
+            text_exam = source.split(" ")[0] + " " + source.split(" ")[1] + " " + source.split(" ")[3]
             text_number = source.split(" ")[2] + " 해설"
         else:
             source = get_related_item_reference(item_code)
@@ -175,7 +175,7 @@ class DuplexItemBuilder:
             text_number = source.split("_")[2] + " 해설"
 
         source = sdcode2cite(self.unit_item_code)
-        text_unit = source.split(" ")[2] + " " + source.split(" ")[3] + " " + source.split(" ")[4] + " " + "연계 해설"
+        text_unit = source.split(" ")[1] + " " + source.split(" ")[2] + " " + source.split(" ")[3] + " " + "연계 해설"
 
         to_exam = TextOverlayObject(0, Coord(Ratio.mm_to_px(7), Ratio.mm_to_px(20), 0), "Pretendard-SemiBold.ttf", 24,
                                     text_exam, (0.2, 0, 0, 1), fitz.TEXT_ALIGN_LEFT)
@@ -192,14 +192,14 @@ class DuplexItemBuilder:
 
         bubble_number = ShapeOverlayObject(0, Coord(text_exam_width + Ratio.mm_to_px(14), Ratio.mm_to_px(8), 0),
                                  Rect(0, 0, Ratio.mm_to_px(224 - 3) - bubble_exam_width , Ratio.mm_to_px(17.5)), (0.2, 0, 0, 0), 5/17.5)
-        lt_corner = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(-1), 0, 0), Component(self.resources_pdf, 4, self.resources_doc.load_page(4).rect))
-        middle_corner = ComponentOverlayObject(0, Coord(text_exam_width + Ratio.mm_to_px(8), 0, 0), Component(self.resources_pdf, 5, self.resources_doc.load_page(5).rect))
-        rt_corner = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(224 - 3 - 5), 0, 0), Component(self.resources_pdf, 6, self.resources_doc.load_page(6).rect))
+        #lt_corner = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(-1), 0, 0), Component(self.resources_pdf, 4, self.resources_doc.load_page(4).rect))
+        #middle_corner = ComponentOverlayObject(0, Coord(text_exam_width + Ratio.mm_to_px(8), 0, 0), Component(self.resources_pdf, 5, self.resources_doc.load_page(5).rect))
+        #rt_corner = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(224 - 3 - 5), 0, 0), Component(self.resources_pdf, 6, self.resources_doc.load_page(6).rect))
 
-        lt_to_middle_line = ShapeOverlayObject(0, Coord(Ratio.mm_to_px(5), Ratio.mm_to_px(8) - 1, 0),
-                                               Rect(0, 0, text_exam_width, 2), (1, 0, 0, 0))
-        middle_to_rt_line = ShapeOverlayObject(0, Coord(text_exam_width + Ratio.mm_to_px(19), Ratio.mm_to_px(8 - 0.251), 0),
-                                                  Rect(0, 0, Ratio.mm_to_px(224 - 3 - 5 - text_exam_width - 19), Ratio.mm_to_px(0.502)), (1, 0, 0, 0))
+        #lt_to_middle_line = ShapeOverlayObject(0, Coord(Ratio.mm_to_px(5), Ratio.mm_to_px(8) - 1, 0),
+        #                                       Rect(0, 0, text_exam_width, 2), (1, 0, 0, 0))
+        #middle_to_rt_line = ShapeOverlayObject(0, Coord(text_exam_width + Ratio.mm_to_px(19), Ratio.mm_to_px(8 - 0.251), 0),
+        #                                          Rect(0, 0, Ratio.mm_to_px(224 - 3 - 5 - text_exam_width - 19), Ratio.mm_to_px(0.502)), (1, 0, 0, 0))
 
 
         to_unit = TextOverlayObject(0, Coord(Ratio.mm_to_px(224 - 3 - 5), Ratio.mm_to_px(5), 0), "Pretendard-SemiBold.ttf", 15,
@@ -211,9 +211,9 @@ class DuplexItemBuilder:
         box.add_child(to_number)
         box.add_child(to_unit)
 
-        box.add_child(lt_corner)
-        box.add_child(middle_corner)
-        box.add_child(rt_corner)
+        #box.add_child(lt_corner)
+        #box.add_child(middle_corner)
+        #box.add_child(rt_corner)
 
         '''
         box.add_child(lt_to_middle_line)
@@ -650,11 +650,13 @@ class DuplexItemBuilder:
                     continue
                 paragraph_cnt = self.add_child_to_paragraph_sd(paragraph, so, paragraph_cnt)
 
+            print(self.overlayer.doc.page_count)
             paragraph.overlay(self.overlayer, Coord(0, 0, 0))
 
             if self.overlayer.doc.page_count == 0:
                 raise ValueError("No pages were added to the document.")
 
+            #TODO: 여기서 first page 호출 여부에 따라 오류가 발생
             first_page.overlay(self.overlayer, Coord(0, 0, 0))
             sol_whole_doc.insert_pdf(sol_item_doc)
 

@@ -20,11 +20,15 @@ import json
 
 
 class ExamTestBuilder():
-    def __init__(self, exam_code):
-        self.exam_code = exam_code
-        path = os.path.join(INPUT_PATH, 'ExamDB', f'{self.exam_code}.json')
-        with open(path, 'r') as f:
-            self.exam_info = json.load(f)
+    def __init__(self, items):
+        self.items = {
+        item['item_code']: {
+        'number': item['number'],
+        'score': item['score'],
+        'para': item['para']
+        }
+        for item in items
+}
         # {item_code1: {'number': 1, 'score': 2, 'para': '1L'},
         #  item_code2: {'number': 2, 'score': 2, 'para': '1R'}, ...}
 
@@ -96,9 +100,9 @@ class ExamTestBuilder():
     def get_item_list_on_paragraph(self):
         item_list = [[] for i in range(8)]
 
-        item_code_list = self.exam_info.keys()
+        item_code_list = self.items.keys()
         for item_code in item_code_list:
-            item_para = self.exam_info[item_code]['para']
+            item_para = self.items[item_code]['para']
             if item_para == '1L':
                 item_list[0].append(item_code)
             elif item_para == '1R':
@@ -144,7 +148,7 @@ class ExamTestBuilder():
         problem_object.add_child(white_box)
         problem.add_child(problem_object)
 
-        problem_number = self.exam_info[item_code]['number']
+        problem_number = self.items[item_code]['number']
         compo = self.get_number_compo(problem_number)
         no = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(0.65), 10), compo)
         problem.add_child(no)
@@ -163,7 +167,7 @@ class ExamTestBuilder():
         component = Component(resources_pdf, number, resources_doc.load_page(number).rect)
         return component
 
-    def build_test(self):
+    def build_test(self, output):
         test_doc = fitz.open()
         self.overlayer = Overlayer(test_doc)
 
@@ -188,7 +192,7 @@ class ExamTestBuilder():
 
         paragraph.overlay(self.overlayer, Coord(0, 0, 0))
 
-        PdfUtils.save_to_pdf(test_doc, os.path.join(OUTPUT_PATH, f'{self.exam_code}_test.pdf'), garbage=4)
+        PdfUtils.save_to_pdf(test_doc, output, garbage=4)
         test_doc.close()
 
     def get_problem_answer(self, item_pdf):
@@ -208,9 +212,9 @@ class ExamTestBuilder():
 
         # 정답지에 문제 번호 넣기
         for i in range(1, 21, 1):
-            item_code = next((item_code for item_code, info in self.exam_info.items() if info['number'] == i), None)
+            item_code = next((item_code for item_code, info in self.items.items() if info['number'] == i), None)
             answer = self.get_problem_answer(item_code)
-            score = self.exam_info[item_code]['score']
+            score = self.items[item_code]['score']
 
             # answer_compo
             # score_compo

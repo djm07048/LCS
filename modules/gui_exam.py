@@ -174,8 +174,10 @@ class DatabaseManager(QMainWindow):
         self.build_duplex_paper_by_gui_btn = QPushButtonGui('BUILD duplex from DB')
         self.rasterize_pdf_btn = QPushButtonGui('RASTERIZE PDF from DB')
         self.open_merged_pdf_btn = QPushButtonGui('OPEN MERGED PDF')
-        self.open_naive_pdf_btn = QPushButtonGui('OPEN NAIVE PDF')
-        self.open_rasterized_pdf_btn = QPushButtonGui('OPEN RASTERIZED PDF')
+        self.open_naive_test_pdf_btn = QPushButtonGui('OPEN NAIVE TEST PDF')
+        self.open_rasterized_test_pdf_btn = QPushButtonGui('OPEN RASTERIZED TEST PDF')
+        self.open_naive_duplex_pdf_btn = QPushButtonGui('OPEN NAIVE DUPLEX PDF')
+        self.open_rasterized_duplex_pdf_btn = QPushButtonGui('OPEN RASTERIZED DUPLEX PDF')
         self.log_window = QTextEdit()
         self.log_window.setReadOnly(True)
 
@@ -187,8 +189,10 @@ class DatabaseManager(QMainWindow):
         right_button_layout.addWidget(self.build_exam_test_by_gui_btn)
         right_button_layout.addWidget(self.build_duplex_paper_by_gui_btn)
         right_button_layout.addWidget(self.rasterize_pdf_btn)
-        right_button_layout.addWidget(self.open_naive_pdf_btn)
-        right_button_layout.addWidget(self.open_rasterized_pdf_btn)
+        right_button_layout.addWidget(self.open_naive_test_pdf_btn)
+        right_button_layout.addWidget(self.open_rasterized_test_pdf_btn)
+        right_button_layout.addWidget(self.open_naive_duplex_pdf_btn)
+        right_button_layout.addWidget(self.open_rasterized_duplex_pdf_btn)
 
         right_button_layout.addStretch()
 
@@ -236,8 +240,10 @@ class DatabaseManager(QMainWindow):
         self.build_duplex_paper_by_gui_btn.clicked.connect(self.build_duplex_by_gui)
         self.rasterize_pdf_btn.clicked.connect(self.rasterize_pdf_by_gui)
         self.open_merged_pdf_btn.clicked.connect(self.open_merged_pdf)
-        self.open_naive_pdf_btn.clicked.connect(self.open_naive_pdf)
-        self.open_rasterized_pdf_btn.clicked.connect(self.open_rasterized_pdf)
+        self.open_naive_test_pdf_btn.clicked.connect(self.open_naive_test_pdf)
+        self.open_rasterized_test_pdf_btn.clicked.connect(self.open_rasterized_test_pdf)
+        self.open_naive_duplex_pdf_btn.clicked.connect(self.open_naive_duplex_pdf)
+        self.open_rasterized_duplex_pdf_btn.clicked.connect(self.open_rasterized_duplex_pdf)
 
 
     def log_message(self, message):
@@ -492,42 +498,6 @@ class DatabaseManager(QMainWindow):
 
         self.check_and_remove_empty_rows()
 
-    # Add a similar method for the list table
-    def update_list_table(self, data=None):
-        if data is None:
-            data = self.list_data
-        self.list_table.setRowCount(len(data))
-        for i, item in enumerate(data):
-            item_code = item['item_code']
-
-            # 색상 결정
-            if parse_code(item_code)["section"] == "KC":
-                if code2caption(item_code):
-                    row_color = QColor('lightgreen')
-                else:
-                    row_color = QColor('pink')
-            else:
-                row_color = QColor('lightblue')
-
-            # 각 컬럼의 아이템 생성 및 색상 설정
-            item_code_item = QTableWidgetItem(item_code)
-            item_code_item.setBackground(row_color)
-            self.list_table.setItem(i, 0, item_code_item)
-
-            # 나머지 컬럼들도 같은 색상 적용
-            columns = [
-                str(item.get('number', '')),
-                str(item.get('score', '')),
-                str(item.get('para', '')),
-                str(item.get('list_rel_item_code', '')),
-                str(item.get('list_theory_piece_code', ''))
-            ]
-
-            for col, value in enumerate(columns, 1):  # 1부터 시작해서 나머지 컬럼 처리
-                table_item = QTableWidgetItem(value)
-                table_item.setBackground(row_color)
-                self.list_table.setItem(i, col, table_item)
-
     def show_filter_dialog(self, column):
         if column == 1:  # Topic column
             dialog = FilterDialog(self)
@@ -570,6 +540,24 @@ class DatabaseManager(QMainWindow):
                         self.log_message(f"Deleted PDF: {Main_path}")
                     except Exception as e:
                         self.log_message(f"Error deleting PDF: {e}")
+
+    def refresh_folder(self, folder_path):
+        """Windows API를 사용하여 폴더를 새로고침합니다."""
+        try:
+            import ctypes
+            from ctypes import wintypes
+
+            # SHChangeNotify 함수를 사용하여 폴더 새로고침
+            SHCNE_UPDATEDIR = 0x00001000
+            SHCNF_PATH = 0x0001
+
+            shell32 = ctypes.WinDLL('shell32')
+            shell32.SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATH, folder_path, None)
+            print(f"폴더 새로고침 완료: {folder_path}")
+            return True
+        except Exception as e:
+            print(f"폴더 새로고침 실패: {e}")
+            return False
 
     def create_pdfs_gui(self):
         if not self.show_warning_dialog("Are you sure you want to create PDFs?"):
@@ -696,56 +684,70 @@ class DatabaseManager(QMainWindow):
             return
 
         book_name = self.book_name_input.currentText()
+        output_path = os.path.join(EXAM_DB_PATH, book_name)
+
         data = []
 
-        # 컬럼과 JSON 키 매핑
-        column_mapping = {
-            0: 'item_code',  # 첫 번째 컬럼은 item_code
-            1: 'number', # 두 번째 컬럼은 number
-            2: 'score',  # 세 번째 컬럼은 score
-            3: 'para',  # 네 번째 컬럼은 para
-            4: 'list_rel_item_code',  # 다섯 번째 컬럼은 list_rel_item_code
-            5: 'list_theory_piece_code'  # 여섯 번째 컬럼은 list_theory_piece_code
-        }
-
         # JSON에서 원하는 키 순서
-        json_order = ['item_num', 'number', 'score', 'para', 'list_rel_item_code', 'list_theory_piece_code']
+        json_keys = ['item_code', 'number', 'score', 'para', 'list_rel_item_code', 'list_theory_piece_code']
 
         for row in range(self.list_table.rowCount()):
             temp_data = {}
-            # 먼저 테이블에서 데이터 추출
-            for col, key in column_mapping.items():
-                item = self.list_table.item(row, col)
-                if item is not None and item.text().strip():
-                    temp_data[key] = item.text()
-                else:
-                    temp_data[key] = None
+            # 각 열의 데이터를 추출하여 딕셔너리에 추가
+            temp_data['item_code'] = self.list_table.item(row, 0).text() if self.list_table.item(row, 0) else None
+            temp_data['number'] = int(self.list_table.item(row, 1).text()) if self.list_table.item(row, 1) else None
+            temp_data['score'] = int(self.list_table.item(row, 2).text()) if self.list_table.item(row, 2) else None
+            temp_data['para'] = self.list_table.item(row, 3).text() if self.list_table.item(row, 3) else None
+            # Parse 'list_rel_item_code' as a list
+            #TODO: 작은 따옴표와 큰 따옴표를 구분하는 issue
+            if self.list_table.item(row, 4) and self.list_table.item(row, 4).text():
+                try:
+                    temp_data['list_rel_item_code'] = json.loads(self.list_table.item(row, 4).text())
+                except json.JSONDecodeError:
+                    temp_data['list_rel_item_code'] = []  # Default to an empty list if parsing fails
+            else:
+                temp_data['list_rel_item_code'] = []
 
-            # 원하는 순서로 데이터 재구성
-            row_data = {key: temp_data[key] for key in json_order}
-            data.append(row_data)
+            # Parse 'list_theory_piece_code' as a list
+            if self.list_table.item(row, 5) and self.list_table.item(row, 5).text():
+                try:
+                    temp_data['list_theory_piece_code'] = json.loads(self.list_table.item(row, 5).text())
+                except json.JSONDecodeError:
+                    temp_data['list_theory_piece_code'] = []  # Default to an empty list if parsing fails
+            else:
+                temp_data['list_theory_piece_code'] = []
+            # 딕셔너리를 리스트에 추가
+            data.append(temp_data)
 
-        self.log_message("Starting JSON export...")
+        # JSON 파일로 저장
         try:
-            with open(os.path.join(EXAM_DB_PATH, book_name), 'w', encoding='utf-8') as f:
-                json.dump(data, f, ensure_ascii=False, indent=4)
-            self.log_message("JSON export completed successfully.")
+            with open(output_path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+            self.log_message(f"Exported to JSON successfully: {output_path}")
         except Exception as e:
-            self.log_message(f"Error during JSON export: {e}")
+            self.log_message(f"Error exporting to JSON: {e}")
 
     def build_exam_test_by_gui(self):
         if not self.show_warning_dialog("Are you sure you want to build the EXAM TEST?"):
             return
         if not self.show_warning_dialog("Please Ensure that Every PDF file is Updated"):
             return
+
         book_name = self.book_name_input.currentText()
+
+        # Validate book_name
+        if not book_name.endswith('.json'):
+            self.log_message(f"Invalid book name: {book_name}")
+            return
+
         input_path = os.path.join(EXAM_DB_PATH, book_name)
-        output_path = os.path.join(OUTPUT_PATH, book_name.replace('.json', '.pdf'))
-        self.log_message("Starting squeeze paper build...")
+        output_path = os.path.join(OUTPUT_PATH, book_name.replace('.json', '_TEST.pdf'))
+
+        self.log_message("Starting exam test build...")
         try:
             build_exam_test(input=input_path, output=output_path, log_callback=self.log_message)
         except Exception as e:
-            error_message = f"Error during squeeze paper build: {e}\n{traceback.format_exc()}"
+            error_message = f"Error during exam test build: {e}\n{traceback.format_exc()}"
             self.log_message(error_message)
 
     def build_duplex_by_gui(self):
@@ -755,12 +757,12 @@ class DatabaseManager(QMainWindow):
             return
         book_name = self.book_name_input.currentText()
         input_path = os.path.join(EXAM_DB_PATH, book_name)
-        output_path = os.path.join(OUTPUT_PATH, book_name.replace('.json', '.pdf'))
-        self.log_message("Starting squeeze mini paper build...")
+        output_path = os.path.join(OUTPUT_PATH, book_name.replace('.json', '_DX.pdf'))
+        self.log_message("Starting DUPLEX paper build...")
         try:
             build_duplex(input=input_path, output=output_path, log_callback=self.log_message)
         except Exception as e:
-            error_message = f"Error during squeeze mini paper build: {e}\n{traceback.format_exc()}"
+            error_message = f"Error during DUPLEX paper build: {e}\n{traceback.format_exc()}"
             self.log_message(error_message)
 
     def rasterize_pdf_by_gui(self):
@@ -786,9 +788,9 @@ class DatabaseManager(QMainWindow):
                 self.log_message(f"Error opening merged PDF: {e}")
         else:
             self.log_message(f"Merged PDF not found: {pdf_path}")
-    def open_naive_pdf(self):
+    def open_naive_test_pdf(self):
         book_name = self.book_name_input.currentText()
-        pdf_path = os.path.join(OUTPUT_PATH, book_name.replace('.json', '.pdf'))
+        pdf_path = os.path.join(OUTPUT_PATH, book_name.replace('.json', '_TEST.pdf'))
         if os.path.exists(pdf_path):
             try:
                 os.startfile(pdf_path)
@@ -798,9 +800,33 @@ class DatabaseManager(QMainWindow):
         else:
             self.log_message(f"PDF not found: {pdf_path}")
 
-    def open_rasterized_pdf(self):
+    def open_naive_duplex_pdf(self):
         book_name = self.book_name_input.currentText()
-        pdf_path = os.path.join(OUTPUT_PATH, book_name.split('.')[0] + '_R.pdf')
+        pdf_path = os.path.join(OUTPUT_PATH, book_name.replace('.json', '_DX.pdf'))
+        if os.path.exists(pdf_path):
+            try:
+                os.startfile(pdf_path)
+                self.log_message(f"Opened PDF: {pdf_path}")
+            except Exception as e:
+                self.log_message(f"Error opening PDF: {e}")
+        else:
+            self.log_message(f"PDF not found: {pdf_path}")
+
+    def open_rasterized_test_pdf(self):
+        book_name = self.book_name_input.currentText()
+        pdf_path = os.path.join(OUTPUT_PATH, book_name.split('.')[0] + '_TEST_R.pdf')
+        if os.path.exists(pdf_path):
+            try:
+                os.startfile(pdf_path)
+                self.log_message(f"Opened rasterized PDF: {pdf_path}")
+            except Exception as e:
+                self.log_message(f"Error opening rasterized PDF: {e}")
+        else:
+            self.log_message(f"Rasterized PDF not found: {pdf_path}")
+
+    def open_rasterized_duplex_pdf(self):
+        book_name = self.book_name_input.currentText()
+        pdf_path = os.path.join(OUTPUT_PATH, book_name.split('.')[0] + '_DX_R.pdf')
         if os.path.exists(pdf_path):
             try:
                 os.startfile(pdf_path)
@@ -836,18 +862,8 @@ class DatabaseManager(QMainWindow):
                 self.open_item_hwp(item_code)
 
     def open_item_hwp(self, item_code):
-        # Base folder selection
-        if item_code[5:7] == 'KC':
-            base_path = KICE_DB_PATH
-        elif item_code[5:7] == 'NC':
-            base_path = NICE_DB_PATH
-        else:
-            base_path = ITEM_DB_PATH
-        topic = item_code[2:5]
-
         # Construct and normalize path
-        hwp_path = os.path.normpath(os.path.join(base_path, topic, item_code, f"{item_code}.hwp"))
-
+        hwp_path = code2hwp(item_code)
         if os.path.exists(hwp_path):
             try:
                 os.startfile(hwp_path)
@@ -855,18 +871,7 @@ class DatabaseManager(QMainWindow):
                 print(f"Error: {e}")
 
     def open_item_folder(self, item_code):
-        # Base folder selection
-        if item_code[5:7] == 'KC':
-            base_path = KICE_DB_PATH
-        elif item_code[5:7] == 'NC':
-            base_path = NICE_DB_PATH
-        else:
-            base_path = ITEM_DB_PATH
-        topic = item_code[2:5]
-
-        # Construct and normalize path
-        folder_path = os.path.normpath(os.path.join(base_path, topic, item_code))
-
+        folder_path = code2folder(item_code)
         if os.path.exists(folder_path):
             if os.name == 'nt':
                 try:

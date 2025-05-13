@@ -747,13 +747,13 @@ class DatabaseManager(QMainWindow):
 
     def load_book_names(self):
         self.book_name_input.clear()
-        book_names = [file_name for file_name in os.listdir(EXAM_DB_PATH) if file_name.endswith('.json')]
+        book_names = [file_name for file_name in os.listdir(BOOK_DB_PATH) if file_name.endswith('.json')]
         book_names.sort()  # Sort book names in ascending order
         self.book_name_input.addItems(book_names)
 
     def load_selected_book(self):
         book_name = self.book_name_input.currentText()
-        book_path = os.path.join(EXAM_DB_PATH, book_name)
+        book_path = os.path.join(BOOK_DB_PATH, book_name)
 
         # 기존 내용 초기화
         self.list_table.setRowCount(0)
@@ -830,7 +830,7 @@ class DatabaseManager(QMainWindow):
 
         self.log_message("Starting JSON export...")
         try:
-            with open(os.path.join(EXAM_DB_PATH, book_name), 'w', encoding='utf-8') as f:
+            with open(os.path.join(BOOK_DB_PATH, book_name), 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=4)
             self.log_message("JSON export completed successfully.")
         except Exception as e:
@@ -842,7 +842,7 @@ class DatabaseManager(QMainWindow):
         if not self.show_warning_dialog("Please Ensure that Every PDF file is Updated"):
             return
         book_name = self.book_name_input.currentText()
-        input_path = os.path.join(EXAM_DB_PATH, book_name)
+        input_path = os.path.join(BOOK_DB_PATH, book_name)
         output_path = os.path.join(OUTPUT_PATH, book_name.replace('.json', '.pdf'))
         self.log_message("Starting squeeze paper build...")
         try:
@@ -857,7 +857,7 @@ class DatabaseManager(QMainWindow):
         if not self.show_warning_dialog("Please Ensure that Every PDF file is Updated"):
             return
         book_name = self.book_name_input.currentText()
-        input_path = os.path.join(EXAM_DB_PATH, book_name)
+        input_path = os.path.join(BOOK_DB_PATH, book_name)
         output_path = os.path.join(OUTPUT_PATH, book_name.replace('.json', '.pdf'))
         self.log_message("Starting squeeze mini paper build...")
         try:
