@@ -1,15 +1,11 @@
-import json
-import fitz
-from utils.overlay_object import *
-from utils.component import Component
-from modules.overlayer import Overlayer
-from utils.ratio import Ratio
-from utils.path import *
-from utils.pdf_utils import PdfUtils
-
-from duplex_item import DuplexItemBuilder
 from duplex_ans import DXAnswerBuilder
+from duplex_item import DuplexItemBuilder
+from duplex_pro import DuplexProBuilder
+from modules.overlayer import Overlayer
 from utils.coord import Coord
+from utils.overlay_object import *
+from utils.pdf_utils import PdfUtils
+from utils.ratio import Ratio
 
 new_doc = fitz.open()
 
@@ -26,6 +22,7 @@ class DXBuilder:
             }
             for item in items
         }
+
 
     def add_page_num(self, overlayer):
         for num in range(5, overlayer.doc.page_count):  # 5P부터 시작
@@ -52,46 +49,62 @@ class DXBuilder:
         new_doc.insert_pdf(ans_doc)
         ans_doc.close()
 
-        for i in self.items.keys():
+        front_doc = fitz.open()
+        fdo = Overlayer(front_doc)
+        fdo.add_page(DXAB.get_component_on_resources(9))        #front 도비라
+        fdo.add_page(DXAB.get_component_on_resources(8))        #empty
 
-            item_doc = fitz.open()
+        curr_page = new_doc.page_count + 2
+        print(f"curr_page1: {curr_page}")
 
+        DXPB = DuplexProBuilder(self.items, curr_page)
+        doc_pro = DXPB.build_page_pro()
+        front_doc.insert_pdf(doc_pro)
+        curr_page += doc_pro.page_count
+        new_doc.insert_pdf(front_doc)
+        doc_pro.close()
+        print(f"curr_page2: {curr_page}")
+
+
+        back_doc = fitz.open()
+        bdo = Overlayer(back_doc)
+        if curr_page % 2 == 0:
+            bdo.add_page(DXAB.get_component_on_resources(8))        #짝수쪽으로 맞춰주기
+            curr_page += 1
+
+        bdo.add_page(DXAB.get_component_on_resources(10))        #back 도비라
+        bdo.add_page(DXAB.get_component_on_resources(8))        #empty
+
+        curr_page += 2
+
+        DXIB = DuplexItemBuilder(self.items, curr_page)
+        DXIB.rel_ref = DXPB.rel_ref
+        DXIB.rel_number = DXPB.rel_number
+
+        for sd_code in self.items.keys():
             if log_callback:
-                log_callback(f"Building {i}")
+                log_callback(f"Building {sd_code}")
 
-            DXIB = DuplexItemBuilder(i, self.items[i]['list_rel_item_code'], self.items[i]['list_theory_piece_code'], 0)
-            item_number = self.items[i]['number']
-            page_count = 0
+            item_number = self.items[sd_code]['number']
 
-            doc_sd = DXIB.build_page_sd()
-            item_doc.insert_pdf(doc_sd)
-            page_count += doc_sd.page_count
-            doc_sd.close()
+            doc_sd_sol = DXIB.build_page_sd_sol(sd_code)
+            back_doc.insert_pdf(doc_sd_sol)
+            curr_page += doc_sd_sol.page_count
+            doc_sd_sol.close()
 
-            if len(DXIB.list_theory_piece_code) > 0:
-                doc_theory = DXIB.build_page_theory()
-                item_doc.insert_pdf(doc_theory)
-                page_count += doc_theory.page_count
-                doc_theory.close()
+            doc_theory = DXIB.build_page_theory(sd_code, self.items[sd_code]['list_theory_piece_code'])
+            back_doc.insert_pdf(doc_theory)
+            curr_page += doc_theory.page_count
+            doc_theory.close()
 
-            if len(DXIB.list_rel_item_code) > 0:
-                doc_rel = DXIB.build_page_rel(item_number)
-                item_doc.insert_pdf(doc_rel)
-                page_count += doc_rel.page_count
-                doc_rel.close()
+            for rel_code in self.items[sd_code]['list_rel_item_code']:
+                doc_rel_sol = DXIB.build_page_rel_sol(sd_code, rel_code)
+                back_doc.insert_pdf(doc_rel_sol)
+                curr_page += doc_rel_sol.page_count
+                doc_rel_sol.close()
 
-            if len(DXIB.list_rel_item_code) > 0:
-                doc_sol = DXIB.build_page_sol(item_number)
-                item_doc.insert_pdf(doc_sol)
-                page_count += doc_sol.page_count
-                doc_sol.close()
-
-            if page_count % 2 == 1:
-                doc_memo = DXIB.build_page_memo()
-                item_doc.insert_pdf(doc_memo)
-                page_count += doc_memo.page_count
-                doc_memo.close()
-
+            '''
+            메모 삽입 로직
             item_overlayer = Overlayer(item_doc)
             for i in range(item_doc.page_count):
                 if i % 2 == 0:
@@ -102,12 +115,20 @@ class DXBuilder:
             new_doc.insert_pdf(item_doc)
 
             item_doc.close()
+            '''
 
+        new_doc.insert_pdf(back_doc)
+
+        # Memopage 삽입 로직, curr_page 제어 필요
         #Footer
         footer_doc = DXAB.build_footer_page()
         new_doc.insert_pdf(footer_doc)
+        curr_page += footer_doc.page_count
         footer_doc.close()
 
+        print(f"curr_page: {curr_page}")
+
+        # 점수 삽입
         new_doc_overlayer = Overlayer(new_doc)
         self.add_page_num(new_doc_overlayer)
         PdfUtils.save_to_pdf(new_doc, output, garbage=4)

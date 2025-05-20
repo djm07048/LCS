@@ -57,10 +57,8 @@ class ListOverlayObject(OverlayObject):
             from utils.ratio import Ratio
             curr_height = self.left_height
             for oo in self.child:
+                curr_height -= oo.get_height()
                 oo.overlay(overlayer, absolute_coord + Coord(0, curr_height, 0))
-                print(f'Before: curr_height: {Ratio.px_to_mm(curr_height)}, oo.get_height(): {Ratio.px_to_mm(oo.get_height())}')
-                curr_height += oo.get_height()
-                print(f'After: curr_height: {Ratio.px_to_mm(curr_height)}')
 
         pass
     def add_child(self, obj: OverlayObject):
