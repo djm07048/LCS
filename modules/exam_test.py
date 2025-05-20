@@ -9,6 +9,7 @@ from utils.overlay_object import *
 from utils.coord import Coord
 from utils.path import *
 from item_cropper import ItemCropper
+from modules.duplex_ans import DXAnswerBuilder
 import json
 import os
 import json
@@ -167,12 +168,32 @@ class ExamTestBuilder():
         component = Component(resources_pdf, number, resources_doc.load_page(number).rect)
         return component
 
+    def get_component_on_header(self, output):
+        filename = Path(output).stem
+        page_num = int(filename.split('_')[-2][:-1]) - 1
+        header_pdf = RESOURCES_PATH + "/exam_header_resources.pdf"
+        header_doc = fitz.open(header_pdf)
+        component = Component(header_pdf, page_num, header_doc.load_page(page_num).rect)
+        return component
+
+    def get_component_on_offset(self):
+        offset_pdf = RESOURCES_PATH + "/exam_offset_resources.pdf"
+        offset_doc = fitz.open(offset_pdf)
+        component = Component(offset_pdf, 0, offset_doc.load_page(0).rect)
+        return component
+
     def build_test(self, output):
         test_doc = fitz.open()
         self.overlayer = Overlayer(test_doc)
 
+        offset_compo = self.get_component_on_offset()
+
         for i in range(4):
             self.overlayer.add_page(self.get_component_on_resources(i))
+            self.overlayer.pdf_overlay(i, Coord(0, 0, 0), offset_compo)
+
+        header_compo = self.get_component_on_header(output)
+        self.overlayer.pdf_overlay(0, Coord(Ratio.mm_to_px(297/2 - 150/2), Ratio.mm_to_px(40 - 1.914), 5), header_compo)
 
         paragraph = ParagraphOverlayObject()
         para_dict = self.get_para_dict()
@@ -194,6 +215,10 @@ class ExamTestBuilder():
 
         PdfUtils.save_to_pdf(test_doc, output, garbage=4)
         test_doc.close()
+
+        DXA = DXAnswerBuilder(self.items)
+        DXA.build_answer_page(output)
+
 
     def get_problem_answer(self, item_pdf):
         with fitz.open(item_pdf) as file:

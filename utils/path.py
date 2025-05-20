@@ -16,7 +16,8 @@ EXAM_DB_PATH = r'T:\Software\LCS\input\ExamDB'
 MONTH_DICT = {"01": "예비시행", "06": "6월", "09": "9월", "11": "대수능", "03": "3월", "04": "4월", "05": "5월", "07": "7월", "10": "10월"}
 MONTH_REV_DICT = {v: k for k, v in MONTH_DICT.items()}
 
-SDCONT_DICT = {"SV": "서바이벌", "SZ": "서바이벌전국", "BR": "브릿지", "BZ": "브릿지전국", "WL": "수능모의평가", "SN": "서바이벌N", "ZG": "정태혁모의고사"}
+SDCONT_DICT = {"SV": "시대인재 서바이벌", "SZ": "시대인재 서바이벌전국", "BR": "시대인재 브릿지", "BZ": "시대인재 브릿지전국",
+               "WL": "시대인재 수능모의평가", "SN": "시대인재 서바이벌N", "ZG": "정태혁 모의고사"}
 SDCONT_REV_DICT = {v: k for k, v in SDCONT_DICT.items()}
 
 SUBJECT_DICT = {"E1": "지1", "E2": "지2", "C1": "화1", "C2": "화2", "P1": "물1", "P2": "물2", "B1": "생1", "B2": "생2", "XS": "통과"}
@@ -47,6 +48,7 @@ def parse_code(code: str) -> list:
 
 @staticmethod
 def code2cite(code: str) -> str:
+    #'E1aaaKC260620' -> '{2026}학년도 {6월} {20}번 {지1}'
     parsed_code = parse_code(code)
     yyyy = "20" + str(parsed_code["number"][0:2])
     mo = MONTH_DICT[parsed_code["number"][2:4]]
@@ -63,7 +65,8 @@ def code2cite(code: str) -> str:
 
 @staticmethod
 def sdcode2cite(code: str) -> str:
-    #'E1aaaSV261620' -> '2026학년도 서바이벌 16회 20번 지1'
+    #'E1aaaSV261620' -> '{2026}학년도 {시대인재 서바이벌} {16}{회} {20}번 {지1}'
+    #'E1aaaZG261620' -> '{2026}학년도 {정태혁 모의고사} {16}{회} {20}번 {지1}'
     subject = SUBJECT_DICT[code[0:2]]
     cont = SDCONT_DICT[code[5:7]]
     yyyy = "20" + str(code[7:9])

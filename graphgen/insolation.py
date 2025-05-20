@@ -374,7 +374,7 @@ class OrbitInsolationApp(QMainWindow):
         input_layout.addWidget(self.direct_abs_perihelion_input, 2, 1)
 
         # 정보 라벨 추가
-        info_label = QLabel(r"※ 각도 값은 자동으로 라디안으로 변환됩니다.\n현재=102.9도\n다른 시기=(세차 운동한 각도)+102.9도")
+        info_label = QLabel("※ 각도 값은 자동으로 라디안으로 변환됩니다.\n현재=102.9도\n다른 시기=(세차 운동한 각도)+102.9도")
         info_label.setStyleSheet("color: blue;")
         input_layout.addWidget(info_label, 3, 0, 1, 2)
 
@@ -445,25 +445,25 @@ class OrbitInsolationApp(QMainWindow):
         self.direct_diff_obliquity2_label = QLabel("Obliquity (각도):")
         input2_layout.addWidget(self.direct_diff_obliquity2_label, 0, 0)
 
-        self.direct_diff_obliquity2_input = QLineEdit("22.0")  # 기본값
+        self.direct_diff_obliquity2_input = QLineEdit("23.5")  # 기본값
         input2_layout.addWidget(self.direct_diff_obliquity2_input, 0, 1)
 
         # Input 2 Eccentricity (이심률) 입력
         self.direct_diff_eccentricity2_label = QLabel("Eccentricity:")
         input2_layout.addWidget(self.direct_diff_eccentricity2_label, 1, 0)
 
-        self.direct_diff_eccentricity2_input = QLineEdit("0.02")  # 기본값
+        self.direct_diff_eccentricity2_input = QLineEdit("0.0167")  # 기본값
         input2_layout.addWidget(self.direct_diff_eccentricity2_input, 1, 1)
 
         # Input 2 Perihelion (근일점) 입력
         self.direct_diff_perihelion2_label = QLabel("Perihelion (각도):")
         input2_layout.addWidget(self.direct_diff_perihelion2_label, 2, 0)
 
-        self.direct_diff_perihelion2_input = QLineEdit("90.0")  # 기본값
+        self.direct_diff_perihelion2_input = QLineEdit("102.9")  # 기본값
         input2_layout.addWidget(self.direct_diff_perihelion2_input, 2, 1)
 
         # 정보 라벨 추가
-        info_label = QLabel("※ 각도 값은 자동으로 라디안으로 변환됩니다.")
+        info_label = QLabel("※ 각도 값은 자동으로 라디안으로 변환됩니다.\n현재=102.9도\n다른 시기=(세차 운동한 각도)+102.9도")
         info_label.setStyleSheet("color: blue;")
 
         # 버튼 컨테이너

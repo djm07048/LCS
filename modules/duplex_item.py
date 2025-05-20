@@ -65,65 +65,15 @@ class DuplexItemBuilder:
 
     def bake_title_sd(self):
         source = sdcode2cite(self.unit_item_code)
-        text_exam = source.split(" ")[1] + " " + source.split(" ")[2]
-        text_number = source.split(" ")[3]
+        text_number = source.split(" ")[3] + " " + source.split(" ")[4]
 
-        compo = Component(self.resources_pdf, 0, self.resources_doc.load_page(0).rect)
+        compo = self.get_component_on_resources(0)
         box = ComponentOverlayObject(0, Coord(0,0,0), compo)
 
-        to_exam = TextOverlayObject(0, Coord(Ratio.mm_to_px(7), Ratio.mm_to_px(20), 0), "Pretendard-SemiBold.ttf", 24,
-                                    text_exam, (0, 0, 0, 1), fitz.TEXT_ALIGN_LEFT)
-        text_exam_width = to_exam.get_width()
-
-        to_number = TextOverlayObject(0, Coord(Ratio.mm_to_px(21) + text_exam_width, Ratio.mm_to_px(20), 0), "Pretendard-SemiBold.ttf", 24,
+        to_number = TextOverlayObject(0, Coord(Ratio.mm_to_px(62), Ratio.mm_to_px(9), 0), "Pretendard-ExtraBold.ttf", 16,
                                     text_number, (0, 0, 0, 1), fitz.TEXT_ALIGN_LEFT)
 
-        bar = ShapeOverlayObject(0, Coord(text_exam_width + Ratio.mm_to_px(14 - 0.251), Ratio.mm_to_px(8), 0),
-                                 Rect(0, 0, Ratio.mm_to_px(0.502), Ratio.mm_to_px(5)), (0, 0, 0, 1))
-
-        box.add_child(to_exam)
         box.add_child(to_number)
-        box.add_child(bar)
-
-        box.rect = compo.src_rect
-
-        return box
-
-    def bake_title_rel(self, item_code):
-        compo = Component(self.resources_pdf, 1, self.resources_doc.load_page(1).rect)
-        box = ComponentOverlayObject(0, Coord(0,0,0), compo)
-
-        if item_code[5:7] == 'KC' or item_code[5:7] == 'NC':
-            source = code2cite(item_code)
-            text_exam = source.split(" ")[0] + " " + source.split(" ")[1] + " " + source.split(" ")[3]
-            text_number = source.split(" ")[2]
-        else:
-            source = get_related_item_reference(item_code)
-            text_exam = "Squeeze " + source.split("_")[1]
-            text_number = source.split("_")[2]
-
-        source = sdcode2cite(self.unit_item_code)
-        text_unit = source.split(" ")[1] + " " + source.split(" ")[2] + " " + source.split(" ")[3] + " " + "연계"
-
-        to_exam = TextOverlayObject(0, Coord(Ratio.mm_to_px(7), Ratio.mm_to_px(20), 0), "Pretendard-SemiBold.ttf", 24,
-                                    text_exam, (0.2, 0, 0, 1), fitz.TEXT_ALIGN_LEFT)
-        text_exam_width = to_exam.get_width()
-
-        to_number = TextOverlayObject(0, Coord(Ratio.mm_to_px(21) + text_exam_width, Ratio.mm_to_px(20), 0),
-                                      "Pretendard-SemiBold.ttf", 24,
-                                      text_number, (0.2, 0, 0, 1), fitz.TEXT_ALIGN_LEFT)
-
-        bar = ShapeOverlayObject(0, Coord(text_exam_width + Ratio.mm_to_px(14 - 0.251), Ratio.mm_to_px(8), 0),
-                                 Rect(0, 0, Ratio.mm_to_px(0.502), Ratio.mm_to_px(5)), (1, 0, 0, 0))
-
-        to_unit = TextOverlayObject(0, Coord(Ratio.mm_to_px(224 - 3), Ratio.mm_to_px(5), 0), "Pretendard-SemiBold.ttf", 15,
-                                text_unit, (0, 0, 0, 0.5), fitz.TEXT_ALIGN_RIGHT)
-
-        box.add_child(to_exam)
-        box.add_child(to_number)
-        box.add_child(bar)
-        box.add_child(to_unit)
-
         box.rect = compo.src_rect
 
         return box
@@ -132,93 +82,94 @@ class DuplexItemBuilder:
         list_piece_code = self.list_theory_piece_code
 
         #piece_code = ["WIND UP 고체편 120p", "WIND UP 고체편 121p", "WIND UP 고체편 122p"]
-        compo = Component(self.resources_pdf, 2, self.resources_doc.load_page(2).rect)
+        compo = self.get_component_on_resources(1)
         box = ComponentOverlayObject(0, Coord(0,0,0), compo)
 
-        text_exam = ' '.join(list_piece_code[0].split(" ")[0:3])
+        text_exam = ' '.join(list_piece_code[0].split(" ")[2])
         text_number = ', '.join([list_piece_code[i].split(" ")[3] for i in range(len(list_piece_code))])
 
-        source = sdcode2cite(self.unit_item_code)
-        text_unit = source.split(" ")[1] + " " + source.split(" ")[2] + " " + source.split(" ")[3] + " " + "개념"
+        sd_source = sdcode2cite(self.unit_item_code)
+        text_sd = sd_source.split(" ")[1] + " " + sd_source.split(" ")[2] + " " + sd_source.split(" ")[3] + " " + sd_source.split(" ")[4] + " " + "개념"
 
-        to_exam = TextOverlayObject(0, Coord(Ratio.mm_to_px(7), Ratio.mm_to_px(20), 0),
-                                    "Pretendard-SemiBold.ttf", 24,
-                                    text_exam, (0, 0, 0, 1), fitz.TEXT_ALIGN_LEFT)
+        to_exam = TextOverlayObject(0, Coord(Ratio.mm_to_px(41), Ratio.mm_to_px(8.62), 0),
+                                    "Pretendard-ExtraBold.ttf", 13,
+                                    text_exam, (1, 0, 0, 0), fitz.TEXT_ALIGN_CENTER)
         text_exam_width = to_exam.get_width()
-        to_number = TextOverlayObject(0, Coord(Ratio.mm_to_px(21) + text_exam_width, Ratio.mm_to_px(20), 0),
-                                      "Pretendard-SemiBold.ttf", 24,
-                                      text_number, (0, 0, 0, 1), fitz.TEXT_ALIGN_LEFT)
+        to_number = TextOverlayObject(0, Coord(Ratio.mm_to_px(62), Ratio.mm_to_px(9), 0),
+                                      "Pretendard-ExtraBold.ttf", 16,
+                                      text_number, (1, 0, 0, 0), fitz.TEXT_ALIGN_LEFT)
 
-        to_unit = TextOverlayObject(0, Coord(Ratio.mm_to_px(224 - 5), Ratio.mm_to_px(5), 0), "Pretendard-SemiBold.ttf", 15,
-                                text_unit, (0, 0, 0, 0.5), fitz.TEXT_ALIGN_RIGHT)
+        to_sd = TextOverlayObject(0, Coord(Ratio.mm_to_px(213), Ratio.mm_to_px(5.5), 0), "Pretendard-Medium.ttf", 10,
+                                text_sd, (0, 0, 0, 1), fitz.TEXT_ALIGN_RIGHT)
 
         box.add_child(to_exam)
         box.add_child(to_number)
-        box.add_child(to_unit)
+        box.add_child(to_sd)
+
+        box.rect = compo.src_rect
+
+        return box
+    def bake_title_rel(self, item_code, number):
+        compo = self.get_component_on_resources(2)
+        box = ComponentOverlayObject(0, Coord(0,0,0), compo)
+
+        if item_code[5:7] == 'KC' or item_code[5:7] == 'NC':
+            text_exam = code2cite(item_code)
+        else:
+            source = get_related_item_reference(item_code)
+            text_exam = "Squeeze " + source.split("_")[1] + " " + source.split("_")[2]
+
+        sd_source = sdcode2cite(self.unit_item_code)
+        text_sd = sd_source.split(" ")[1] + " " + sd_source.split(" ")[2] + " " + sd_source.split(" ")[3] + " " + sd_source.split(" ")[4] + " " + "연계"
+
+        to_number = TextOverlayObject(0, Coord(Ratio.mm_to_px(12.876), Ratio.mm_to_px(9.5), 0), "Montserrat-Bold.ttf", 22,
+                                      number, (0, 0, 0, 0), fitz.TEXT_ALIGN_CENTER)
+
+        to_exam = TextOverlayObject(0, Coord(Ratio.mm_to_px(35), Ratio.mm_to_px(9), 0),"Pretendard-ExtraBold.ttf", 16,
+                                    text_exam, (0, 0, 0, 1), fitz.TEXT_ALIGN_LEFT)
+
+        to_sd = TextOverlayObject(0, Coord(Ratio.mm_to_px(213), Ratio.mm_to_px(5.5), 0), "Pretendard-Medium.ttf", 10,
+                                text_sd, (0, 0, 0, 1), fitz.TEXT_ALIGN_RIGHT)
+
+        box.add_child(to_exam)
+        box.add_child(to_number)
+        box.add_child(to_sd)
 
         box.rect = compo.src_rect
 
         return box
 
-    def bake_title_sol(self, item_code):
-        # 동글동글한 모양 만들어야 함.
-        compo = Component(self.resources_pdf, 3, self.resources_doc.load_page(3).rect)
-        box = ComponentOverlayObject(0, Coord(0, 0, 0), compo)
+
+    def bake_title_sol(self, item_code, number):
+        compo = self.get_component_on_resources(3)
+        box = ComponentOverlayObject(0, Coord(0,0,0), compo)
 
         if item_code[5:7] == 'KC' or item_code[5:7] == 'NC':
-            source = code2cite(item_code)
-            text_exam = source.split(" ")[0] + " " + source.split(" ")[1] + " " + source.split(" ")[3]
-            text_number = source.split(" ")[2] + " 해설"
+            text_exam = code2cite(item_code)
         else:
             source = get_related_item_reference(item_code)
-            text_exam = "Squeeze " + source.split("_")[1]
-            text_number = source.split("_")[2] + " 해설"
+            text_exam = "Squeeze " + source.split("_")[1] + " " + source.split("_")[2]
 
-        source = sdcode2cite(self.unit_item_code)
-        text_unit = source.split(" ")[1] + " " + source.split(" ")[2] + " " + source.split(" ")[3] + " " + "연계 해설"
+        sd_source = sdcode2cite(self.unit_item_code)
+        text_sd = sd_source.split(" ")[1] + " " + sd_source.split(" ")[2] + " " + sd_source.split(" ")[3] + " " + sd_source.split(" ")[4] + " " + "연계"
 
-        to_exam = TextOverlayObject(0, Coord(Ratio.mm_to_px(7), Ratio.mm_to_px(20), 0), "Pretendard-SemiBold.ttf", 24,
-                                    text_exam, (0.2, 0, 0, 1), fitz.TEXT_ALIGN_LEFT)
-        text_exam_width = to_exam.get_width()
+        to_number = TextOverlayObject(0, Coord(Ratio.mm_to_px(12.876), Ratio.mm_to_px(9.5), 0), "Montserrat-Bold.ttf", 22,
+                                    number, (0, 0, 0, 0), fitz.TEXT_ALIGN_CENTER)
 
-        to_number = TextOverlayObject(0, Coord(Ratio.mm_to_px(21) + text_exam_width, Ratio.mm_to_px(20), 0),
-                                      "Pretendard-SemiBold.ttf", 24,
-                                      text_number, (0.2, 0, 0, 1), fitz.TEXT_ALIGN_LEFT)
+        to_exam = TextOverlayObject(0, Coord(Ratio.mm_to_px(35), Ratio.mm_to_px(9), 0),"Pretendard-ExtraBold.ttf", 16,
+                                    text_exam, (0, 0, 0, 1), fitz.TEXT_ALIGN_LEFT)
+        exam_x1 = to_exam.get_width() + Ratio.mm_to_px(35)
 
-        bubble_exam = ShapeOverlayObject(0, Coord(0, Ratio.mm_to_px(8), 0),
-                                 Rect(0, 0, text_exam_width + Ratio.mm_to_px(14), Ratio.mm_to_px(17.5)),(0.2, 0, 0, 0), 5/17.5)
+        to_sd = TextOverlayObject(0, Coord(Ratio.mm_to_px(213), Ratio.mm_to_px(5.5), 0), "Pretendard-Medium.ttf", 10,
+                                text_sd, (0, 0, 0, 1), fitz.TEXT_ALIGN_RIGHT)
 
-        bubble_exam_width = bubble_exam.rect.width
+        frame_compo = self.get_component_on_resources(4)
+        frame = ComponentOverlayObject(0, Coord(exam_x1 + Ratio.mm_to_px(5.5), Ratio.mm_to_px(0), 0), frame_compo)
 
-        bubble_number = ShapeOverlayObject(0, Coord(text_exam_width + Ratio.mm_to_px(14), Ratio.mm_to_px(8), 0),
-                                 Rect(0, 0, Ratio.mm_to_px(224 - 3) - bubble_exam_width , Ratio.mm_to_px(17.5)), (0.2, 0, 0, 0), 5/17.5)
-        #lt_corner = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(-1), 0, 0), Component(self.resources_pdf, 4, self.resources_doc.load_page(4).rect))
-        #middle_corner = ComponentOverlayObject(0, Coord(text_exam_width + Ratio.mm_to_px(8), 0, 0), Component(self.resources_pdf, 5, self.resources_doc.load_page(5).rect))
-        #rt_corner = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(224 - 3 - 5), 0, 0), Component(self.resources_pdf, 6, self.resources_doc.load_page(6).rect))
-
-        #lt_to_middle_line = ShapeOverlayObject(0, Coord(Ratio.mm_to_px(5), Ratio.mm_to_px(8) - 1, 0),
-        #                                       Rect(0, 0, text_exam_width, 2), (1, 0, 0, 0))
-        #middle_to_rt_line = ShapeOverlayObject(0, Coord(text_exam_width + Ratio.mm_to_px(19), Ratio.mm_to_px(8 - 0.251), 0),
-        #                                          Rect(0, 0, Ratio.mm_to_px(224 - 3 - 5 - text_exam_width - 19), Ratio.mm_to_px(0.502)), (1, 0, 0, 0))
-
-
-        to_unit = TextOverlayObject(0, Coord(Ratio.mm_to_px(224 - 3 - 5), Ratio.mm_to_px(5), 0), "Pretendard-SemiBold.ttf", 15,
-                                    text_unit, (0, 0, 0, 0.5), fitz.TEXT_ALIGN_RIGHT)
-
-        box.add_child(bubble_exam)
-        box.add_child(bubble_number)
         box.add_child(to_exam)
         box.add_child(to_number)
-        box.add_child(to_unit)
-
-        #box.add_child(lt_corner)
-        #box.add_child(middle_corner)
-        #box.add_child(rt_corner)
-
-        '''
-        box.add_child(lt_to_middle_line)
-        box.add_child(middle_to_rt_line)
-        '''
+        box.add_child(to_sd)
+        box.add_child(frame)
 
         box.rect = compo.src_rect
 
@@ -248,26 +199,31 @@ class DuplexItemBuilder:
         }
         return sol_type_dict
 
+    def get_problem_answer(self, item_pdf):
+        with fitz.open(item_pdf) as file:
+            ic = ItemCropper()
+            solutions_info = ic.get_solution_infos_from_file(file, 10)
+            answer = ic.get_answer_from_file(file)
+            return answer
+
     def get_commentary_data(self):
         with open(RESOURCES_PATH + "/commentary.json") as file:
             commentary_data = json.load(file)
         return commentary_data
 
     def append_new_list_to_paragraph_sd(self, paragraph: ParagraphOverlayObject, num):
+        #TODO: item별로 따로 제작하기 때문에 page 정하는 logic이 필요함
         if num % 4 == 0:
-            self.overlayer.add_page(self.get_component_on_resources(28 + self.page))
+            self.overlayer.add_page(self.get_component_on_resources(28 + self.page % 2))
             pass
         elif num % 4 == 2:
-            self.overlayer.add_page(self.get_component_on_resources(29 - self.page))
+            self.overlayer.add_page(self.get_component_on_resources(29 - self.page % 2))
             pass
 
         x0_list = [18, 133, 20, 135]  # LL, LR, RL, RR의 x0
-        if self.page == 0:
-            x0 = x0_list[num]
-        else:
-            x0 = x0_list[(num + 2) % 4]
-        paragraph_list = ListOverlayObject(num // 2, Coord(Ratio.mm_to_px(x0), Ratio.mm_to_px(55), 0),
-                                           Ratio.mm_to_px(280), 0)
+        x0 = x0_list[num % 4]
+        paragraph_list = ListOverlayObject(num // 2, Coord(Ratio.mm_to_px(x0), Ratio.mm_to_px(48), 0),
+                                           Ratio.mm_to_px(287), 0)
         paragraph.add_paragraph_list(paragraph_list=paragraph_list)
         pass
 
@@ -286,7 +242,7 @@ class DuplexItemBuilder:
         else:
             x0 = x0_list[(num + 1) % 2]
         paragraph_list = ListOverlayObject(num, Coord(Ratio.mm_to_px(x0), Ratio.mm_to_px(22), 0),
-                                           Ratio.mm_to_px(280 + 33), 2)
+                                           Ratio.mm_to_px(287 + 33), 2)
         paragraph.add_paragraph_list(paragraph_list=paragraph_list)
         pass
 
@@ -326,8 +282,8 @@ class DuplexItemBuilder:
         if OX_component is not None:
             solution_object.add_child(ComponentOverlayObject(0, Coord(Ratio.mm_to_px(0), 0, 3), OX_component))
 
-        solution_object.add_child(ComponentOverlayObject(0, Coord(Ratio.mm_to_px(5), Ratio.mm_to_px(8), 2), solution_component))
-        solution_object.height = solution_component.src_rect.height + Ratio.mm_to_px(8 + 5)
+        solution_object.add_child(ComponentOverlayObject(0, Coord(Ratio.mm_to_px(5), Ratio.mm_to_px(6), 2), solution_component))
+        solution_object.height = solution_component.src_rect.height + Ratio.mm_to_px(6 + 3)
 
         return solution_object
 
@@ -353,34 +309,52 @@ class DuplexItemBuilder:
             sol_commentary_data = self.get_commentary_data()
             if solution_info.hexcode in sol_commentary_data:        #commentary data에 hexcode가 있는 경우
                 if sol_commentary_data[solution_info.hexcode] == 'SA':      #말풍선
-                        so = AreaOverlayObject(0, Coord(0, 0, 0), 0)
-                        solution_component = Component(code2pdf(self.unit_item_code), 0, solution_info.rect)
-                        print(Ratio.px_to_mm(solution_component.src_rect.height))
-                        bubble_height = solution_component.src_rect.height + Ratio.mm_to_px(5)
+                    so = AreaOverlayObject(0, Coord(0, 0, 0), 0)
+                    solution_component = Component(code2pdf(self.unit_item_code), 0, solution_info.rect)
+                    bubble_height = solution_component.src_rect.height + Ratio.mm_to_px(5)
 
-                        # SA 내용 줄 수에 따른 변화
-                        # 7.575 -> 13.008 -> 18.441 -> 23.874 -> 29.307
+                    # SA 내용 줄 수에 따른 변화
+                    # 7.575 -> 13.008 -> 18.441 -> 23.874 -> 29.307
+                    bubble_shade = ShapeOverlayObject(0, Coord(0, 0, -1), Rect(0, 0, Ratio.mm_to_px(105), bubble_height),
+                                                      (0.2, 0, 0, 0), Ratio.mm_to_px(2.5)/bubble_height)
+                    bubble_handle = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(85), bubble_height, 2),
+                                                            self.get_component_on_resources(27))
+                    '''
+                    if bubble_height < Ratio.mm_to_px(13.008 - 1):
+                        bubble_compo = 32
+                    elif bubble_height < Ratio.mm_to_px(18.441 - 1):
+                        bubble_compo = 33
+                    elif bubble_height < Ratio.mm_to_px(23.874 - 1):
+                        bubble_compo = 34
+                    elif bubble_height < Ratio.mm_to_px(29.307 - 1):
+                        bubble_compo = 35
+                    else:
+                        bubble_compo = 36
+                    bubble = ComponentOverlayObject(0, Coord(0, 0, 0),
+                                                    self.get_component_on_resources(bubble_compo))
+                    '''
+                    compo = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(2.5), Ratio.mm_to_px(2.5), 2),
+                                                   solution_component)
 
-                        if bubble_height < Ratio.mm_to_px(13.008 - 1):
-                            bubble_compo = 32
-                        elif bubble_height < Ratio.mm_to_px(18.441 - 1):
-                            bubble_compo = 33
-                        elif bubble_height < Ratio.mm_to_px(23.874 - 1):
-                            bubble_compo = 34
-                        elif bubble_height < Ratio.mm_to_px(29.307 - 1):
-                            bubble_compo = 35
-                        else:
-                            bubble_compo = 36
+                    so.add_child(bubble_shade)
+                    so.add_child(bubble_handle)
+                    so.add_child(compo)
 
-                        bubble = ComponentOverlayObject(0, Coord(0, 0, 0),
-                                                        self.get_component_on_resources(bubble_compo))
-                        compo = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(2.5), Ratio.mm_to_px(2.5), 2),
-                                                       solution_component)
+                    so.height = bubble_height + Ratio.mm_to_px(5 + 5 + 2.5)
 
-                        so.add_child(bubble)
-                        so.add_child(compo)
+                if sol_commentary_data[solution_info.hexcode] == 'answer':  # 정답
+                    so = AreaOverlayObject(0, Coord(0, 0, 0), 0)
+                    solution_component = self.get_component_on_resources(26)
+                    soc = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(0), 2),
+                                                    solution_component)
+                    answer = self.get_problem_answer(code2pdf(self.unit_item_code))
+                    to = TextOverlayObject(0, Coord(Ratio.mm_to_px(26), Ratio.mm_to_px(5), 2),
+                                                    "NanumSquareNeo-cBd.ttf", 16,
+                                                    str(answer), (0, 0, 0, 1), fitz.TEXT_ALIGN_LEFT)
+                    so.add_child(soc)
+                    so.add_child(to)
+                    so.height = solution_component.src_rect.height
 
-                        so.height = bubble_height + Ratio.mm_to_px(3 + 7.5)
                 else:
                     so = self.bake_solution_object(solution_info, sTF[solution_info.hexcode],
                                                    code2pdf(self.unit_item_code))
@@ -401,11 +375,11 @@ class DuplexItemBuilder:
 
         return sd_doc
 
-    def bake_problem(self, item_code):
+    def bake_problem(self, item_code, number):
         problem = AreaOverlayObject(0, Coord(0, 0, 0), 0)
-        problem_title = self.bake_title_rel(item_code)
+        problem_title = self.bake_title_rel(item_code, number)
         problem.add_child(problem_title)
-        problem.height += problem_title.get_height() + Ratio.mm_to_px(7.5)
+        problem.height += problem_title.get_height() + Ratio.mm_to_px(3)
         if item_code[5:7] == 'KC':  # kice problem
             if os.path.exists(code2original(item_code).replace(".pdf", "_trimmed.pdf")):
                 item_pdf = code2original(item_code).replace(".pdf", "_trimmed.pdf")
@@ -436,7 +410,7 @@ class DuplexItemBuilder:
                         problem.height -= modified_box.get_height()
 
                     problem.height -= Ratio.mm_to_px(20)
-                problem.height += Ratio.mm_to_px(12.5)
+                problem.height += Ratio.mm_to_px(8)
         else:
             item_pdf = code2pdf(item_code)
             with fitz.open(item_pdf) as file:
@@ -451,7 +425,7 @@ class DuplexItemBuilder:
                 problem.height += problem_object.get_height() + Ratio.mm_to_px(12.5)
         return problem
 
-    def build_page_rel(self):
+    def build_page_rel(self, item_number):
         list_rel_item_code = self.list_rel_item_code
 
         rel_doc = fitz.open()
@@ -460,8 +434,10 @@ class DuplexItemBuilder:
         paragraph = ParagraphOverlayObject()
         paragraph_cnt = 0
 
+        i = 0
         for item_code in list_rel_item_code:
-            problem = self.bake_problem(item_code)
+            problem = self.bake_problem(item_code, f'{item_number}{chr(i+65)}')
+            i += 1
             paragraph_cnt = self.add_child_to_paragraph_rel(paragraph, problem, paragraph_cnt)
 
         paragraph.overlay(self.overlayer, Coord(0, 0, 0))
@@ -475,24 +451,22 @@ class DuplexItemBuilder:
         return num + 1
 
     def append_new_list_to_paragraph_theory(self, paragraph: ParagraphOverlayObject, num):
+        evenodd = (self.page + (num % 4) % 2) % 2
+
         if num % 4 == 0:
-            self.overlayer.add_page(self.get_component_on_resources(30 + self.page % 2))
+            self.overlayer.add_page(self.get_component_on_resources(30 + evenodd))
             pass
         elif num % 4 == 2:
-            self.overlayer.add_page(self.get_component_on_resources(30 + self.page % 2))
+            self.overlayer.add_page(self.get_component_on_resources(30 + evenodd))
             pass
 
         x0_list = [18, 133, 20, 135]  # LL, LR, RL, RR의 x0
-        if self.page == 0:
-            x0 = x0_list[num]
-            y0 = Ratio.mm_to_px(55)
-        else:
-            x0 = x0_list[(num + 2) % 4]
-            y0 = Ratio.mm_to_px(22)
+        x0 = x0_list[num % 4]
+        y0 = Ratio.mm_to_px(48)
 
 
         paragraph_list = ListOverlayObject(num // 2, Coord(Ratio.mm_to_px(x0), y0, 0),
-                                           Ratio.mm_to_px(280), 0)
+                                           Ratio.mm_to_px(287), 0)
         paragraph.add_paragraph_list(paragraph_list=paragraph_list)
         pass
 
@@ -507,7 +481,7 @@ class DuplexItemBuilder:
             piece.add_child(piece_object)
 
             piece.height += piece_object.get_height()
-            piece.height += Ratio.mm_to_px(12.5)
+            piece.height += Ratio.mm_to_px(10)
         return piece
 
     def build_page_theory(self):
@@ -528,7 +502,7 @@ class DuplexItemBuilder:
                 piece = AreaOverlayObject(0, Coord(0, 0, 0), 0)
                 piece_title = self.bake_title_piece()
                 piece.add_child(piece_title)
-                piece.height += piece_title.get_height() + Ratio.mm_to_px(7.5)
+                piece.height += piece_title.get_height() + Ratio.mm_to_px(5)
                 #overlay 시 좌우 나누어서 18, 20 위치에 나오게 하기
                 piece.overlay(self.overlayer, Coord(Ratio.mm_to_px(18), Ratio.mm_to_px(22), 0))
             i += 1
@@ -536,14 +510,16 @@ class DuplexItemBuilder:
 
         return theory_doc
 
-    def build_page_sol(self):
+    def build_page_sol(self, item_number):
         sol_whole_doc = fitz.open()
 
+        i = 0
         for item_code in self.list_rel_item_code:
             sol_item_doc = fitz.open()
             self.overlayer = Overlayer(sol_item_doc)
-            first_page = AreaOverlayObject(self.page, Coord(0, 0, 0), 0)
-            title_sol = self.bake_title_sol(item_code)
+            first_page = AreaOverlayObject(0, Coord(0, 0, 0), 0)
+            title_sol = self.bake_title_sol(item_code, f'{item_number}{chr(i+65)}')
+            i += 1
             # overlay 시 좌우 나누어서 18, 20 위치에 나오게 하기
             title_sol.coord = Coord(Ratio.mm_to_px(18), Ratio.mm_to_px(22), 0)
             first_page.add_child(title_sol)
@@ -613,12 +589,17 @@ class DuplexItemBuilder:
                 if solution_info.hexcode in sol_commentary_data:  # commentary data에 hexcode가 있는 경우
                     if sol_commentary_data[solution_info.hexcode] == 'SA':      #말풍선
                         so = AreaOverlayObject(0, Coord(0, 0, 0), 0)
-                        solution_component = Component(code2pdf(item_code), 0, solution_info.rect)
+                        solution_component = Component(code2pdf(self.unit_item_code), 0, solution_info.rect)
                         bubble_height = solution_component.src_rect.height + Ratio.mm_to_px(5)
 
                         # SA 내용 줄 수에 따른 변화
                         # 7.575 -> 13.008 -> 18.441 -> 23.874 -> 29.307
-
+                        bubble_shade = ShapeOverlayObject(0, Coord(0, 0, -1),
+                                                          Rect(0, 0, Ratio.mm_to_px(105), bubble_height),
+                                                          (0.2, 0, 0, 0), Ratio.mm_to_px(2.5) / bubble_height)
+                        bubble_handle = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(85), bubble_height, 2),
+                                                               self.get_component_on_resources(27))
+                        '''
                         if bubble_height < Ratio.mm_to_px(13.008 - 1):
                             bubble_compo = 32
                         elif bubble_height < Ratio.mm_to_px(18.441 - 1):
@@ -629,16 +610,31 @@ class DuplexItemBuilder:
                             bubble_compo = 35
                         else:
                             bubble_compo = 36
-
                         bubble = ComponentOverlayObject(0, Coord(0, 0, 0),
                                                         self.get_component_on_resources(bubble_compo))
+                        '''
                         compo = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(2.5), Ratio.mm_to_px(2.5), 2),
                                                        solution_component)
 
-                        so.add_child(bubble)
+                        so.add_child(bubble_shade)
+                        so.add_child(bubble_handle)
                         so.add_child(compo)
 
-                        so.height = bubble_height + Ratio.mm_to_px(3 + 7.5)
+                        so.height = bubble_height + Ratio.mm_to_px(5 + 5 + 2.5)
+
+                    if sol_commentary_data[solution_info.hexcode] == 'answer':  # 정답
+                        so = AreaOverlayObject(0, Coord(0, 0, 0), 0)
+                        solution_component = self.get_component_on_resources(26)
+                        soc = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(0), 2),
+                                                    solution_component)
+                        answer = self.get_problem_answer(code2pdf(self.unit_item_code))
+                        to = TextOverlayObject(0, Coord(Ratio.mm_to_px(26), Ratio.mm_to_px(5), 2),
+                                               "NanumSquareNeo-cBd.ttf", 16,
+                                               str(answer), (0, 0, 0, 1), fitz.TEXT_ALIGN_LEFT)
+                        so.add_child(soc)
+                        so.add_child(to)
+                        so.height = solution_component.src_rect.height + Ratio.mm_to_px(3)
+
                     else:
                         so = self.bake_solution_object(solution_info, sTF[solution_info.hexcode],
                                                        code2pdf(item_code))
@@ -650,16 +646,23 @@ class DuplexItemBuilder:
                     continue
                 paragraph_cnt = self.add_child_to_paragraph_sd(paragraph, so, paragraph_cnt)
 
-            print(self.overlayer.doc.page_count)
             paragraph.overlay(self.overlayer, Coord(0, 0, 0))
 
             if self.overlayer.doc.page_count == 0:
                 raise ValueError("No pages were added to the document.")
 
-            #TODO: 여기서 first page 호출 여부에 따라 오류가 발생
             first_page.overlay(self.overlayer, Coord(0, 0, 0))
             sol_whole_doc.insert_pdf(sol_item_doc)
 
             sol_item_doc.close()
 
         return sol_whole_doc
+
+    def build_page_memo(self):
+        memo_doc = fitz.open()
+        memo_overlayer = Overlayer(memo_doc)
+        memo_overlayer.add_page(self.get_component_on_resources(37))
+
+        return memo_doc
+
+#TODO: 홀/짝 맞춰서 x0 및 삽입 page 결정하는 logic

@@ -9,6 +9,9 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QComboBox, QMes
                              QHeaderView, QCheckBox, QDialog, QVBoxLayout, QLabel, QSizePolicy, QTextEdit)
 from PyQt5.QtCore import (Qt, QThread, pyqtSignal)
 from PyQt5.QtGui import QColor
+from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QLineEdit, QPushButton,
+                             QListWidget, QListWidgetItem, QAbstractItemView)
+
 from main import build_exam_test
 from main import build_duplex
 from PyQt5.QtGui import QIcon
@@ -22,6 +25,7 @@ from overlayer import *
 from utils.overlay_object import *
 
 import traceback
+from PyQt5.QtCore import Qt, QSortFilterProxyModel
 
 def suppress_qt_warnings():
     environ["QT_DEVICE_PIXEL_RATIO"] = "0"
@@ -159,8 +163,10 @@ class DatabaseManager(QMainWindow):
 
         # Calculate and set fixed total width
         self.list_table.setFixedWidth(700)
-
         list_layout.addWidget(self.list_table)
+
+        # Header
+        self.list_table.horizontalHeader().sectionClicked.connect(self.sort_list)
 
         # Right buttons
         right_button_layout = QVBoxLayout()
@@ -168,37 +174,59 @@ class DatabaseManager(QMainWindow):
         self.load_book_names()
         self.delete_pdfs_btn = QPushButtonGui('DELETE PDFs As Shown')
         self.create_pdfs_btn = QPushButtonGui('CREATE PDFs As Shown')
-        self.merge_pdfs_btn = QPushButtonGui('MERGE PDFs As Shown')
+        self.create_rel_pdfs_btn = QPushButtonGui('CREATE REL PDFs As Shown')
         self.export_json_btn = QPushButtonGui('EXPORT JSON to DB')
-        self.build_exam_test_by_gui_btn = QPushButtonGui('BUILD exam test from DB')
-        self.build_duplex_paper_by_gui_btn = QPushButtonGui('BUILD duplex from DB')
-        self.rasterize_pdf_btn = QPushButtonGui('RASTERIZE PDF from DB')
-        self.open_merged_pdf_btn = QPushButtonGui('OPEN MERGED PDF')
-        self.open_naive_test_pdf_btn = QPushButtonGui('OPEN NAIVE TEST PDF')
-        self.open_rasterized_test_pdf_btn = QPushButtonGui('OPEN RASTERIZED TEST PDF')
-        self.open_naive_duplex_pdf_btn = QPushButtonGui('OPEN NAIVE DUPLEX PDF')
-        self.open_rasterized_duplex_pdf_btn = QPushButtonGui('OPEN RASTERIZED DUPLEX PDF')
+
+
+        self.merge_pdfs_btn = QPushButtonGui('MERGE PDFs')
+        self.open_merged_pdf_btn = QPushButtonGui('open MERGED')
+        self.build_exam_test_by_gui_btn = QPushButtonGui('build TEST')
+        self.open_naive_test_pdf_btn = QPushButtonGui('open TEST')
+        self.rasterize_exam_test_pdf_btn = QPushButtonGui('raster TEST')
+        self.open_rasterized_test_pdf_btn = QPushButtonGui('open TEST_R')
+        self.build_duplex_paper_by_gui_btn = QPushButtonGui('build DX')
+        self.open_naive_duplex_pdf_btn = QPushButtonGui('open DX')
+        self.rasterize_duplex_pdf_btn = QPushButtonGui('raster DX')
+        self.open_rasterized_duplex_pdf_btn = QPushButtonGui('open DX_R')
         self.log_window = QTextEdit()
         self.log_window.setReadOnly(True)
 
         right_button_layout.addWidget(self.book_name_input)
         right_button_layout.addWidget(self.delete_pdfs_btn)
         right_button_layout.addWidget(self.create_pdfs_btn)
-        right_button_layout.addWidget(self.merge_pdfs_btn)
+        right_button_layout.addWidget(self.create_rel_pdfs_btn)
         right_button_layout.addWidget(self.export_json_btn)
-        right_button_layout.addWidget(self.build_exam_test_by_gui_btn)
-        right_button_layout.addWidget(self.build_duplex_paper_by_gui_btn)
-        right_button_layout.addWidget(self.rasterize_pdf_btn)
-        right_button_layout.addWidget(self.open_naive_test_pdf_btn)
-        right_button_layout.addWidget(self.open_rasterized_test_pdf_btn)
-        right_button_layout.addWidget(self.open_naive_duplex_pdf_btn)
-        right_button_layout.addWidget(self.open_rasterized_duplex_pdf_btn)
+
+        right_layout_hz_0 = QHBoxLayout()
+        right_layout_hz_0.addWidget(self.merge_pdfs_btn)
+        right_layout_hz_0.addWidget(self.open_merged_pdf_btn)
+        right_button_layout.addLayout(right_layout_hz_0)
+
+
+        right_layout_hz_1 = QHBoxLayout()
+        right_layout_hz_1.addWidget(self.build_exam_test_by_gui_btn)
+        right_layout_hz_1.addWidget(self.open_naive_test_pdf_btn)
+        right_button_layout.addLayout(right_layout_hz_1)
+
+        right_layout_hz_2 = QHBoxLayout()
+        right_layout_hz_2.addWidget(self.rasterize_exam_test_pdf_btn)
+        right_layout_hz_2.addWidget(self.open_rasterized_test_pdf_btn)
+        right_button_layout.addLayout(right_layout_hz_2)
+
+        right_layout_hz_3 = QHBoxLayout()
+        right_layout_hz_3.addWidget(self.build_duplex_paper_by_gui_btn)
+        right_layout_hz_3.addWidget(self.open_naive_duplex_pdf_btn)
+        right_button_layout.addLayout(right_layout_hz_3)
+
+        right_layout_hz_4 = QHBoxLayout()
+        right_layout_hz_4.addWidget(self.rasterize_duplex_pdf_btn)
+        right_layout_hz_4.addWidget(self.open_rasterized_duplex_pdf_btn)
+        right_button_layout.addLayout(right_layout_hz_4)
+
 
         right_button_layout.addStretch()
 
         right_button_layout.addWidget(self.log_window)
-        # Log window
-
 
         # Add layouts to main layout
         layout.addLayout(pool_layout)
@@ -234,17 +262,75 @@ class DatabaseManager(QMainWindow):
         self.book_name_input.currentIndexChanged.connect(self.load_selected_book)
         self.delete_pdfs_btn.clicked.connect(self.delete_pdfs_gui)
         self.create_pdfs_btn.clicked.connect(self.create_pdfs_gui)
+        self.create_rel_pdfs_btn.clicked.connect(self.create_rel_pdfs_gui)
         self.merge_pdfs_btn.clicked.connect(self.merge_pdfs_gui)
         self.export_json_btn.clicked.connect(self.export_to_json)
         self.build_exam_test_by_gui_btn.clicked.connect(self.build_exam_test_by_gui)
         self.build_duplex_paper_by_gui_btn.clicked.connect(self.build_duplex_by_gui)
-        self.rasterize_pdf_btn.clicked.connect(self.rasterize_pdf_by_gui)
+        self.rasterize_exam_test_pdf_btn.clicked.connect(self.rasterize_exam_test_pdf_by_gui)
+        self.rasterize_duplex_pdf_btn.clicked.connect(self.rasterize_duplex_pdf_by_gui)
         self.open_merged_pdf_btn.clicked.connect(self.open_merged_pdf)
         self.open_naive_test_pdf_btn.clicked.connect(self.open_naive_test_pdf)
         self.open_rasterized_test_pdf_btn.clicked.connect(self.open_rasterized_test_pdf)
         self.open_naive_duplex_pdf_btn.clicked.connect(self.open_naive_duplex_pdf)
         self.open_rasterized_duplex_pdf_btn.clicked.connect(self.open_rasterized_duplex_pdf)
 
+        # 셀 클릭 이벤트 연결
+        self.list_table.cellClicked.connect(self.handle_cell_click)
+
+        # 우측 버튼 레이아웃에 태그 관리 UI 추가
+        self.tag_management_frame = QWidget()
+        self.tag_management_frame.setVisible(False)  # 초기에는 숨김
+        self.tag_management_frame.setFixedWidth(240)
+        tag_management_layout = QVBoxLayout(self.tag_management_frame)
+
+        # 태그 관리 영역 제목
+        tag_title_label = QLabel("태그 관리")
+        tag_title_label.setAlignment(Qt.AlignCenter)
+        tag_management_layout.addWidget(tag_title_label)
+
+        # 태그 입력 영역
+        tag_input_layout = QHBoxLayout()
+        self.tag_input = QLineEdit()
+        self.tag_input.setPlaceholderText("새 태그 입력 후 Enter")
+        self.tag_input.returnPressed.connect(self.add_tag)
+        self.tag_add_btn = QPushButton("+")
+        self.tag_add_btn.setMaximumWidth(30)
+        self.tag_add_btn.clicked.connect(self.add_tag)
+        tag_input_layout.addWidget(self.tag_input)
+        tag_input_layout.addWidget(self.tag_add_btn)
+        tag_management_layout.addLayout(tag_input_layout)
+
+        # 태그 목록 영역
+        self.tag_list = QListWidget()
+        self.tag_list.setDragDropMode(QAbstractItemView.InternalMove)
+        self.tag_list.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.tag_list.model().rowsMoved.connect(self.on_tags_reordered)
+        self.tag_list.installEventFilter(self)
+        tag_management_layout.addWidget(self.tag_list)
+
+        # 태그 버튼 영역
+        tag_button_layout = QHBoxLayout()
+        self.tag_remove_btn = QPushButton("삭제")
+        self.tag_remove_btn.clicked.connect(self.remove_selected_tag)
+        self.tag_save_btn = QPushButton("저장")
+        self.tag_save_btn.clicked.connect(self.save_tags)
+        self.tag_cancel_btn = QPushButton("취소")
+        self.tag_cancel_btn.clicked.connect(self.cancel_tag_edit)
+        tag_button_layout.addWidget(self.tag_remove_btn)
+        tag_button_layout.addWidget(self.tag_save_btn)
+        tag_button_layout.addWidget(self.tag_cancel_btn)
+        tag_management_layout.addLayout(tag_button_layout)
+
+        # 태그 관리 프레임을 우측 레이아웃에 추가
+        right_button_layout.addWidget(self.tag_management_frame)
+
+        self.tag_list.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.tag_list.customContextMenuRequested.connect(self.show_tag_context_menu)
+
+        # 현재 편집 중인 셀 위치 저장 변수
+        self.current_edit_row = -1
+        self.current_edit_col = -1
 
     def log_message(self, message):
         self.log_window.append(message)
@@ -268,6 +354,9 @@ class DatabaseManager(QMainWindow):
                 self.list_table.removeRow(row)
 
     def remove_selected_rows(self):
+        # 태그 관리 프레임이 열려있다면 닫기
+        if self.tag_management_frame.isVisible():
+            self.cancel_tag_edit()
         if not self.show_warning_dialog("Are you sure you want to remove these rows?"):
             return
         selected_rows = sorted(set(item.row() for item in self.list_table.selectedItems()), reverse=True)
@@ -275,12 +364,48 @@ class DatabaseManager(QMainWindow):
             self.list_table.removeRow(row)
 
     def eventFilter(self, obj, event):
-        if obj in [self.pool_table, self.list_table]:
-            if event.type() == event.KeyPress and event.key() == Qt.Key_Shift:
-                obj.setSelectionMode(QTableWidget.MultiSelection)
-                obj.setSelectionBehavior(QTableWidget.SelectRows)
-            elif event.type() == event.KeyRelease and event.key() == Qt.Key_Shift:
+        # 각 위젯별 이벤트 처리
+        if event.type() == event.KeyPress:
+            key = event.key()
+
+            # 태그 리스트에서의 키 처리
+            if obj == self.tag_list:
+                if key == Qt.Key_Delete:
+                    # 태그 리스트에서 DELETE 키는 선택된 태그 삭제
+                    self.remove_selected_tag()
+                    return True
+                elif key == Qt.Key_Escape:
+                    # 태그 리스트에서 ESC 키는 태그 저장
+                    self.save_tags()
+                    return True
+
+            # 테이블에서의 키 처리
+            elif obj in [self.pool_table, self.list_table]:
+                if key == Qt.Key_Shift:
+                    # SHIFT 키는 다중 선택 모드로 변경
+                    obj.setSelectionMode(QTableWidget.MultiSelection)
+                    obj.setSelectionBehavior(QTableWidget.SelectRows)
+                elif key == Qt.Key_Escape:
+                    # ESC 키 처리
+                    if self.tag_management_frame.isVisible():
+                        # 태그 에디터가 보이는 상태에서는 태그 저장
+                        self.save_tags()
+                    elif self.pool_table.hasFocus():
+                        # POOL 테이블에서는 선택 해제
+                        self.deselect_pool_items()
+                    elif self.list_table.hasFocus():
+                        # LIST 테이블에서는 선택 해제
+                        self.deselect_list_items()
+                elif key == Qt.Key_Delete or key == Qt.Key_Backspace:
+                    # DELETE 또는 BACKSPACE 키는 LIST 테이블에서 선택된 행 삭제
+                    if self.list_table.hasFocus():
+                        self.remove_selected_rows()
+
+        # SHIFT 키 해제 처리
+        elif event.type() == event.KeyRelease and event.key() == Qt.Key_Shift:
+            if obj in [self.pool_table, self.list_table]:
                 obj.setSelectionMode(QTableWidget.NoSelection)
+
         return super().eventFilter(obj, event)
 
     def parse_code(self, code: str) -> dict:
@@ -291,6 +416,30 @@ class DatabaseManager(QMainWindow):
             "number": code[7:13]
         }
         return parsed_code
+
+    def sort_list(self, column):
+        if column in self.list_sort_order:
+            self.list_sort_order[column] = not self.list_sort_order[column]
+        else:
+            self.list_sort_order[column] = True
+
+        data = []
+        for row in range(self.list_table.rowCount()):
+            row_data = []
+            for col in range(self.list_table.columnCount()):
+                item = self.list_table.item(row, col)
+                row_data.append(item.text() if item else "")
+            data.append(row_data)
+
+        reverse = not self.list_sort_order[column]
+        if column == 1 or column == 2:  # Item Num column
+            data.sort(key=lambda x: float('inf') if not x[column] else int(x[column]), reverse=reverse)
+        else:
+            data.sort(key=lambda x: x[column], reverse=reverse)
+
+        for i, row_data in enumerate(data):
+            for j, cell_data in enumerate(row_data):
+                self.list_table.setItem(i, j, QTableWidgetItem(cell_data))
 
     def loadData(self):
         self.pool_data = []
@@ -406,21 +555,26 @@ class DatabaseManager(QMainWindow):
                 self.list_table.insertRow(current_row)
 
                 self.list_table.setItem(current_row, 0, QTableWidgetItem(item_code))
-                self.list_table.setItem(current_row, 1, QTableWidgetItem(int(current_row + 1)))
-                self.list_table.setItem(current_row, 2, QTableWidgetItem(2))
+                self.list_table.setItem(current_row, 1, QTableWidgetItem(str(current_row + 1)))
+                self.list_table.setItem(current_row, 2, QTableWidgetItem(str(2)))
                 self.list_table.setItem(current_row, 3, QTableWidgetItem("1L"))
-                self.list_table.setItem(current_row, 4, QTableWidgetItem(list()))
-                self.list_table.setItem(current_row, 5, QTableWidgetItem(list()))
+
+                # 태그 컬럼에 빈 JSON 배열 설정
+                self.list_table.setItem(current_row, 4, QTableWidgetItem("[]"))
+                self.list_table.setItem(current_row, 5, QTableWidgetItem("[]"))
 
     def add_empty_row(self):
         current_row = self.list_table.rowCount()
         self.list_table.insertRow(current_row)
+
         self.list_table.setItem(current_row, 0, QTableWidgetItem(""))
-        self.list_table.setItem(current_row, 1, QTableWidgetItem(int(current_row + 1)))
-        self.list_table.setItem(current_row, 2, QTableWidgetItem(2))
+        self.list_table.setItem(current_row, 1, QTableWidgetItem(str(current_row + 1)))
+        self.list_table.setItem(current_row, 2, QTableWidgetItem(str(2)))
         self.list_table.setItem(current_row, 3, QTableWidgetItem("1L"))
-        self.list_table.setItem(current_row, 4, QTableWidgetItem(list()))
-        self.list_table.setItem(current_row, 5, QTableWidgetItem(list()))
+
+        # 태그 컬럼에 빈 JSON 배열 설정
+        self.list_table.setItem(current_row, 4, QTableWidgetItem("[]"))
+        self.list_table.setItem(current_row, 5, QTableWidgetItem("[]"))
 
     def sort_pool_by_order(self):
         # Get currently displayed items
@@ -443,6 +597,9 @@ class DatabaseManager(QMainWindow):
         self.list_table.clearSelection()
 
     def move_row_up(self):
+        # 태그 관리 프레임이 열려있다면 닫기
+        if self.tag_management_frame.isVisible():
+            self.cancel_tag_edit()
         selected_rows = sorted(set(item.row() for item in self.list_table.selectedItems()))
         if not selected_rows or selected_rows[0] <= 0:
             return
@@ -471,6 +628,9 @@ class DatabaseManager(QMainWindow):
         self.check_and_remove_empty_rows()
 
     def move_row_down(self):
+        # 태그 관리 프레임이 열려있다면 닫기
+        if self.tag_management_frame.isVisible():
+            self.cancel_tag_edit()
         selected_rows = sorted(set(item.row() for item in self.list_table.selectedItems()), reverse=True)
         if not selected_rows or selected_rows[-1] >= self.list_table.rowCount() - 1:
             return
@@ -581,6 +741,41 @@ class DatabaseManager(QMainWindow):
         self.pdf_thread.progress_signal.connect(self.log_message)
         self.pdf_thread.start()
 
+    def create_rel_pdfs_gui(self):
+        if not self.show_warning_dialog("Are you sure you want to create REL PDFs?"):
+            return
+        item_list = []
+        item_folder_list = []
+
+        for row in range(self.list_table.rowCount()):
+            item_code = self.list_table.item(row, 4).text() if self.list_table.item(row, 4) else None
+            if not item_code:
+                continue  # Skip if item_code is None or empty
+
+            # JSON 파싱 시도
+            try:
+                item_codes = json.loads(item_code) if item_code.startswith("[") and item_code.endswith("]") else [
+                    item_code]
+            except json.JSONDecodeError:
+                print(f"Invalid JSON format in item_code: {item_code}")
+                continue
+
+            for item in item_codes:
+                item_list.append(item)
+                item_folder = code2folder(item)
+                item_folder_list.append(item_folder)
+
+        self.log_message("Starting PDF creation...")
+
+        for item_folder in item_folder_list:
+            if os.path.exists(item_folder):
+                self.refresh_folder(item_folder)
+
+        time.sleep(3)
+
+        self.pdf_thread = PDFCreationThread(item_list)
+        self.pdf_thread.progress_signal.connect(self.log_message)
+        self.pdf_thread.start()
     def merge_pdfs_gui(self):
         if not self.show_warning_dialog("Are you sure you want to merge PDFs?"):
             return
@@ -670,11 +865,13 @@ class DatabaseManager(QMainWindow):
                 if row_data.get('para') is not None:
                     self.list_table.setItem(row_count, 3, QTableWidgetItem(str(row_data['para'])))
 
+                # Parse 'list_rel_item_code' as a list
                 if row_data.get('list_rel_item_code') is not None:
-                    self.list_table.setItem(row_count, 4, QTableWidgetItem(str(row_data['list_rel_item_code'])))
+                    self.list_table.setItem(row_count, 4, QTableWidgetItem(json.dumps(row_data['list_rel_item_code'])))
 
+                # Parse 'list_theory_piece_code' as a list
                 if row_data.get('list_theory_piece_code') is not None:
-                    self.list_table.setItem(row_count, 5, QTableWidgetItem(str(row_data['list_theory_piece_code'])))
+                    self.list_table.setItem(row_count, 5, QTableWidgetItem(json.dumps(row_data['list_theory_piece_code'])))
 
         except Exception as e:
             self.log_message(f"Error loading book: {e}")
@@ -765,15 +962,27 @@ class DatabaseManager(QMainWindow):
             error_message = f"Error during DUPLEX paper build: {e}\n{traceback.format_exc()}"
             self.log_message(error_message)
 
-    def rasterize_pdf_by_gui(self):
+    def rasterize_exam_test_pdf_by_gui(self):
         if not self.show_warning_dialog("Are you sure you want to rasterize the PDF?"):
             return
         book_name = self.book_name_input.currentText()
         self.log_message("Starting PDF rasterization...")
         try:
-            add_watermark_and_rasterize(os.path.join(OUTPUT_PATH, book_name.split('.')[0] + '.pdf'),
-                                        os.path.join(OUTPUT_PATH, book_name.split('.')[0] + '_R.pdf'))
-            self.log_message("PDF rasterization completed successfully.")
+            add_watermark_and_rasterize(os.path.join(OUTPUT_PATH, book_name.split('.')[0] + '_TEST.pdf'),
+                                        os.path.join(OUTPUT_PATH, book_name.split('.')[0] + '_TEST_R.pdf'))
+            self.log_message("TEST PDF rasterization completed successfully.")
+        except Exception as e:
+            self.log_message(f"Error during PDF rasterization: {e}")
+
+    def rasterize_duplex_pdf_by_gui(self):
+        if not self.show_warning_dialog("Are you sure you want to rasterize the PDF?"):
+            return
+        book_name = self.book_name_input.currentText()
+        self.log_message("Starting PDF rasterization...")
+        try:
+            add_watermark_and_rasterize(os.path.join(OUTPUT_PATH, book_name.split('.')[0] + '_DX.pdf'),
+                                        os.path.join(OUTPUT_PATH, book_name.split('.')[0] + '_DX_R.pdf'))
+            self.log_message("DX PDF rasterization completed successfully.")
         except Exception as e:
             self.log_message(f"Error during PDF rasterization: {e}")
 
@@ -844,22 +1053,93 @@ class DatabaseManager(QMainWindow):
         self.list_table.customContextMenuRequested.connect(self.show_context_menu)
 
     def show_context_menu(self, pos):
-        sender = self.sender()
-        row = sender.rowAt(pos.y())
+        """
+        컨텍스트 메뉴 표시 (오른쪽 버튼 클릭 시)
+        메모리 누수와 중첩 이벤트 처리 문제를 방지하기 위한 개선된 구현
+        """
+        try:
+            sender = self.sender()
+            if not sender:
+                return
 
-        if row >= 0:
-            item_code = sender.item(row, 0).text()
-            menu = QMenu()
-            open_hwp_action = menu.addAction("Open item HWP")
-            open_folder_action = menu.addAction("Open Folder")
-            refractor_action = menu.addAction("Refractor Item Code")
-            action = menu.exec_(sender.mapToGlobal(pos))
-            if action == open_folder_action:
-                self.open_item_folder(item_code)
-            elif action == refractor_action:
-                self.refractor_item_code(item_code)
-            elif action == open_hwp_action:
-                self.open_item_hwp(item_code)
+            row = sender.rowAt(pos.y())
+            col = sender.columnAt(pos.x())
+
+            # 유효한 셀 위치인지 확인
+            if row < 0 or col < 0:
+                return
+
+            # 안전하게 item_code 가져오기
+            item_code = ""
+            if sender.item(row, 0) and sender.item(row, 0).text():
+                item_code = sender.item(row, 0).text()
+
+            # 새 QMenu 객체 생성
+            menu = QMenu(self)  # 부모 위젯 지정하여 메모리 관리 개선
+
+            # 메뉴 액션 리스트 초기화
+            swap_actions = []
+            move_actions = []
+            move_options = []
+
+            # POOL 또는 LIST 테이블의 col = 0, 1, 2 열에서의 컨텍스트 메뉴
+            if sender in [self.pool_table, self.list_table] and col in [0, 1, 2]:
+                if item_code:  # 항목 코드가 있는 경우에만 해당 액션 추가
+                    menu.addAction("Open item HWP", lambda: self.open_item_hwp(item_code))
+                    menu.addAction("Open Folder", lambda: self.open_item_folder(item_code))
+                    menu.addAction("Refractor Item Code", lambda: self.refractor_item_code(item_code))
+
+                    # 구분선 추가
+                    menu.addSeparator()
+
+                # Swap to xx 옵션 추가 (람다 함수로 직접 연결)
+                for i in range(1, 21):
+                    num = i  # 람다에서 참조할 로컬 변수
+                    action = menu.addAction(f"Swap to {i:02d}",
+                                            lambda num: self.safe_swap_item_number(row, num, sender))
+                    swap_actions.append(action)
+
+            # LIST 테이블의 col = 3 열에서의 컨텍스트 메뉴
+            elif sender == self.list_table and col == 3:
+                move_options = ["1L", "1R", "2L", "2R", "3L", "3R", "4L", "4R"]
+
+                for option in move_options:
+                    opt = option  # 람다에서 참조할 로컬 변수
+                    action = menu.addAction(f"Move to {option}",
+                                            lambda opt: self.safe_change_item_para(row, opt))
+                    move_actions.append(action)
+
+
+
+            # 메뉴가 비어있는지 확인하고 실행
+            if not menu.isEmpty():
+                menu.exec_(sender.mapToGlobal(pos))
+
+            # 메뉴 객체 명시적 정리
+            menu.deleteLater()
+
+        except Exception as e:
+            self.log_message(f"Error in context menu: {str(e)}")
+
+    def safe_swap_item_number(self, row, new_number, sender):
+        """swap_item_number의 안전한 래퍼 함수"""
+        try:
+            if sender == self.pool_table:
+                # POOL 테이블에서의 스왑
+                self.swap_item_number(row, new_number, sender)
+            else:
+                self.swap_item_number(row, new_number, sender)
+        except Exception as e:
+            self.log_message(f"Error during swap: {str(e)}")
+
+    def safe_change_item_para(self, row, new_para):
+        """change_item_para의 안전한 래퍼 함수"""
+        try:
+            self.change_item_para(row, new_para)
+        except Exception as e:
+            self.log_message(f"Error during para change: {str(e)}")
+
+
 
     def open_item_hwp(self, item_code):
         # Construct and normalize path
@@ -963,26 +1243,355 @@ class DatabaseManager(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, 'Error', f'An unexpected error occurred: {str(e)}')
 
-    def eventFilter(self, obj, event):
-        if obj in [self.pool_table, self.list_table]:
-            if event.type() == event.KeyPress:
-                if event.key() == Qt.Key_Shift:
-                    obj.setSelectionMode(QTableWidget.MultiSelection)
-                    obj.setSelectionBehavior(QTableWidget.SelectRows)
-                elif event.key() == Qt.Key_Escape:
-                    if self.pool_table.hasFocus():
-                        self.deselect_pool_items()
-                    elif self.list_table.hasFocus():
-                        self.deselect_list_items()
-                elif event.key() == Qt.Key_Delete:
-                    if self.list_table.hasFocus():
-                        self.remove_selected_rows()
-                elif event.key() == Qt.Key_Backspace:
-                    if self.list_table.hasFocus():
-                        self.remove_selected_rows()
-            elif event.type() == event.KeyRelease and event.key() == Qt.Key_Shift:
-                obj.setSelectionMode(QTableWidget.NoSelection)
-        return super().eventFilter(obj, event)
+    def change_item_para(self, row, new_para):
+        """항목 para 값 변경"""
+        if self.list_table.item(row, 3):
+            self.list_table.setItem(row, 3, QTableWidgetItem(str(new_para)))
+            self.log_message(f"Changed item para to {new_para}")
+
+    def swap_item_number(self, row, dst_number, sender=None):
+        """
+        항목 번호 변경 함수
+        """
+        try:
+            # 인자 유효성 검사
+            if row < 0 or not isinstance(dst_number, int) or dst_number < 1:
+                self.log_message(f"Invalid arguments: row={row}, dst_number={dst_number}")
+                return
+
+            # sender가 지정되지 않았으면 list_table로 간주
+            if sender is None:
+                sender = self.list_table
+
+            # POOL 테이블에서 선택한 경우
+            if sender == self.pool_table:
+                # POOL 테이블에서 선택한 행의 col=0 값 가져오기
+                pool_item_code = ""
+                if self.pool_table.item(row, 0) and self.pool_table.item(row, 0).text():
+                    pool_item_code = self.pool_table.item(row, 0).text()
+                else:
+                    self.log_message("Error: Selected row in POOL has no item code")
+                    return
+
+                # LIST에 동일한 항목 코드가 이미 추가되어 있는지 확인
+                dst_row = -1
+                for r in range(self.list_table.rowCount()):
+                    if (self.list_table.item(r, 0) and
+                            self.list_table.item(r, 0).text() and
+                            self.list_table.item(r, 0).text() == pool_item_code):  # str() 제거
+                        dst_row = r
+                        break
+
+                # 이미 추가되어 있다면 번호 swap 수행
+                if dst_row >= 0:
+                    self.swap_item_number_in_list(dst_row, dst_number)
+                    self.log_message(f"Found existing item '{pool_item_code}', swapped to number {dst_number}")
+                # 아직 추가되어 있지 않다면
+                else:
+                    # 해당하는 번호가 존재하는지 확인 (초기화 추가)
+                    exist_row = -1  # 변수 초기화 추가
+                    for r in range(self.list_table.rowCount()):
+                        if (self.list_table.item(r, 1) and
+                                self.list_table.item(r, 1).text() and
+                                self.list_table.item(r, 1).text() == str(dst_number)):
+                            exist_row = r
+                            break
+
+                    # 이미 해당 번호를 사용하는 행이 있다면
+                    if exist_row >= 0:
+                        # 존재하는 번호가 있다면, 그 행의 문항코드만 수정
+                        self.list_table.setItem(exist_row, 0, QTableWidgetItem(pool_item_code))
+                        self.log_message(f"Updated item code at row {exist_row} to '{pool_item_code}'")
+                    # 해당 번호를 사용하는 행이 없다면
+                    else:
+                        # 존재하는 번호가 없다면, 새 행을 추가
+                        current_row = self.list_table.rowCount()
+                        self.list_table.insertRow(current_row)
+
+                        # 새 행에 데이터 설정
+                        self.list_table.setItem(current_row, 0, QTableWidgetItem(pool_item_code))
+                        self.list_table.setItem(current_row, 1, QTableWidgetItem(str(dst_number)))
+                        self.list_table.setItem(current_row, 2, QTableWidgetItem("2"))  # 기본 score
+                        self.list_table.setItem(current_row, 3, QTableWidgetItem("1L"))  # 기본 para
+                        self.list_table.setItem(current_row, 4, QTableWidgetItem("[]"))  # 빈 태그
+                        self.list_table.setItem(current_row, 5, QTableWidgetItem("[]"))  # 빈 태그
+
+                        self.log_message(f"Created new row with number {dst_number} and added item '{pool_item_code}'")
+            # LIST 테이블에서 선택한 경우
+            else:
+                self.swap_item_number_in_list(row, dst_number)
+
+        except Exception as e:
+            self.log_message(f"Error in swap_item_number: {str(e)}")
+
+    def swap_item_number_in_list(self, row, dst_number):
+        """
+        LIST 테이블 내에서 항목 번호 변경 로직
+
+        src_number의 유효성과 dst_number를 가진 행의 존재 여부에 따라 4가지 경우를 처리
+        """
+        try:
+            # 현재 행의 번호(src_number) 가져오기
+            src_number = None
+            if self.list_table.item(row, 1) and self.list_table.item(row, 1).text():
+                try:
+                    src_number = int(self.list_table.item(row, 1).text())
+                except ValueError:
+                    src_number = None
+
+            # 현재 행이 이미 dst_number를 가지고 있는지 확인
+            if src_number is not None and src_number == dst_number:
+                self.log_message(f"Row already has number {dst_number}")
+                return
+
+            # dst_number를 가진 다른 행 찾기 (현재 행 제외)
+            dst_row = -1
+            for r in range(self.list_table.rowCount()):
+                if r == row:  # 현재 행은 제외
+                    continue
+
+                if (self.list_table.item(r, 1) and
+                        self.list_table.item(r, 1).text() and
+                        self.list_table.item(r, 1).text() == str(dst_number)):
+                    dst_row = r
+                    break
+
+            # src_number가 1-20 사이 자연수인지 확인
+            is_valid_src = (src_number is not None and 1 <= src_number <= 20)
+
+            # 조건에 따른 처리
+            # 1) src number가 20 이하 자연수 & dst number를 갖는 cell 존재
+            if is_valid_src and dst_row >= 0:
+                # 현재 행의 number를 dst_number로 변경
+                self.list_table.setItem(row, 1, QTableWidgetItem(str(dst_number)))
+                # dst_number를 갖고 있던 행의 number를 src_number로 변경
+                self.list_table.setItem(dst_row, 1, QTableWidgetItem(str(src_number)))
+                self.log_message(f"Swapped numbers: {src_number} ↔ {dst_number}")
+
+            # 2) src number가 20 이하 자연수 & dst number를 갖는 cell 없음
+            elif is_valid_src and dst_row < 0:
+                # 현재 행의 number를 dst_number로 변경
+                self.list_table.setItem(row, 1, QTableWidgetItem(str(dst_number)))
+                self.log_message(f"Changed number from {src_number} to {dst_number}")
+
+            # 3) src number가 20 이하 자연수 아님 & dst number를 갖는 cell 존재
+            elif not is_valid_src and dst_row >= 0:
+                # 현재 행의 number를 dst_number로 변경
+                self.list_table.setItem(row, 1, QTableWidgetItem(str(dst_number)))
+                # dst_number를 갖고 있던 행의 number를 null로 변경
+                self.list_table.setItem(dst_row, 1, QTableWidgetItem(""))
+                self.log_message(f"Changed number to {dst_number} and cleared previous {dst_number}")
+
+            # 4) src number가 20 이하 자연수 아님 & dst number를 갖는 cell 없음
+            else:
+                # 현재 행의 number를 dst_number로 변경
+                self.list_table.setItem(row, 1, QTableWidgetItem(str(dst_number)))
+                self.log_message(f"Changed number to {dst_number}")
+
+        except Exception as e:
+            self.log_message(f"Error in swap_item_number_in_list: {str(e)}")
+
+    def swap_item_number_in_list(self, row, dst_number):
+        """
+        항목 번호 변경 (고급 버전)
+        sender가 self.list_table인 경우:
+        1) src number가 20 이하 자연수이면서 dst number를 갖는 cell이 있는 경우:
+           현재 행의 number를 dst_number로 바꾸고, dst_number를 갖고 있던 행의 number를 src_number로 바꿈
+        2) src number가 20 이하 자연수이면서 dst number를 갖는 cell이 없는 경우:
+           현재 행의 number를 dst_number로 바꿈
+        3) src number가 20 이하 자연수가 아니면서 dst number를 갖는 cell이 있는 경우:
+           현재 행의 number를 dst_number로 바꾸고, dst_number를 갖고 있던 행의 number를 null로 바꿈
+        4) src number가 20 이하 자연수가 아니면서 dst number를 갖는 cell이 없는 경우:
+           현재 행의 number를 dst_number로 바꿈
+        """
+        # 현재 행의 번호(src_number) 가져오기
+        src_number = None
+        if self.list_table.item(row, 1) and self.list_table.item(row, 1).text():
+            try:
+                src_number = int(self.list_table.item(row, 1).text())
+            except ValueError:
+                src_number = None
+
+        # dst_number를 가진 행 찾기
+        dst_row = -1
+        for r in range(self.list_table.rowCount()):
+            if (self.list_table.item(r, 1) and
+                    self.list_table.item(r, 1).text() and
+                    self.list_table.item(r, 1).text() == str(dst_number)):
+                dst_row = r
+                break
+
+        # src_number가 1-20 사이 자연수인지 확인
+        is_valid_src = (src_number is not None and 1 <= src_number <= 20)
+
+        # 조건에 따른 처리
+        # 1) src number가 20 이하 자연수 & dst number를 갖는 cell 존재
+        if is_valid_src and dst_row >= 0:
+            # 현재 행의 number를 dst_number로 변경
+            self.list_table.setItem(row, 1, QTableWidgetItem(str(dst_number)))
+            # dst_number를 갖고 있던 행의 number를 src_number로 변경
+            self.list_table.setItem(dst_row, 1, QTableWidgetItem(str(src_number)))
+            self.log_message(f"Swapped numbers: {src_number} ↔ {dst_number}")
+
+        # 2) src number가 20 이하 자연수 & dst number를 갖는 cell 없음
+        elif is_valid_src and dst_row < 0:
+            # 현재 행의 number를 dst_number로 변경
+            self.list_table.setItem(row, 1, QTableWidgetItem(str(dst_number)))
+            self.log_message(f"Changed number from {src_number} to {dst_number}")
+
+        # 3) src number가 20 이하 자연수 아님 & dst number를 갖는 cell 존재
+        elif not is_valid_src and dst_row >= 0:
+            # 현재 행의 number를 dst_number로 변경
+            self.list_table.setItem(row, 1, QTableWidgetItem(str(dst_number)))
+            # dst_number를 갖고 있던 행의 number를 null로 변경
+            self.list_table.setItem(dst_row, 1, QTableWidgetItem(""))
+            self.log_message(f"Changed number to {dst_number} and cleared previous {dst_number}")
+
+        # 4) src number가 20 이하 자연수 아님 & dst number를 갖는 cell 없음
+        else:
+            # 현재 행의 number를 dst_number로 변경
+            self.list_table.setItem(row, 1, QTableWidgetItem(str(dst_number)))
+            self.log_message(f"Changed number to {dst_number}")
+
+    #TAG
+    def show_tag_context_menu(self, pos):
+        """태그 리스트에서 우클릭 시 컨텍스트 메뉴 표시"""
+        try:
+            # 클릭한 위치의 아이템 가져오기
+            item = self.tag_list.itemAt(pos)
+            if not item:
+                return
+
+            # 아이템의 텍스트를 item_code로 사용
+            item_code = item.text()
+
+            # 코드가 항목 코드 형식(13자리)인지 확인
+            if len(item_code) == 13:
+                # 컨텍스트 메뉴 생성
+                menu = QMenu(self)
+
+                # 메뉴 항목 추가
+                menu.addAction("Open item HWP", lambda: self.open_item_hwp(item_code))
+                menu.addAction("Open Folder", lambda: self.open_item_folder(item_code))
+                menu.addAction("Refractor Item Code", lambda: self.refractor_item_code(item_code))
+
+                # 메뉴 표시
+                menu.exec_(self.tag_list.mapToGlobal(pos))
+
+                # 메뉴 객체 정리
+                menu.deleteLater()
+
+        except Exception as e:
+            self.log_message(f"태그 컨텍스트 메뉴 오류: {str(e)}")
+    def add_tag(self):
+        """새 태그 추가"""
+        tag_text = self.tag_input.text().strip()
+        if tag_text:
+            # 중복 검사
+            existing_tags = [self.tag_list.item(i).text() for i in range(self.tag_list.count())]
+            if tag_text not in existing_tags:
+                item = QListWidgetItem(tag_text)
+                item.setFlags(item.flags() | Qt.ItemIsEditable)
+                self.tag_list.addItem(item)
+                self.tag_input.clear()
+
+    def remove_selected_tag(self):
+        """선택된 태그 삭제"""
+        selected_items = self.tag_list.selectedItems()
+        if selected_items:
+            for item in selected_items:
+                self.tag_list.takeItem(self.tag_list.row(item))
+
+    def on_tags_reordered(self):
+        """태그 순서가 변경되었을 때 호출"""
+        # 순서 변경 시 특별한 처리가 필요하면 여기에 구현
+
+    def save_tags(self):
+        """태그 편집 완료 및 저장"""
+        if self.current_edit_row >= 0 and self.current_edit_col >= 0:
+            # 현재 태그 목록 가져오기
+            tags = [self.tag_list.item(i).text() for i in range(self.tag_list.count())]
+
+            # JSON 형식으로 변환하여 셀에 저장
+            json_str = json.dumps(tags)
+            self.list_table.setItem(self.current_edit_row, self.current_edit_col,
+                                    QTableWidgetItem(json_str))
+
+            # 셀 배경색 변경하여 수정되었음을 표시
+            if tags:  # 태그가 있는 경우만 색상 변경
+                self.list_table.item(self.current_edit_row, self.current_edit_col).setBackground(
+                    QColor(230, 255, 230))  # 연한 녹색
+
+            # 편집 상태 초기화
+            self.tag_management_frame.setVisible(False)
+            self.current_edit_row = -1
+            self.current_edit_col = -1
+
+    def cancel_tag_edit(self):
+        """태그 편집 취소"""
+        self.tag_management_frame.setVisible(False)
+        self.current_edit_row = -1
+        self.current_edit_col = -1
+
+    # list_table의 셀 클릭 이벤트를 처리하는 메소드
+
+    def handle_cell_click(self, row, col):
+        """셀 클릭 시 태그 관리 UI 표시 (태그 컬럼인 경우)"""
+        # 태그 관련 컬럼인 경우 (4, 5번 컬럼)
+        if col in [4, 5]:
+            # 현재 편집 중인 셀 정보 저장
+            self.current_edit_row = row
+            self.current_edit_col = col
+
+            # 현재 셀의 태그 가져오기
+            current_tags = []
+            cell_item = self.list_table.item(row, col)
+
+            if cell_item and cell_item.text():
+                try:
+                    # JSON 형식으로 되어 있는지 체크
+                    if cell_item.text().startswith('[') and cell_item.text().endswith(']'):
+                        text = cell_item.text().replace("'", "\"")  # 작은따옴표를 큰따옴표로 변환
+                        try:
+                            current_tags = json.loads(text)
+                        except json.JSONDecodeError:
+                            # 작은따옴표를 썼을 때 파싱 실패하는 경우 수동으로 파싱
+                            text = cell_item.text().strip('[]')
+                            if text:
+                                # 쉼표로 구분된 항목을 파싱
+                                items = [item.strip().strip("'\"") for item in text.split(',')]
+                                current_tags = items
+                    else:
+                        # 단일 문자열인 경우
+                        current_tags = [cell_item.text()] if cell_item.text().strip() else []
+                except Exception as e:
+                    self.log_message(f"태그 파싱 오류: {e}")
+                    current_tags = []
+
+            # 태그 목록 초기화 및 로드
+            self.tag_list.clear()
+            for tag in current_tags:
+                if tag:  # 빈 태그는 추가하지 않음
+                    item = QListWidgetItem(tag)
+                    item.setFlags(item.flags() | Qt.ItemIsEditable)
+                    self.tag_list.addItem(item)
+
+            # 태그 관리 UI 표시
+            self.tag_management_frame.setVisible(True)
+            self.tag_input.setFocus()
+        else:
+            # 태그 관련 컬럼이 아닌 경우 태그 관리 UI 숨김
+            if self.tag_management_frame.isVisible():
+                # 태그 편집 중이었다면 저장 여부 확인
+                if self.current_edit_row >= 0 and self.current_edit_col >= 0:
+                    reply = QMessageBox.question(self, '태그 편집 중단',
+                                                 '태그 편집을 중단하시겠습니까? 변경사항이 저장되지 않습니다.',
+                                                 QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+                    if reply == QMessageBox.Yes:
+                        self.cancel_tag_edit()
+                else:
+                    self.cancel_tag_edit()
+
 
 
 class FilterDialog(QDialog):
