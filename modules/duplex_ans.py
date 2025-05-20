@@ -64,7 +64,7 @@ class DXAnswerBuilder:
     def get_component_on_header(self, output):
         filename = Path(output).stem
         page_num = int(filename.split('_')[-2][:-1]) - 1
-        header_pdf = RESOURCES_PATH + "/exam_header_resources.pdf"
+        header_pdf = RESOURCES_PATH + "/duplex_header_resources.pdf"
         header_doc = fitz.open(header_pdf)
         component = Component(header_pdf, page_num, header_doc.load_page(page_num).rect)
         return component
@@ -117,5 +117,6 @@ class DXAnswerBuilder:
     def build_footer_page(self):
         new_doc = fitz.open()
         overlayer = Overlayer(new_doc)
+        overlayer.add_page(self.get_component_on_resources(8))
         overlayer.add_page(self.get_component_on_resources(10))
         return new_doc

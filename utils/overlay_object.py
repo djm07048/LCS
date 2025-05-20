@@ -53,12 +53,17 @@ class ListOverlayObject(OverlayObject):
             for oo in self.child:
                 oo.overlay(overlayer, absolute_coord + Coord(0, curr_height, 0))
                 curr_height += oo.get_height() + self.left_height / len(self.child)
-        elif self.align == 3:       # bottom
-            from utils.ratio import Ratio
-            curr_height = self.left_height
+        elif self.align == 3:  # bottom - 아래에서 위로 쌓기
+            # 컨테이너 하단에서 시작 (self.height는 전체 컨테이너 높이)
+            curr_y = self.height
+
+            # 자식 객체들을 아래에서 위로 순서대로 쌓아올림
             for oo in self.child:
-                curr_height -= oo.get_height()
-                oo.overlay(overlayer, absolute_coord + Coord(0, curr_height, 0))
+                # 현재 객체의 상단 위치 계산 (현재 y 위치에서 객체 높이를 뺌)
+                curr_y -= oo.get_height()
+
+                # 계산된 위치에 객체 배치
+                oo.overlay(overlayer, absolute_coord + Coord(0, curr_y, 0))
 
         pass
     def add_child(self, obj: OverlayObject):

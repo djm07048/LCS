@@ -61,7 +61,7 @@ class DuplexProBuilder:
         ic = ItemCropper()
         if item_code[5:7] == 'KC':
             item_pdf = code2original(item_code)
-            trimmed_pdf = code2original(item_pdf).replace('_original.pdf', '_trimmed.pdf')
+            trimmed_pdf = item_pdf.replace('.pdf', '_trimmed.pdf')
             if os.path.exists(trimmed_pdf):
                 item_pdf = trimmed_pdf
         else:
@@ -69,8 +69,8 @@ class DuplexProBuilder:
 
         with fitz.open(item_pdf) as file:
             page = file.load_page(0)
-            component = Component(item_pdf, 0, page.rect) if item_code[5:7] == 'KC'\
-                else Component(item_pdf, 0, ic.get_problem_rect_from_file(file, accuracy = 1))
+            component = Component(item_pdf, 0, page.rect) if item_code[5:7] == 'KC' \
+                else Component(item_pdf, 0, ic.get_problem_rect_from_file(file, accuracy=1))
         return component
 
     #bake titles
@@ -187,7 +187,7 @@ class DuplexProBuilder:
         height = y1 - y0
 
         x0 = x0_list[(self.doc_page + self.curr_page) % 2][0]
-        paragraph_list = ListOverlayObject(self.doc_page, Coord(x0, y0, 0), height, 3)
+        paragraph_list = ListOverlayObject(self.doc_page, Coord(x0, y0, 0), height, 2)
         paragraph.add_paragraph_list(paragraph_list=paragraph_list)
 
         pass

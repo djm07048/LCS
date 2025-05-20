@@ -25,7 +25,7 @@ class DXBuilder:
 
 
     def add_page_num(self, overlayer):
-        for num in range(5, overlayer.doc.page_count):  # 5P부터 시작
+        for num in range(7, overlayer.doc.page_count - 1):  # 7P부터 시작
             if num % 2:
                 page_num_object = TextOverlayObject(num - 1, Coord(Ratio.mm_to_px(244), Ratio.mm_to_px(358.5), -1),
                                                     "Pretendard-Bold.ttf", 14, f"{num}", (0, 0, 0, 1),
@@ -51,7 +51,7 @@ class DXBuilder:
 
         front_doc = fitz.open()
         fdo = Overlayer(front_doc)
-        fdo.add_page(DXAB.get_component_on_resources(9))        #front 도비라
+        fdo.add_page(DXAB.get_component_on_resources(11))        #front 도비라
         fdo.add_page(DXAB.get_component_on_resources(8))        #empty
 
         curr_page = new_doc.page_count + 2
@@ -68,11 +68,11 @@ class DXBuilder:
 
         back_doc = fitz.open()
         bdo = Overlayer(back_doc)
-        if curr_page % 2 == 0:
+        if curr_page % 2 == 1:
             bdo.add_page(DXAB.get_component_on_resources(8))        #짝수쪽으로 맞춰주기
             curr_page += 1
 
-        bdo.add_page(DXAB.get_component_on_resources(10))        #back 도비라
+        bdo.add_page(DXAB.get_component_on_resources(12))        #back 도비라
         bdo.add_page(DXAB.get_component_on_resources(8))        #empty
 
         curr_page += 2
@@ -89,20 +89,18 @@ class DXBuilder:
 
             doc_sd_sol = DXIB.build_page_sd_sol(sd_code)
             back_doc.insert_pdf(doc_sd_sol)
-            curr_page += doc_sd_sol.page_count
             doc_sd_sol.close()
 
             doc_theory = DXIB.build_page_theory(sd_code, self.items[sd_code]['list_theory_piece_code'])
             back_doc.insert_pdf(doc_theory)
-            curr_page += doc_theory.page_count
             doc_theory.close()
 
             for rel_code in self.items[sd_code]['list_rel_item_code']:
                 doc_rel_sol = DXIB.build_page_rel_sol(sd_code, rel_code)
                 back_doc.insert_pdf(doc_rel_sol)
-                curr_page += doc_rel_sol.page_count
                 doc_rel_sol.close()
 
+            DXIB.doc_page = 0
             '''
             메모 삽입 로직
             item_overlayer = Overlayer(item_doc)
@@ -119,14 +117,14 @@ class DXBuilder:
 
         new_doc.insert_pdf(back_doc)
 
+        curr_page = DXIB.curr_page
+
         # Memopage 삽입 로직, curr_page 제어 필요
         #Footer
         footer_doc = DXAB.build_footer_page()
         new_doc.insert_pdf(footer_doc)
         curr_page += footer_doc.page_count
         footer_doc.close()
-
-        print(f"curr_page: {curr_page}")
 
         # 점수 삽입
         new_doc_overlayer = Overlayer(new_doc)
