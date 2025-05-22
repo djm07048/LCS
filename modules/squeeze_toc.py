@@ -37,7 +37,11 @@ class TocBuilder:
             4: ["L3", "L4", "R3", "R4"],
             5: ["L3", "L4", "R2", "R3", "R4"],
             6: ["L2", "L3", "L4", "R2", "R3", "R4"],
-            7: ["L2", "L3", "L4", "R1", "R2", "R3", "R4"]
+            7: ["L2", "L3", "L4", "R1", "R2", "R3", "R4"],
+            8: ["L2", "L3", "L4", "R1", "R2", "R3", "R4", "BackL1"],
+            9: ["L2", "L3", "L4", "R1", "R2", "R3", "R4", "BackL1", "BackL2"],
+            10: ["L2", "L3", "L4", "R1", "R2", "R3", "R4", "BackL1", "BackL2", "BackL3"],
+            11: ["L2", "L3", "L4", "R1", "R2", "R3", "R4", "BackL1", "BackL2", "BackL3", "BackL4"]
         }
 
         loc_coord_dict = {
@@ -49,6 +53,10 @@ class TocBuilder:
             "R2" : [2, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(113), 1)],
             "R3" : [2, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(173), 1)],
             "R4" : [2, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(233), 1)],
+            "BackL1" : [3, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(53), 1)],
+            "BackL2" : [3, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(113), 1)],
+            "BackL3" : [3, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(173), 1)],
+            "BackL4" : [3, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(233), 1)],
         }
 
         for topic in topic_loc_dict[self.topic_num]:
@@ -69,9 +77,14 @@ class TocBuilder:
         if self.topic_num < 4:
             self.overlayer.add_page(self.get_component_on_resources(1))
             self.overlayer.add_page(self.get_component_on_resources(2))
-        else:
+        elif self.topic_num < 8:
             self.overlayer.add_page(self.get_component_on_resources(3))
             self.overlayer.add_page(self.get_component_on_resources(4))
+        else:
+            self.overlayer.add_page(self.get_component_on_resources(3))     #Left
+            self.overlayer.add_page(self.get_component_on_resources(8))     #Right
+            self.overlayer.add_page(self.get_component_on_resources(4))     #Back
+            self.overlayer.add_page(self.get_component_on_resources(1))     #Empty
 
         self.resources_doc.close()
         return new_doc
@@ -114,7 +127,8 @@ class TocBuilder:
 
             topic_area.overlay(overlayer=Overlayer(total_doc), absolute_coord=topic_loc[1])
 
-        topic_area = AreaOverlayObject(2, Coord(0, 0, 1), 371)
+        # 마지막 페이지에 답지와 해설 페이지 번호 추가
+        topic_area = AreaOverlayObject(2 + int(self.topic_num // 8), Coord(0, 0, 1), 371)
         to_ans = TextOverlayObject(0, Coord(Ratio.mm_to_px(217), Ratio.mm_to_px(313), 1), "Pretendard-Bold.ttf", 16,
                                    f"{ans_page}", (0, 0, 0, 1), fitz.TEXT_ALIGN_RIGHT)
         to_sol = TextOverlayObject(0, Coord(Ratio.mm_to_px(217), Ratio.mm_to_px(340), 1), "Pretendard-Bold.ttf", 16,

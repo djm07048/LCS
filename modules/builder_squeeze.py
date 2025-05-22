@@ -57,8 +57,8 @@ class SQBuilder:
             topic_list.add_child(box_object)
         return topic_list
     
-    def add_page_num(self, overlayer):
-        for num in range(4, overlayer.doc.page_count): #4P부터 시작
+    def add_page_num(self, overlayer, start_page_num, end_page_num):
+        for num in range(start_page_num, end_page_num): #4P부터 시작
             if num % 2:
                 page_num_object = TextOverlayObject(num-1, Coord(Ratio.mm_to_px(244), Ratio.mm_to_px(358.5), -1), "Pretendard-Bold.ttf", 14, f"{num}", (0, 0, 0, 1), fitz.TEXT_ALIGN_RIGHT)
             else:
@@ -164,6 +164,7 @@ class SQBuilder:
         if log_callback:
             log_callback("Done!")
 
+        end_page_num = int(total.page_count + 1)
         # Add Memo pages due to the number of pages
         if not total.page_count % 4 == 3:  # 4k+3 형태가 아닐 때
             for i in range((3 - total.page_count % 4) % 4):  # 필요한 페이지 수만큼
@@ -188,9 +189,9 @@ class SQBuilder:
                     topic_list = self.bake_topic_list(fc_pages[i][0] + 3, i)
                     topic_list.overlay(overlayer, Coord(Ratio.mm_to_px(159), Ratio.mm_to_px(16.5), 0))
 
+        start_page_num = 2 * (len(self.topics) // 7) + 4
 
-
-        self.add_page_num(overlayer)
+        self.add_page_num(overlayer, start_page_num, end_page_num)
 
         '''ob = OffsetBuilder(book_doc=total)
         new_doc = ob.build()

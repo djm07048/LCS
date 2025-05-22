@@ -1,5 +1,6 @@
 from utils.path import *
 from os import environ
+import shutil
 import subprocess
 import sys
 import os
@@ -176,7 +177,7 @@ class DatabaseManager(QMainWindow):
         self.create_pdfs_btn = QPushButtonGui('CREATE PDFs As Shown')
         self.create_rel_pdfs_btn = QPushButtonGui('CREATE REL PDFs As Shown')
         self.export_json_btn = QPushButtonGui('EXPORT JSON to DB')
-
+        self.add_item_folder = QPushButtonGui('ADD ITEM FOLDER As Shown')
 
         self.merge_pdfs_btn = QPushButtonGui('MERGE PDFs')
         self.open_merged_pdf_btn = QPushButtonGui('open MERGED')
@@ -196,6 +197,7 @@ class DatabaseManager(QMainWindow):
         right_button_layout.addWidget(self.create_pdfs_btn)
         right_button_layout.addWidget(self.create_rel_pdfs_btn)
         right_button_layout.addWidget(self.export_json_btn)
+        right_button_layout.addWidget(self.add_item_folder)
 
         right_layout_hz_0 = QHBoxLayout()
         right_layout_hz_0.addWidget(self.merge_pdfs_btn)
@@ -262,6 +264,7 @@ class DatabaseManager(QMainWindow):
         self.book_name_input.currentIndexChanged.connect(self.load_selected_book)
         self.delete_pdfs_btn.clicked.connect(self.delete_pdfs_gui)
         self.create_pdfs_btn.clicked.connect(self.create_pdfs_gui)
+        self.add_item_folder.clicked.connect(self.add_item_folder_gui)
         self.create_rel_pdfs_btn.clicked.connect(self.create_rel_pdfs_gui)
         self.merge_pdfs_btn.clicked.connect(self.merge_pdfs_gui)
         self.export_json_btn.clicked.connect(self.export_to_json)
@@ -776,6 +779,37 @@ class DatabaseManager(QMainWindow):
         self.pdf_thread = PDFCreationThread(item_list)
         self.pdf_thread.progress_signal.connect(self.log_message)
         self.pdf_thread.start()
+
+    def add_item_folder_gui(self):
+        if not self.show_warning_dialog("Are you sure you want to create Item Folders?"):
+            return
+        item_list = []
+        for row in range(self.list_table.rowCount()):
+            item_code = self.list_table.item(row, 0).text() if self.list_table.item(row, 0) else None
+            item_list.append(item_code)
+        self.log_message("Starting Creating Item Folder...")
+
+        template_folder = RESOURCES_PATH + r"\item_template"
+
+        for item_code in item_list:
+            item_folder = code2folder(item_code)
+            if not os.path.exists(item_folder):
+                shutil.copytree(template_folder, item_folder)
+                for root, dirs, files in os.walk(item_folder):
+                    for file in files:
+                        if 'item_template' in file:
+                            old_file_path = os.path.join(root, file)
+                            new_file_path = os.path.join(root, file.replace('item_template', item_code))
+                            os.rename(old_file_path, new_file_path)
+                    for dir in dirs:
+                        if 'item_template' in dir:
+                            old_dir_path = os.path.join(root, dir)
+                            new_dir_path = os.path.join(root, dir.replace('item_template', item_code))
+                            os.rename(old_dir_path, new_dir_path)
+
+                self.log_message(f"Created item folder for {item_code}")
+            else:
+                self.log_message(f"Item folder for {item_code} already exists")
     def merge_pdfs_gui(self):
         if not self.show_warning_dialog("Are you sure you want to merge PDFs?"):
             return
@@ -1087,7 +1121,7 @@ class DatabaseManager(QMainWindow):
                 if item_code:  # 항목 코드가 있는 경우에만 해당 액션 추가
                     menu.addAction("Open item HWP", lambda: self.open_item_hwp(item_code))
                     menu.addAction("Open Folder", lambda: self.open_item_folder(item_code))
-                    menu.addAction("Refractor Item Code", lambda: self.refractor_item_code(item_code))
+                    menu.addAction("Refractor Item Code", lambda: self.refractor_item_code_by_gui(item_code))
 
                     # 구분선 추가
                     menu.addSeparator()
@@ -1159,81 +1193,86 @@ class DatabaseManager(QMainWindow):
                 except subprocess.CalledProcessError as e:
                     print(f"Error: {e}")
 
-    def refractor_item_code(self, item_code):
+
+    def refractor_item_code(self, item_code, new_code):
+        # 원본 코드의 정보 파싱
+        if item_code[5:7] == 'KC':
+            old_base_path = KICE_DB_PATH
+        elif item_code[5:7] == 'NC':
+            old_base_path = NICE_DB_PATH
+        else:
+            old_base_path = ITEM_DB_PATH
+        topic = item_code[2:5]
+        old_topic = item_code[2:5]
+        old_topic_path = os.path.join(old_base_path, old_topic)
+        old_item_path = os.path.join(old_topic_path, item_code)
+
+        # 새 코드의 정보 파싱
+        if item_code[5:7] == 'KC':
+            new_base_path = KICE_DB_PATH
+        elif item_code[5:7] == 'NC':
+            new_base_path = NICE_DB_PATH
+        else:
+            new_base_path = ITEM_DB_PATH
+        new_topic = new_code[2:5]
+        new_topic_path = os.path.join(new_base_path, new_topic)
+        new_item_path = os.path.join(new_topic_path, new_code)
+
+        try:
+            # 기본 검증
+            if not os.path.exists(old_item_path):
+                raise FileNotFoundError(f"원본 폴더를 찾을 수 없습니다: {old_item_path}")
+            if os.path.exists(new_item_path):
+                raise FileExistsError(f"대상 폴더가 이미 존재합니다: {new_item_path}")
+            if not os.access(os.path.dirname(old_item_path), os.W_OK):
+                raise PermissionError(f"폴더 {old_item_path}에 대한 쓰기 권한이 없습니다")
+
+            # 새로운 topic 폴더가 없으면 생성
+            if not os.path.exists(new_topic_path):
+                os.makedirs(new_topic_path)
+
+            # 폴더 이동
+            os.rename(old_item_path, new_item_path)
+
+            # 이동된 폴더 내의 파일 이름 변경
+            for root, dirs, files in os.walk(new_item_path):
+                for file_name in files:
+                    if item_code in file_name:
+                        old_file_path = os.path.join(root, file_name)
+                        new_file_name = file_name.replace(item_code, new_code)
+                        new_file_path = os.path.join(root, new_file_name)
+                        os.rename(old_file_path, new_file_path)
+
+            # 이전 topic 폴더가 비어있으면 삭제
+            if old_topic != new_topic and not os.listdir(old_topic_path):
+                os.rmdir(old_topic_path)
+
+            QMessageBox.information(self, 'Success',
+                                    f'Item code changed from {item_code} to {new_code}')
+
+            # 테이블 데이터 새로고침
+            self.loadData()
+            self.update_pool_table()
+
+        except FileNotFoundError as e:
+            QMessageBox.critical(self, 'Error', str(e))
+        except FileExistsError as e:
+            QMessageBox.critical(self, 'Error', str(e))
+        except PermissionError as e:
+            QMessageBox.critical(self, 'Error', str(e))
+        except Exception as e:
+            QMessageBox.critical(self, 'Error', f'예상치 못한 오류가 발생했습니다: {str(e)}')
+
+
+    def refractor_item_code_by_gui(self, item_code):
         try:
             new_code, ok = QInputDialog.getText(self, 'Refractor Item Code',
                                                 f'Enter new 13-character item code'
                                                 f'\nOriginal = {item_code}'
-                                                f'\nInput Below:')
+                                                f'\nInput Below:', text=item_code)
 
             if ok and len(new_code) == 13:
-                # 원본 코드의 정보 파싱
-                if item_code[5:7] == 'KC':
-                    old_base_path = KICE_DB_PATH
-                elif item_code[5:7] == 'NC':
-                    old_base_path = NICE_DB_PATH
-                else:
-                    old_base_path = ITEM_DB_PATH
-                topic = item_code[2:5]
-                old_topic = item_code[2:5]
-                old_topic_path = os.path.join(old_base_path, old_topic)
-                old_item_path = os.path.join(old_topic_path, item_code)
-
-                # 새 코드의 정보 파싱
-                if item_code[5:7] == 'KC':
-                    new_base_path = KICE_DB_PATH
-                elif item_code[5:7] == 'NC':
-                    new_base_path = NICE_DB_PATH
-                else:
-                    new_base_path = ITEM_DB_PATH
-                new_topic = new_code[2:5]
-                new_topic_path = os.path.join(new_base_path, new_topic)
-                new_item_path = os.path.join(new_topic_path, new_code)
-
-                try:
-                    # 기본 검증
-                    if not os.path.exists(old_item_path):
-                        raise FileNotFoundError(f"원본 폴더를 찾을 수 없습니다: {old_item_path}")
-                    if os.path.exists(new_item_path):
-                        raise FileExistsError(f"대상 폴더가 이미 존재합니다: {new_item_path}")
-                    if not os.access(os.path.dirname(old_item_path), os.W_OK):
-                        raise PermissionError(f"폴더 {old_item_path}에 대한 쓰기 권한이 없습니다")
-
-                    # 새로운 topic 폴더가 없으면 생성
-                    if not os.path.exists(new_topic_path):
-                        os.makedirs(new_topic_path)
-
-                    # 폴더 이동
-                    os.rename(old_item_path, new_item_path)
-
-                    # 이동된 폴더 내의 파일 이름 변경
-                    for root, dirs, files in os.walk(new_item_path):
-                        for file_name in files:
-                            if item_code in file_name:
-                                old_file_path = os.path.join(root, file_name)
-                                new_file_name = file_name.replace(item_code, new_code)
-                                new_file_path = os.path.join(root, new_file_name)
-                                os.rename(old_file_path, new_file_path)
-
-                    # 이전 topic 폴더가 비어있으면 삭제
-                    if old_topic != new_topic and not os.listdir(old_topic_path):
-                        os.rmdir(old_topic_path)
-
-                    QMessageBox.information(self, 'Success',
-                                            f'Item code changed from {item_code} to {new_code}')
-
-                    # 테이블 데이터 새로고침
-                    self.loadData()
-                    self.update_pool_table()
-
-                except FileNotFoundError as e:
-                    QMessageBox.critical(self, 'Error', str(e))
-                except FileExistsError as e:
-                    QMessageBox.critical(self, 'Error', str(e))
-                except PermissionError as e:
-                    QMessageBox.critical(self, 'Error', str(e))
-                except Exception as e:
-                    QMessageBox.critical(self, 'Error', f'예상치 못한 오류가 발생했습니다: {str(e)}')
+                self.refractor_item_code(item_code, new_code)
 
             else:
                 if ok:  # 사용자가 OK를 눌렀지만 코드 길이가 잘못된 경우
@@ -1473,7 +1512,7 @@ class DatabaseManager(QMainWindow):
                 # 메뉴 항목 추가
                 menu.addAction("Open item HWP", lambda: self.open_item_hwp(item_code))
                 menu.addAction("Open Folder", lambda: self.open_item_folder(item_code))
-                menu.addAction("Refractor Item Code", lambda: self.refractor_item_code(item_code))
+                menu.addAction("Refractor Item Code", lambda: self.refractor_item_code_by_gui(item_code))
 
                 # 메뉴 표시
                 menu.exec_(self.tag_list.mapToGlobal(pos))

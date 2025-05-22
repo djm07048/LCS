@@ -77,7 +77,7 @@ class DuplexProBuilder:
     def bake_title_sd(self, sd_code):
         source = sdcode2cite(sd_code)
         text_number = source.split(" ")[4][:-1]
-        text_cite = source.split(" ")[1] + " + " + source.split(" ")[2] + " " + source.split(" ")[3] + " " + source.split(" ")[4]
+        text_cite = source.split(" ")[1] + " " + source.split(" ")[2] + " " + source.split(" ")[3] + " " + source.split(" ")[4]
 
         compo = self.get_component_on_resources(0)
         box = ComponentOverlayObject(0, Coord(0,0,0), compo)
@@ -96,13 +96,13 @@ class DuplexProBuilder:
     def bake_title_rel(self, sd_code, rel_code):
         sd_source = sdcode2cite(sd_code)
         text_number = str(sd_source.split(" ")[4][:-1]) + chr(64 + self.rel_number[rel_code])
-        text_cite = sd_source.split(" ")[1] + " + " + sd_source.split(" ")[2] + " " + sd_source.split(" ")[3] + " " + sd_source.split(" ")[4] + " 연계"
+        text_cite = sd_source.split(" ")[1] + " " + sd_source.split(" ")[2] + " " + sd_source.split(" ")[3] + " " + sd_source.split(" ")[4] + " 연계"
         if rel_code[5:7] == 'KC' or rel_code[5:7] == 'NC':
             text_ref = code2cite(rel_code)            # 2026학년도 6월 12번 지1
         else:
             rel_source = self.rel_ref[rel_code]
             if rel_source:
-                text_ref = "Squeeze " + rel_source.split("_")[-1]   #Squeeze 고체5 T번
+                text_ref = "Squeeze " + rel_source.split("_")[-2] + " " + rel_source.split("_")[-1] #Squeeze 고체5 T번
             else:
                 text_ref = "신규 문항"         #신규 문항
 

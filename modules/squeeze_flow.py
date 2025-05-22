@@ -174,7 +174,7 @@ class FlowBuilder:
             para_lists[3].rect.y1 = height + Ratio.mm_to_px(22)
 
         for para in para_lists:
-            para.overlay(self.overlayer, Coord(0,Ratio.mm_to_px(35),0))
+            para.overlay(self.overlayer, Coord(0, Ratio.mm_to_px(35),0))
             y = para.coord.y + para.rect.height
 
             #최하단 띠지 삽입
