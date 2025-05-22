@@ -22,6 +22,7 @@ from overlayer import *
 from utils.overlay_object import *
 
 import traceback
+import shutil
 
 def suppress_qt_warnings():
     environ["QT_DEVICE_PIXEL_RATIO"] = "0"
@@ -176,6 +177,7 @@ class DatabaseManager(QMainWindow):
         self.create_pdfs_btn = QPushButtonGui('CREATE PDFs As Shown')
         self.merge_pdfs_btn = QPushButtonGui('MERGE PDFs As Shown')
         self.export_json_btn = QPushButtonGui('EXPORT JSON to DB')
+        self.add_item_folder_btn = QPushButtonGui('ADD ITEM FOLDER')
         self.build_squeeze_paper_by_gui_btn = QPushButtonGui('BUILD squeeze from DB')
         self.build_squeeze_mini_paper_by_gui_btn = QPushButtonGui('BUILD squeeze mini from DB')
         self.rasterize_pdf_btn = QPushButtonGui('RASTERIZE PDF from DB')
@@ -190,6 +192,7 @@ class DatabaseManager(QMainWindow):
         right_button_layout.addWidget(self.create_pdfs_btn)
         right_button_layout.addWidget(self.merge_pdfs_btn)
         right_button_layout.addWidget(self.export_json_btn)
+        right_button_layout.addWidget(self.add_item_folder_btn)
         right_button_layout.addWidget(self.build_squeeze_paper_by_gui_btn)
         right_button_layout.addWidget(self.build_squeeze_mini_paper_by_gui_btn)
         right_button_layout.addWidget(self.rasterize_pdf_btn)
@@ -239,6 +242,7 @@ class DatabaseManager(QMainWindow):
         self.book_name_input.currentIndexChanged.connect(self.load_selected_book)
         self.delete_pdfs_btn.clicked.connect(self.delete_pdfs_gui)
         self.create_pdfs_btn.clicked.connect(self.create_pdfs_gui)
+        self.add_item_folder_btn.clicked.connect(self.add_item_folder_gui)
         self.merge_pdfs_btn.clicked.connect(self.merge_pdfs_gui)
         self.export_json_btn.clicked.connect(self.export_to_json)
         self.build_squeeze_paper_by_gui_btn.clicked.connect(self.build_squeeze_paper_by_gui)
@@ -877,6 +881,37 @@ class DatabaseManager(QMainWindow):
             self.log_message("PDF rasterization completed successfully.")
         except Exception as e:
             self.log_message(f"Error during PDF rasterization: {e}")
+
+    def add_item_folder_gui(self):
+        if not self.show_warning_dialog("Are you sure you want to create Item Folders?"):
+            return
+        item_list = []
+        for row in range(self.list_table.rowCount()):
+            item_code = self.list_table.item(row, 0).text() if self.list_table.item(row, 0) else None
+            item_list.append(item_code)
+        self.log_message("Starting Creating Item Folder...")
+
+        template_folder = RESOURCES_PATH + r"\item_template"
+
+        for item_code in item_list:
+            item_folder = code2folder(item_code)
+            if not os.path.exists(item_folder):
+                shutil.copytree(template_folder, item_folder)
+                for root, dirs, files in os.walk(item_folder):
+                    for file in files:
+                        if 'item_template' in file:
+                            old_file_path = os.path.join(root, file)
+                            new_file_path = os.path.join(root, file.replace('item_template', item_code))
+                            os.rename(old_file_path, new_file_path)
+                    for dir in dirs:
+                        if 'item_template' in dir:
+                            old_dir_path = os.path.join(root, dir)
+                            new_dir_path = os.path.join(root, dir.replace('item_template', item_code))
+                            os.rename(old_dir_path, new_dir_path)
+
+                self.log_message(f"Created item folder for {item_code}")
+            else:
+                self.log_message(f"Item folder for {item_code} already exists")
 
     def open_merged_pdf(self):
         book_name = self.book_name_input.currentText()
