@@ -119,6 +119,10 @@ def convert_hwp_to_pdf(hwp_path):
 
             # 2) PDF 변환 시도 (최대 3회)
             pythoncom.CoInitialize()
+
+            if os.path.exists(pdf_path):
+                os.remove(pdf_path)
+
             if attempt > 1:
                 print(f"Failed to convert {hwp_path} to PDF. Retrying...")
                 time.sleep(0.5)
