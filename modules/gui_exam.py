@@ -4,12 +4,13 @@ import shutil
 import subprocess
 import sys
 import os
+from utils.data import *
 import json
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QComboBox, QMessageBox, QLineEdit, QMenu,
                              QHBoxLayout, QPushButton, QTableWidget, QTableWidgetItem, QGridLayout, QInputDialog,
                              QHeaderView, QCheckBox, QDialog, QVBoxLayout, QLabel, QSizePolicy, QTextEdit)
-from PyQt5.QtCore import (Qt, QThread, pyqtSignal)
-from PyQt5.QtGui import QColor
+from PyQt5.QtCore import (Qt, QThread, pyqtSignal, QTimer)
+from PyQt5.QtGui import QColor, QPalette
 from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QLineEdit, QPushButton,
                              QListWidget, QListWidgetItem, QAbstractItemView)
 
@@ -34,12 +35,52 @@ def suppress_qt_warnings():
     environ["QT_SCREEN_SCALE_FACTORS"] = "1"
     environ["QT_SCALE_FACTOR"] = "1"
 
-
 class QPushButtonGui(QPushButton):
     def __init__(self, parent = None):
         super().__init__(parent)
         self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
 
+class ColoredTableWidget(QTableWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.parent_manager = parent
+
+    def get_topic_quater(self, topic):
+        file = RESOURCES_PATH + "/test_topic.json"
+        with open(file, 'r', encoding='UTF8') as f:
+            topic_data = json.load(f)
+        if topic in topic_data:
+            return topic_data[topic]
+        else:
+            raise ValueError(f"Topic {topic} not found in topic data.")
+
+    def get_topic_color_code(self, topic):
+        topic_color_code = ["#FF8A80", "#FFAB91", "#FFCDD2", "#FF9800", "#FFC107",
+                            "#FFD54F", "#81C784", "#A5D6A7", "#C8E6C9", "#2196F3",
+                            "#42A5F5", "#64B5F6", "#90CAF9", "#B39DDB", "#CE93D8",
+                            "#E1BEE7", "#F0D5D4", "#C4B5A0", "#D4C4B0", "#E4D4C0"]
+
+        color = topic_color_code[topic - 1]
+        return QColor(color)
+
+    def setItem(self, row, column, item):
+        super().setItem(row, column, item)
+
+        # col = 0이고 item이 있을 때만 색상 적용
+        if column == 0 and item and item.text():
+            item_code = item.text()
+            if len(item_code) >= 5:  # 유효한 item_code인지 확인
+                try:
+                    topic = item_code[2:5]  # item_code[2:5]로 topic 추출
+                    quater = self.get_topic_quater(topic)
+                    color = self.get_topic_color_code(quater)
+                    item.setBackground(color)
+                except (ValueError, KeyError, IndexError):
+                    pass  # 색상 적용 실패 시 기본 색상 유지
+
+        # Topic 테이블 업데이트를 지연 처리로 변경
+        if hasattr(self.parent_manager, 'schedule_topic_update'):
+            self.parent_manager.schedule_topic_update()
 
 class PDFCreationThread(QThread):
     progress_signal = pyqtSignal(str)
@@ -60,17 +101,24 @@ class PDFCreationThread(QThread):
 class DatabaseManager(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.topic_order_data = None
+        self.topic_update_scheduled = False
+        self.original_pool_data = []
+
         self.initUI()
         self.load_kice_topics()
+        self.list_used_items = self.get_list_used_items()
+        print("List used items:", self.list_used_items)
         self.loadData()
+        self.load_topic_table()  # 새로 추가
         self.add_context_menu()
         self.sort_pool_by_order()
 
-        self.setWindowTitle('Lab Contents Software ver.1.0.0. Powered by THedu')
+        self.setWindowTitle('Lab Contents Software ver.2.0.0. Powered by THedu')
 
     def initUI(self):
         self.setWindowTitle('Database Manager')
-        self.setGeometry(100, 100, 1300, 650)  # Adjusted width to accommodate log window
+        self.setGeometry(100, 100, 1550, 700)  # Adjusted width to accommodate log window
 
         # Main widget and layout
         main_widget = QWidget()
@@ -85,32 +133,37 @@ class DatabaseManager(QMainWindow):
         pool_top_layout = QVBoxLayout()
         self.deselect_btn = QPushButtonGui('DESELECT POOL')
         self.sort_btn = QPushButtonGui('SORT POOL')
+        self.filter_btn = QPushButtonGui('FILTER TOPICS')  # 새로 추가
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText('Search Item Code...')
 
         pool_top_layout.addWidget(self.deselect_btn)
         pool_top_layout.addWidget(self.sort_btn)
+        pool_top_layout.addWidget(self.filter_btn)  # 새로 추가
         pool_top_layout.addWidget(self.search_input)
         pool_layout.addLayout(pool_top_layout)
 
         # Pool table with fixed dimensions
         self.pool_table = QTableWidget()
-        self.pool_table.setColumnCount(3)
-        self.pool_table.setFixedHeight(600)
+        self.pool_table.setColumnCount(4)
+        self.pool_table.setFixedHeight(650)
+
         pool_layout.addWidget(self.pool_table)
-        self.pool_table.setHorizontalHeaderLabels(['Item Code', 'Topic', 'Order'])
+        self.pool_table.setHorizontalHeaderLabels(['Item Code', 'Topic', 'Order', 'reference'])
 
         # Set fixed column widths for Pool table
         self.pool_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Fixed)
         self.pool_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Fixed)
         self.pool_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Fixed)
+        self.pool_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.Fixed)
 
         self.pool_table.setColumnWidth(0, 120)  # Item Code
         self.pool_table.setColumnWidth(1, 50)  # Topic
         self.pool_table.setColumnWidth(2, 0)  # Order (hidden)
+        self.pool_table.setColumnWidth(3, 80)  # Hidden column for Order
 
         # Calculate and set fixed total width
-        total_width = sum([self.pool_table.columnWidth(i) for i in range(3)])  # Exclude hidden Order column
+        total_width = sum([self.pool_table.columnWidth(i) for i in range(4)])  # Exclude hidden Order column
         self.pool_table.setFixedWidth(total_width + 50)
 
         # Hide Order column
@@ -141,10 +194,10 @@ class DatabaseManager(QMainWindow):
         list_layout.addLayout(list_top_layout)
 
         # List table with fixed dimensions
-        self.list_table = QTableWidget()
+        self.list_table = ColoredTableWidget(self)
         self.list_table.setColumnCount(6)
-        self.list_table.setFixedHeight(650)
-        self.list_table.setHorizontalHeaderLabels(['Item Code', 'number', 'score', 'para', 'list_rel_item_code', 'list_theory_piece_code'])
+        self.list_table.setFixedHeight(700)
+        self.list_table.setHorizontalHeaderLabels(['Item Code', '번', '점', '단', '문항', '개념'])
 
         # Set fixed column widths for List table
         self.list_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Fixed)
@@ -155,15 +208,15 @@ class DatabaseManager(QMainWindow):
         self.list_table.horizontalHeader().setSectionResizeMode(5, QHeaderView.Fixed)
 
         # Set exact column widths
-        self.list_table.setColumnWidth(0, 140)  # Item Code
-        self.list_table.setColumnWidth(1, 80)  # number
-        self.list_table.setColumnWidth(2, 80)  # score
-        self.list_table.setColumnWidth(3, 80)  # para
-        self.list_table.setColumnWidth(4, 140)  # list_rel_item_code
-        self.list_table.setColumnWidth(5, 140)  # list_theory_piece_code
+        self.list_table.setColumnWidth(0, 120)  # Item Code
+        self.list_table.setColumnWidth(1, 30)  # number
+        self.list_table.setColumnWidth(2, 30)  # score
+        self.list_table.setColumnWidth(3, 50)  # para
+        self.list_table.setColumnWidth(4, 50)  # list_rel_item_code
+        self.list_table.setColumnWidth(5, 50)  # list_theory_piece_code
 
         # Calculate and set fixed total width
-        self.list_table.setFixedWidth(700)
+        self.list_table.setFixedWidth(350)
         list_layout.addWidget(self.list_table)
 
         # Header
@@ -230,10 +283,103 @@ class DatabaseManager(QMainWindow):
 
         right_button_layout.addWidget(self.log_window)
 
+        # Topic section - 3개 테이블로 분할
+        topic_layout = QVBoxLayout()
+
+        # Topic 테이블들을 담을 수평 레이아웃
+        topic_tables_layout = QHBoxLayout()
+
+        # 3개의 Topic 테이블 생성
+        self.topic_tables = []
+        self.quater_squares = []  # 정사각형들을 저장할 리스트 추가
+        topic_labels = ['고체', '유체', '천체']
+        quater_counts = [6, 7, 7]  # 각 그룹별 정사각형 개수
+        quater_ranges = [(1, 6), (7, 13), (14, 20)]  # 각 그룹의 quater 범위
+
+        for i in range(3):
+            # 각 테이블별 수직 레이아웃
+            table_layout = QVBoxLayout()
+
+            # 레이블 추가
+            label = QLabel(topic_labels[i])
+            label.setAlignment(Qt.AlignCenter)
+            label.setStyleSheet("font-weight: bold; font-size: 20px;")
+            table_layout.addWidget(label)
+
+            # 정사각형들을 위한 수평 레이아웃 추가
+            squares_layout = QHBoxLayout()
+            squares_layout.setSpacing(2)  # 정사각형 간격
+
+            # 해당 그룹의 정사각형들 생성
+            group_squares = []
+            start_quater, end_quater = quater_ranges[i]
+
+            for quater in range(start_quater, end_quater + 1):
+                square = QLabel()
+                square.setFixedSize(20, 20)  # 20x20 픽셀 정사각형
+                square.setStyleSheet("border: 1px solid black; background-color: white;")
+                square.setAlignment(Qt.AlignCenter)
+                square.setText(str(quater))
+                square.setStyleSheet(
+                    f"border: 1px solid black; background-color: white; font-size: 10px; font-weight: bold;")
+                squares_layout.addWidget(square)
+                group_squares.append(square)
+
+            self.quater_squares.append(group_squares)
+            table_layout.addLayout(squares_layout)
+
+            # 테이블 생성
+            topic_table = QTableWidget()
+            topic_table.setColumnCount(3)
+            topic_table.setFixedHeight(700)  # 정사각형 공간을 위해 높이 조정
+            topic_table.setHorizontalHeaderLabels(['Code', 'Name', '번호'])
+
+            # 컬럼 너비 설정
+            topic_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Fixed)
+            topic_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Fixed)
+            topic_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Fixed)
+
+            topic_table.setColumnWidth(0, 33)  # Code
+            topic_table.setColumnWidth(1, 110)  # Name
+            topic_table.setColumnWidth(2, 25)  # 번호
+
+            topic_table.setFixedWidth(170)
+
+            # 행 번호 숨기기
+            topic_table.horizontalHeader().setVisible(False)
+            # 행 번호 숨기기
+            topic_table.verticalHeader().setVisible(False)
+
+            # 팔레트를 사용한 배경색 설정
+            palette = topic_table.palette()
+            palette.setColor(QPalette.Base, QColor("white"))
+            topic_table.setPalette(palette)
+            topic_table.setAlternatingRowColors(False)
+
+            # 컬럼 너비 설정
+
+            # 헤더 높이 조정
+            topic_table.horizontalHeader().setFixedHeight(20)
+
+            table_layout.addWidget(topic_table)
+            self.topic_tables.append(topic_table)
+
+            # Topic 테이블에 컨텍스트 메뉴 설정 (각 테이블마다)
+            topic_table.setContextMenuPolicy(Qt.CustomContextMenu)
+            topic_table.customContextMenuRequested.connect(self.show_topic_context_menu)
+
+            # 테이블 레이아웃을 위젯으로 감싸기
+            table_widget = QWidget()
+            table_widget.setLayout(table_layout)
+            topic_tables_layout.addWidget(table_widget)
+
+        topic_layout.addLayout(topic_tables_layout)
+
         # Add layouts to main layout
         layout.addLayout(pool_layout)
         layout.addLayout(button_layout)
         layout.addLayout(list_layout)
+        layout.addLayout(topic_layout)  # 새로 추가
         layout.addLayout(right_button_layout)
 
         # Set selection mode and event filters
@@ -259,7 +405,7 @@ class DatabaseManager(QMainWindow):
         self.list_deselect_btn.clicked.connect(self.deselect_list_items)
         self.list_renumber_btn.clicked.connect(self.renumber_list_items)
 
-        self.pool_table.horizontalHeader().sectionClicked.connect(self.show_filter_dialog)
+        self.filter_btn.clicked.connect(self.show_filter_dialog)
 
         self.book_name_input.currentIndexChanged.connect(self.load_selected_book)
         self.delete_pdfs_btn.clicked.connect(self.delete_pdfs_gui)
@@ -444,6 +590,40 @@ class DatabaseManager(QMainWindow):
             for j, cell_data in enumerate(row_data):
                 self.list_table.setItem(i, j, QTableWidgetItem(cell_data))
 
+
+    def get_list_used_items(self):
+        # HISTORY_DB_PATH 내의 모든 JSON 파일 가져오기
+        all_files = [f for f in os.listdir(HISTORY_DB_PATH) if f.endswith('.json')]
+        print(f"All JSON files: {all_files}")
+    
+        # EX_로 시작하는 파일들을 가나다순으로 정렬
+        ex_files = sorted([f for f in all_files if f.startswith('EX_')])
+        print(f"EX_ files: {ex_files}")
+    
+        list_used_items = dict()
+    
+        # EX_ 파일들에서 검색
+        for ex_file in ex_files:
+            file_path = os.path.join(HISTORY_DB_PATH, ex_file)
+            print(f"Checking file: {ex_file}")
+            with open(file_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            print(f"File loaded successfully, {len(data)} items")
+    
+            # 리스트 형태의 JSON에서 list_rel_item_code 내의 item_code 검색
+            for i, item in enumerate(data):
+                list_rel_item_code = item.get('list_rel_item_code', [])
+    
+                if isinstance(list_rel_item_code, list):
+                    for index, rel_item_code in enumerate(list_rel_item_code):
+                        output = item.get('number')
+                        order = chr(index + 65)
+                        file_identifier = ex_file.split('_')[1].replace('회.json', '')
+                        result = f'정태혁 모의고사 {int(file_identifier)}회 {output}{order}번'
+                        rel_item = {rel_item_code: result}
+                        list_used_items.update(rel_item)
+        return list_used_items
+
     def loadData(self):
         self.pool_data = []
         self.list_sort_order = {}
@@ -462,53 +642,31 @@ class DatabaseManager(QMainWindow):
                 pdf_path = os.path.join(folder_path, subfolder, f"{subfolder}.pdf")
 
             return os.path.exists(hwp_path) or os.path.exists(pdf_path)
+        for base_path in [KICE_DB_PATH, NICE_DB_PATH, ITEM_DB_PATH]:
+            # Load from KICE_DB_PATH
+            for folder in os.listdir(base_path):
+                folder_path = os.path.join(base_path, folder)
+                if os.path.isdir(folder_path):
+                    for subfolder in os.listdir(folder_path):
+                        if len(subfolder) == 13 and is_valid_item(folder_path, subfolder, original_pdf=True):
+                            parsed = self.parse_code(subfolder)
+                            order = parsed["topic"] + parsed["section"] + parsed["number"] + parsed["subject"]
+                            if self.list_used_items.get(subfolder):
+                                reference = self.list_used_items.get(subfolder)
+                            else:
+                                reference = ""
+                            self.pool_data.append({
+                                'item_code': subfolder,
+                                'topic': parsed["topic"],
+                                'order': order,
+                                'reference': reference
+                            })
+                            serial_num += 1
 
-        # Load from KICE_DB_PATH
-        for folder in os.listdir(KICE_DB_PATH):
-            folder_path = os.path.join(KICE_DB_PATH, folder)
-            if os.path.isdir(folder_path):
-                for subfolder in os.listdir(folder_path):
-                    if len(subfolder) == 13 and is_valid_item(folder_path, subfolder, original_pdf=True):
-                        parsed = self.parse_code(subfolder)
-                        order = parsed["topic"] + parsed["section"] + parsed["number"] + parsed["subject"]
-                        self.pool_data.append({
-                            'item_code': subfolder,
-                            'topic': parsed["topic"],
-                            'order': order
-                        })
-                        serial_num += 1
+        self.original_pool_data = self.pool_data.copy()
 
-        # Load from NICE_DB_PATH
-        for folder in os.listdir(NICE_DB_PATH):
-            folder_path = os.path.join(NICE_DB_PATH, folder)
-            if os.path.isdir(folder_path):
-                for subfolder in os.listdir(folder_path):
-                    if len(subfolder) == 13 and is_valid_item(folder_path, subfolder, original_pdf=True):
-                        parsed = self.parse_code(subfolder)
-                        order = parsed["topic"] + parsed["section"] + parsed["number"] + parsed["subject"]
-                        self.pool_data.append({
-                            'item_code': subfolder,
-                            'topic': parsed["topic"],
-                            'order': order
-                        })
-                        serial_num += 1
-
-        # Load from ITEM_DB_PATH
-        for folder in os.listdir(ITEM_DB_PATH):
-            folder_path = os.path.join(ITEM_DB_PATH, folder)
-            if os.path.isdir(folder_path):
-                for subfolder in os.listdir(folder_path):
-                    if len(subfolder) == 13 and is_valid_item(folder_path, subfolder, original_pdf=False):
-                        parsed = self.parse_code(subfolder)
-                        order = parsed["topic"] + parsed["section"] + parsed["number"] + parsed["subject"]
-                        self.pool_data.append({
-                            'item_code': subfolder,
-                            'topic': parsed["topic"],
-                            'order': order
-                        })
-                        serial_num += 1
         self.update_pool_table()
-
+        
     def update_pool_table(self, data=None):
         if data is None:
             data = self.pool_data
@@ -517,18 +675,31 @@ class DatabaseManager(QMainWindow):
             item_code = item['item_code']
             item_code_item = QTableWidgetItem(item_code)
 
+            # reference 키를 안전하게 가져오기
+            reference = item.get('reference', '')  # 키가 없으면 빈 문자열
+
             if parse_code(item_code)["section"] == "KC" and item_code not in self.kice_topics:
                 item_code_item.setBackground(QColor('pink'))
             if parse_code(item_code)["section"] == "KC" and item_code in self.kice_topics:
-                item_code_item.setBackground(QColor('lightgreen'))
+                if reference:  # item['reference'] 대신 reference 사용
+                    item_code_item.setBackground(QColor('green'))
+                else:
+                    item_code_item.setBackground(QColor('lightgreen'))
             if parse_code(item_code)["section"] == "NC":
-                item_code_item.setBackground(QColor('lightyellow'))
+                if reference:  # item['reference'] 대신 reference 사용
+                    item_code_item.setBackground(QColor('yellow'))
+                else:
+                    item_code_item.setBackground(QColor('lightyellow'))
             if parse_code(item_code)["section"] != "KC" and parse_code(item_code)["section"] != "NC":
-                item_code_item.setBackground(QColor('lightblue'))
+                if reference:  # item['reference'] 대신 reference 사용
+                    item_code_item.setBackground(QColor('blue'))
+                else:
+                    item_code_item.setBackground(QColor('lightblue'))
 
             self.pool_table.setItem(i, 0, item_code_item)
             self.pool_table.setItem(i, 1, QTableWidgetItem(item['topic']))
             self.pool_table.setItem(i, 2, QTableWidgetItem(str(item['order'])))
+            self.pool_table.setItem(i, 3, QTableWidgetItem(reference))  # 안전하게 사용
 
     def load_kice_topics(self):
         with open(RESOURCES_PATH + '/KICEtopic.json', 'r', encoding='utf-8') as file:
@@ -661,10 +832,9 @@ class DatabaseManager(QMainWindow):
 
         self.check_and_remove_empty_rows()
 
-    def show_filter_dialog(self, column):
-        if column == 1:  # Topic column
-            dialog = FilterDialog(self)
-            dialog.exec_()
+    def show_filter_dialog(self):
+        dialog = FilterDialog(self)
+        dialog.exec_()
 
     def renumber_list_items(self):
         if not self.show_warning_dialog("Are you sure you want to renumber the list items?"):
@@ -1173,8 +1343,6 @@ class DatabaseManager(QMainWindow):
         except Exception as e:
             self.log_message(f"Error during para change: {str(e)}")
 
-
-
     def open_item_hwp(self, item_code):
         # Construct and normalize path
         hwp_path = code2hwp(item_code)
@@ -1192,7 +1360,6 @@ class DatabaseManager(QMainWindow):
                     subprocess.run(['explorer', folder_path], check=True)
                 except subprocess.CalledProcessError as e:
                     print(f"Error: {e}")
-
 
     def refractor_item_code(self, item_code, new_code):
         # 원본 코드의 정보 파싱
@@ -1631,6 +1798,280 @@ class DatabaseManager(QMainWindow):
                 else:
                     self.cancel_tag_edit()
 
+    def load_topic_table(self):
+        """Topic 테이블 초기 로드 - 3개 테이블로 분할"""
+        # Load topics from JSON files
+        with open(RESOURCES_PATH + '/topic.json', 'r', encoding='utf-8') as f:
+            topics_data = json.load(f)
+
+        with open(RESOURCES_PATH + '/test_topic.json', 'r', encoding='utf-8') as f:
+            order_data = json.load(f)
+
+        # Filter Dialog와 동일한 방식으로 정렬
+        grouped_topics = self.group_topics_by_order(topics_data, order_data)
+
+        # 테이블에 데이터 로드 - order 값에 따라 3개 테이블로 분할
+        topic_groups = [[], [], []]  # 3개 그룹
+
+        for order_value in sorted(grouped_topics.keys()):
+            for topic_code in grouped_topics[order_value]:
+                topic_data = {
+                    'code': topic_code,
+                    'name': f'{order_value}) {topics_data[topic_code]}',
+                    'order': order_value
+                }
+
+                # order 값에 따라 그룹 분할
+                if 1 <= order_value <= 6:
+                    topic_groups[0].append(topic_data)
+                elif 7 <= order_value <= 13:
+                    topic_groups[1].append(topic_data)
+                else:  # 14-20
+                    topic_groups[2].append(topic_data)
+
+        # 각 테이블에 데이터 로드
+        for table_idx, topics in enumerate(topic_groups):
+            table = self.topic_tables[table_idx]
+            table.setRowCount(len(topics))
+
+            for i, topic in enumerate(topics):
+                table.setItem(i, 0, QTableWidgetItem(topic['code']))
+                table.setItem(i, 1, QTableWidgetItem(topic['name']))
+                table.setItem(i, 2, QTableWidgetItem(""))  # 초기에는 빈 문자열
+
+        # 초기 업데이트
+        self.update_topic_table()
+
+    def group_topics_by_order(self, topics_data, order_data):
+        """FilterDialog와 동일한 그룹화 함수"""
+        grouped_topics = {}
+
+        for key, topic_name in topics_data.items():
+            if key in order_data:
+                order_value = order_data[key]
+                if order_value not in grouped_topics:
+                    grouped_topics[order_value] = []
+                grouped_topics[order_value].append(key)
+
+        # 각 그룹 내에서 키 순서대로 정렬
+        order_keys = list(order_data.keys())
+        for order_value in grouped_topics:
+            grouped_topics[order_value].sort(key=lambda x: order_keys.index(x) if x in order_keys else float('inf'))
+
+        return grouped_topics
+
+    def update_topic_table(self):
+        """3개 Topic 테이블의 번호 컬럼과 색상 업데이트 + 정사각형 업데이트 (디버깅 버전)"""
+        # 캐시된 order_data 사용
+        order_data = self.load_topic_order_data()
+
+        # LIST 테이블에서 각 topic별 번호들 수집
+        topic_numbers = {}
+        quater_has_items = set()  # 문항이 있는 quater들을 저장
+
+        print("=== DEBUG: Scanning LIST table ===")
+        print(f"LIST table has {self.list_table.rowCount()} rows")
+
+        for row in range(self.list_table.rowCount()):
+            item_code_item = self.list_table.item(row, 0)
+            number_item = self.list_table.item(row, 1)
+
+            if item_code_item and item_code_item.text() and len(item_code_item.text()) == 13:
+                item_code = item_code_item.text()
+                topic = item_code[2:5]
+                number_text = number_item.text() if number_item else ""
+
+                print(
+                    f"Row {row}: {item_code} -> topic: '{topic}', number: '{number_text}' (length: {len(number_text)})")
+
+                if number_item and number_item.text().strip():  # .strip() 추가로 공백 제거
+                    if topic not in topic_numbers:
+                        topic_numbers[topic] = []
+                    topic_numbers[topic].append(number_item.text().strip())
+
+                    # 해당 topic의 quater 추가
+                    if topic in order_data:
+                        quater = order_data[topic]
+                        quater_has_items.add(quater)
+                        print(f"  -> ✓ Added quater {quater} for topic '{topic}'")
+                    else:
+                        print(f"  -> ✗ Topic '{topic}' NOT FOUND in order_data")
+                else:
+                    print(f"  -> No valid number for this item")
+            else:
+                item_code_text = item_code_item.text() if item_code_item else "None"
+                print(
+                    f"Row {row}: Invalid item_code: '{item_code_text}' (length: {len(item_code_text) if item_code_text else 0})")
+
+        print(f"=== Topic numbers collected: {topic_numbers} ===")
+        print(f"=== Final quater_has_items: {sorted(quater_has_items)} ===")
+
+        # 3개 Topic 테이블 모두 업데이트
+        for table in self.topic_tables:
+            for row in range(table.rowCount()):
+                topic_code_item = table.item(row, 0)
+                if topic_code_item:
+                    topic_code = topic_code_item.text()
+
+                    # 번호 컬럼 업데이트
+                    numbers = topic_numbers.get(topic_code, [])
+                    numbers.sort(key=lambda x: int(x) if x.isdigit() else float('inf'))
+                    numbers_text = ', '.join(numbers)
+                    table.setItem(row, 2, QTableWidgetItem(numbers_text))
+
+                    # 색상 업데이트 (캐시된 데이터 사용)
+                    try:
+                        if topic_code in order_data and numbers:  # 번호가 있을 때만 색칠
+                            quater = order_data[topic_code]
+                            color = self.get_topic_color_code(quater)
+
+                            # 전체 행에 색상 적용
+                            for col in range(3):
+                                item = table.item(row, col)
+                                if item:
+                                    item.setBackground(color)
+                        else:
+                            # 번호가 없으면 색상 제거
+                            for col in range(3):
+                                item = table.item(row, col)
+                                if item:
+                                    item.setBackground(QColor("white"))  # 기본 색상
+
+                    except (ValueError, KeyError, IndexError):
+                        pass
+
+        # 정사각형들 업데이트
+        print(f"=== Updating squares with quaters: {sorted(quater_has_items)} ===")
+        self.update_quater_squares(quater_has_items)
+
+    def update_quater_squares(self, quater_has_items):
+        """정사각형들의 색칠 상태 업데이트 (디버깅 버전)"""
+        quater_ranges = [(1, 6), (7, 13), (14, 20)]  # 각 그룹의 quater 범위
+
+        print("=== DEBUG: Updating squares ===")
+        for group_idx, squares_group in enumerate(self.quater_squares):
+            start_quater, end_quater = quater_ranges[group_idx]
+            print(f"Group {group_idx}: quaters {start_quater}-{end_quater}")
+
+            for square_idx, square in enumerate(squares_group):
+                quater = start_quater + square_idx
+
+                if quater in quater_has_items:
+                    # 문항이 있는 quater는 색칠
+                    color = self.get_topic_color_code(quater)
+                    square.setStyleSheet(
+                        f"border: 1px solid black; background-color: {color.name()}; font-size: 10px; font-weight: bold; color: white;")
+                    print(f"  -> Square {quater}: COLORED with {color.name()}")
+                else:
+                    # 문항이 없는 quater는 흰색
+                    square.setStyleSheet(
+                        f"border: 1px solid black; background-color: white; font-size: 10px; font-weight: bold; color: black;")
+                    print(f"  -> Square {quater}: WHITE")
+
+    def get_topic_color_code(self, quater):
+        """Topic 색상 코드 반환"""
+        topic_color_code = ["#FF8A80", "#FFAB91", "#FFCDD2", "#FF9800", "#FFC107",
+                            "#FFD54F", "#81C784", "#A5D6A7", "#C8E6C9", "#2196F3",
+                            "#42A5F5", "#64B5F6", "#90CAF9", "#B39DDB", "#CE93D8",
+                            "#E1BEE7", "#F0D5D4", "#C4B5A0", "#D4C4B0", "#E4D4C0"]
+        color = topic_color_code[quater - 1]
+        return QColor(color)
+
+    def load_topic_order_data(self):
+        """test_topic.json 데이터를 한 번만 로드하여 캐시"""
+        if self.topic_order_data is None:
+            with open(RESOURCES_PATH + '/test_topic.json', 'r', encoding='utf-8') as f:
+                self.topic_order_data = json.load(f)
+        return self.topic_order_data
+
+    def schedule_topic_update(self):
+        """Topic 테이블 업데이트를 지연시켜 배치로 처리"""
+        if not self.topic_update_scheduled:
+            self.topic_update_scheduled = True
+            from PyQt5.QtCore import QTimer
+            QTimer.singleShot(100, self.perform_topic_update)  # 100ms 후 실행
+
+    def perform_topic_update(self):
+        """실제 Topic 테이블 업데이트 수행"""
+        self.topic_update_scheduled = False
+        self.update_topic_table()
+    def show_topic_context_menu(self, pos):
+        """Topic 테이블 우클릭 컨텍스트 메뉴 표시"""
+        try:
+            sender = self.sender()
+            if not sender:
+                return
+
+            row = sender.rowAt(pos.y())
+            col = sender.columnAt(pos.x())
+
+            # 유효한 셀 위치인지 확인
+            if row < 0 or col < 0:
+                return
+
+            # 선택된 topic code 가져오기
+            topic_code_item = sender.item(row, 0)
+            if not topic_code_item or not topic_code_item.text():
+                return
+
+            topic_code = topic_code_item.text()
+
+            # 컨텍스트 메뉴 생성
+            menu = QMenu(self)
+
+            # Filter QUATER 액션
+            filter_quater_action = menu.addAction("Filter QUATER")
+            filter_quater_action.triggered.connect(lambda: self.filter_by_quater(topic_code))
+
+            # Filter TOPIC 액션
+            filter_topic_action = menu.addAction("Filter TOPIC")
+            filter_topic_action.triggered.connect(lambda: self.filter_by_topic(topic_code))
+
+            # 메뉴 표시
+            menu.exec_(sender.mapToGlobal(pos))
+
+            # 메뉴 객체 정리
+            menu.deleteLater()
+
+        except Exception as e:
+            self.log_message(f"Topic context menu error: {str(e)}")
+
+    def filter_by_quater(self, topic_code):
+        """선택된 topic의 quater로 필터링"""
+        try:
+            # topic_code의 quater 찾기
+            order_data = self.load_topic_order_data()
+            if topic_code not in order_data:
+                self.log_message(f"Topic {topic_code} not found in order data")
+                return
+
+            target_quater = order_data[topic_code]
+
+            # 같은 quater에 속하는 모든 topic 찾기
+            topics_in_quater = [code for code, quater in order_data.items() if quater == target_quater]
+
+            # POOL 테이블 필터링
+            filtered_data = [item for item in self.pool_data if item['topic'] in topics_in_quater]
+            self.update_pool_table(filtered_data)
+            self.sort_pool_by_order()
+
+            self.log_message(f"Filtered by quater {target_quater}: {len(topics_in_quater)} topics")
+
+        except Exception as e:
+            self.log_message(f"Error filtering by quater: {str(e)}")
+
+    def filter_by_topic(self, topic_code):
+        """선택된 topic으로 필터링"""
+        try:
+            # 해당 topic만으로 필터링
+            filtered_data = [item for item in self.pool_data if item['topic'] == topic_code]
+            self.update_pool_table(filtered_data)
+            self.sort_pool_by_order()
+
+            self.log_message(f"Filtered by topic {topic_code}: {len(filtered_data)} items")
+
+        except Exception as e:
+            self.log_message(f"Error filtering by topic: {str(e)}")
 
 
 class FilterDialog(QDialog):
@@ -1647,7 +2088,9 @@ class FilterDialog(QDialog):
         with open(RESOURCES_PATH + '/topic.json', 'r', encoding='utf-8') as f:
             topics_data = json.load(f)
 
-        topics = {key: f"{key} : {value}" for key, value in topics_data.items()}
+        # Load test_topic.json for sorting order
+        with open(RESOURCES_PATH + '/test_topic.json', 'r', encoding='utf-8') as f:
+            order_data = json.load(f)
 
         # 상단 버튼들
         top_buttons = QHBoxLayout()
@@ -1662,52 +2105,57 @@ class FilterDialog(QDialog):
         # 메인 그리드 레이아웃
         self.checkboxes = []
         self.category_checkboxes = {}
-        main_layout = QHBoxLayout()  # 수평 레이아웃으로 변경
+        main_layout = QHBoxLayout()
 
         # 왼쪽 카테고리 버튼들을 위한 레이아웃
         category_layout = QVBoxLayout()
-        stretch_factors = [1, 2, 1, 2, 1, 1, 2, 2, 2, 2, 1, 1, 1, 2, 1, 1]
-        title_factors = ['고체1', '고체2', '고체3', '고체4', '고체5',
-                         '유체1', '유체2', '유체3', '유체4', '유체5',
-                         '천체1', '천체2', '천체3', '천체4', '천체5', '천체6']
 
         # 오른쪽 체크박스들을 위한 그리드 레이아웃
         checkbox_grid = QGridLayout()
 
-        grouped_topics = self.group_topics_by_category(topics)
+        # order_data의 value로 그룹화하고 정렬
+        grouped_topics = self.group_topics_by_order(topics_data, order_data)
         current_row = 0
 
-        for i, (category, group) in enumerate(grouped_topics.items()):
-            # 카테고리 버튼은 왼쪽 레이아웃에 추가
-            category_btn = QPushButtonGui(title_factors[i] + ': ' + category)
+        for i, order_value in enumerate(sorted(grouped_topics.keys())):
+            group = grouped_topics[order_value]
+
+            # 카테고리 버튼 (order_value를 카테고리명으로 사용)
+            category_btn = QPushButtonGui(f'Group {order_value}')
             category_layout.addWidget(category_btn)
-            category_layout.setStretch(i, stretch_factors[i])
 
-            self.category_checkboxes[category] = []
+            # Group 12에만 stretch factor를 2로 설정, 나머지는 1
+            if order_value == 12 or order_value == 4:
+                category_layout.setStretch(i, 2)
+            else:
+                category_layout.setStretch(i, 1)
 
-            # 체크박스들은 오른쪽 그리드에 4열로 배치
+            self.category_checkboxes[order_value] = []
+
+            # 체크박스들을 오른쪽 그리드에 4열로 배치
             count = 0
-            for key, display_text in group:
+            for key in group:
+                display_text = f'{key} : {topics_data[key]}'
                 cb = QCheckBox(display_text)
                 cb.setChecked(False)
                 self.checkboxes.append(cb)
-                self.category_checkboxes[category].append(cb)
+                self.category_checkboxes[order_value].append(cb)
                 checkbox_grid.addWidget(cb, current_row, count)
                 count += 1
-                if count >= 4:  # 4열로 변경
+                if count >= 4:
                     current_row += 1
                     count = 0
 
-            if count > 0:  # 마지막 행이 4개 미만일 경우 다음 행으로
+            if count > 0:
                 current_row += 1
 
             # 카테고리 버튼 클릭 이벤트
-            category_btn.clicked.connect(lambda checked, cat=category: self.toggle_category(cat))
+            category_btn.clicked.connect(lambda checked, cat=order_value: self.toggle_category(cat))
 
         # 카테고리 레이아웃을 왼쪽에 배치
         category_widget = QWidget()
         category_widget.setLayout(category_layout)
-        category_widget.setFixedWidth(150)  # 적절한 너비 설정
+        category_widget.setFixedWidth(150)
         main_layout.addWidget(category_widget)
 
         # 체크박스 그리드를 오른쪽에 배치
@@ -1722,14 +2170,22 @@ class FilterDialog(QDialog):
         select_none_btn.clicked.connect(self.select_none)
         apply_btn.clicked.connect(self.apply_filter)
 
-    def group_topics_by_category(self, topics):
+    def group_topics_by_order(self, topics_data, order_data):
+        """order_data의 value로 그룹화하고 각 그룹 내에서 key 순서대로 정렬"""
         grouped_topics = {}
-        for key, value in topics.items():
-            category = value[0]
-            if category in grouped_topics:
-                grouped_topics[category].append((key, value))
-            else:
-                grouped_topics[category] = [(key, value)]
+
+        for key, topic_name in topics_data.items():
+            if key in order_data:
+                order_value = order_data[key]
+                if order_value not in grouped_topics:
+                    grouped_topics[order_value] = []
+                grouped_topics[order_value].append(key)
+
+        # 각 그룹 내에서 키 순서대로 정렬 (order_data에 나타나는 순서대로)
+        order_keys = list(order_data.keys())
+        for order_value in grouped_topics:
+            grouped_topics[order_value].sort(key=lambda x: order_keys.index(x) if x in order_keys else float('inf'))
+
         return grouped_topics
 
     def toggle_category(self, category):
@@ -1753,9 +2209,8 @@ class FilterDialog(QDialog):
         selected_topics = [cb.text().split(' : ')[0] for cb in self.checkboxes if cb.isChecked()]
         filtered_data = [item for item in self.parent.pool_data if item['topic'] in selected_topics]
         self.parent.update_pool_table(filtered_data)
+        self.parent.sort_pool_by_order()
         self.accept()
-
-
 
 if __name__ == '__main__':
 
