@@ -433,7 +433,8 @@ class DatabaseManager(QMainWindow):
             item_code = self.pool_table.item(row, 0).text()
             topic = self.pool_table.item(row, 1).text()
             order = self.pool_table.item(row, 2).text()
-            current_items.append({'item_code': item_code, 'topic': topic, 'order': order})
+            reference = self.pool_table.item(row, 3).text()
+            current_items.append({'item_code': item_code, 'topic': topic, 'order': order, 'reference': reference})
 
         # Sort current items
         current_items.sort(key=lambda x: x['order'])
