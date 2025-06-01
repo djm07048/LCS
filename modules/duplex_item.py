@@ -19,7 +19,6 @@ class DuplexItemBuilder:
     def __init__(self, items, curr_page):
         self.items = items
         self.curr_page = curr_page
-        self.doc_page = 0           #이번 doc에 한정한 page 번호
         self.resources_pdf = RESOURCES_PATH + "/duplex_item_resources.pdf"
         self.resources_doc = fitz.open(self.resources_pdf)
         self.rel_ref = {}
@@ -47,9 +46,12 @@ class DuplexItemBuilder:
         return component
 
     def bake_title_sd_sol(self, sd_code):
-        source = sdcode2cite(sd_code)
-        text_number = source.split(" ")[4][:-1]
-        text_cite = source.split(" ")[1] + " " + source.split(" ")[2] + " " + source.split(" ")[3] + " " + source.split(" ")[4]
+        if sd_code[5:7] == 'KC':        #6평대비 듀플렉스 용으로 추가
+            pass
+        else:
+            source = sdcode2cite(sd_code)
+            text_number = source.split(" ")[4][:-1]
+            text_cite = source.split(" ")[1] + " " + source.split(" ")[2] + " " + source.split(" ")[3] + " " + source.split(" ")[4]
 
         compo = self.get_component_on_resources(3)
         box = ComponentOverlayObject(0, Coord(0,0,0), compo)
@@ -99,9 +101,12 @@ class DuplexItemBuilder:
         return box
 
     def bake_title_rel_sol(self, sd_code, rel_code):
-        sd_source = sdcode2cite(sd_code)
-        text_number = str(sd_source.split(" ")[4][:-1]) + chr(64 + self.rel_number[rel_code])
-        text_cite = sd_source.split(" ")[1] + " " + sd_source.split(" ")[2] + " " + sd_source.split(" ")[3] + " " + sd_source.split(" ")[4] + " 연계"
+        if sd_code[5:7] == 'KC':            #6평대비 듀플렉스 용으로 추가
+            pass
+        else:
+            sd_source = sdcode2cite(sd_code)
+            text_number = str(sd_source.split(" ")[4][:-1]) + chr(64 + self.rel_number[rel_code])
+            text_cite = sd_source.split(" ")[1] + " " + sd_source.split(" ")[2] + " " + sd_source.split(" ")[3] + " " + sd_source.split(" ")[4] + " 연계"
         if rel_code[5:7] == 'KC' or rel_code[5:7] == 'NC':
             text_ref = code2cite(rel_code)            # 2026학년도 6월 12번 지1
         else:
@@ -202,7 +207,7 @@ class DuplexItemBuilder:
 
         return so
 
-    def append_new_list_to_paragraph(self, paragraph: ParagraphOverlayObject, num, overlayer: Overlayer, align):
+    def append_new_list_to_paragraph(self, paragraph: ParagraphOverlayObject, num, overlayer: Overlayer, local_start_page, align):
         # 페이지 레이아웃 설정
         x0_list = [[Ratio.mm_to_px(22), Ratio.mm_to_px(136)], [Ratio.mm_to_px(18), Ratio.mm_to_px(132)]]
         y0 = Ratio.mm_to_px(47)
@@ -210,7 +215,8 @@ class DuplexItemBuilder:
         height = y1 - y0
 
         # 현재 페이지의 짝/홀수 확인 (우수/좌수)
-        page_side = (self.doc_page + self.curr_page) % 2
+        current_absolute_page = local_start_page + overlayer.doc.page_count - 1
+        page_side = current_absolute_page % 2
 
         # 우단 -> 좌단 순으로 적재
         # num이 짝수(0,2,4...)면 우단, 홀수(1,3,5...)면 좌단
@@ -220,14 +226,17 @@ class DuplexItemBuilder:
         x0 = x0_list[page_side][column]
 
         # 디버깅 메시지
-        print(f"Adding new list: page_side={page_side}, column={column}, x0={x0}, num={num}")
+        print(f"Adding new list: absolute_page={current_absolute_page}, page_side={page_side}, column={column}, x0={x0}, num={num}")
 
         # 새 리스트 생성 및 추가
-        paragraph_list = ListOverlayObject(self.doc_page, Coord(x0, y0, 0), height, align)
+        doc_page_index = overlayer.doc.page_count - 1
+        paragraph_list = ListOverlayObject(doc_page_index, Coord(x0, y0, 0), height, align)
         paragraph.add_paragraph_list(paragraph_list=paragraph_list)
 
-    def add_child_to_paragraph(self, paragraph: ParagraphOverlayObject, child: OverlayObject, num, overlayer: Overlayer,
-                               align=3):
+    def add_child_to_paragraph(self, paragraph: ParagraphOverlayObject, child: OverlayObject, num, overlayer: Overlayer, local_start_page, align=3):
+        if child is None:
+            print("Warning: child is None")
+            return num
         # 기존 리스트에 추가 가능하면 추가하고 num 그대로 반환
         if paragraph.add_child(child):
             return num
@@ -235,11 +244,9 @@ class DuplexItemBuilder:
         # 첫 번째 리스트인 경우 (num=0)
         if num == 0:
             # 첫 번째 리스트 생성 (우단)
-            self.append_new_list_to_paragraph(paragraph, num, overlayer, align)
+            self.append_new_list_to_paragraph(paragraph, num, overlayer, local_start_page, align)
             paragraph.add_child(child)
-            # num 증가 (열 변경)
-            num += 1
-            return num
+            return num + 1
 
         # 두 번째 이상의 리스트인 경우
 
@@ -249,49 +256,48 @@ class DuplexItemBuilder:
         # 이전 열이 좌단(1)이면 다음 페이지로 넘어감 (우단->좌단 순서에서)
         if prev_column == 1:  # 좌단이 채워짐 -> 새 페이지 필요
             # 현재 페이지의 짝/홀수 확인
-            total_page = self.doc_page + self.curr_page
-            template_page_num = 31 - (total_page % 2)
+            new_absolute_page = local_start_page + overlayer.doc.page_count
+            template_page_num = 31 - (new_absolute_page % 2)
 
             # 새 페이지 추가
             overlayer.add_page(self.get_component_on_resources(template_page_num))
-            # 문서 내 페이지 카운터만 증가
-            self.doc_page += 1
 
         # 새 리스트 추가
         self.append_new_list_to_paragraph(paragraph, num, overlayer, align)
         paragraph.add_child(child)
+        return num + 1
 
-        # num 증가 (열 변경)
-        num += 1
-
-        return num
-
-    def append_new_list_to_paragraph_piece(self, paragraph: ParagraphOverlayObject, num, overlayer: Overlayer, align):
+    def append_new_list_to_paragraph_piece(self, paragraph: ParagraphOverlayObject, num, overlayer: Overlayer,
+                                                 local_start_page, align):
         # 페이지 레이아웃 설정
         x0_list = [[Ratio.mm_to_px(22), Ratio.mm_to_px(136)], [Ratio.mm_to_px(18), Ratio.mm_to_px(132)]]
         y0 = Ratio.mm_to_px(47)
         y1 = Ratio.mm_to_px(347)
         height = y1 - y0
 
+        # 현재 작업 중인 페이지의 절대 번호 계산
+        current_absolute_page = local_start_page + overlayer.doc.page_count - 1
+
         # 현재 페이지의 짝/홀수 확인 (우수/좌수)
-        page_side = (self.doc_page + self.curr_page) % 2
+        page_side = current_absolute_page % 2
 
         # 좌단 -> 우단 순으로 적재
-        # num이 짝수(0,2,4...)면 좌단, 홀수(1,3,5...)면 우단 (append_new_list_to_paragraph와 반대)
         column = num % 2
 
         # 좌표 선택
         x0 = x0_list[page_side][column]
 
         # 디버깅 메시지
-        print(f"Adding new list (piece): page_side={page_side}, column={column}, x0={x0}, num={num}")
+        print(
+            f"Adding new list (piece): absolute_page={current_absolute_page}, page_side={page_side}, column={column}, x0={x0}, num={num}")
 
-        # 새 리스트 생성 및 추가
-        paragraph_list = ListOverlayObject(self.doc_page, Coord(x0, y0, 0), height, align)
+        # 새 리스트 생성 및 추가 (문서 내 페이지 인덱스 사용)
+        doc_page_index = overlayer.doc.page_count - 1
+        paragraph_list = ListOverlayObject(doc_page_index, Coord(x0, y0, 0), height, align)
         paragraph.add_paragraph_list(paragraph_list=paragraph_list)
 
     def add_child_to_paragraph_piece(self, paragraph: ParagraphOverlayObject, child: OverlayObject, num,
-                                     overlayer: Overlayer, align=0):
+                                           overlayer: Overlayer, local_start_page, align=0):
         # 기존 리스트에 추가 가능하면 추가하고 num 그대로 반환
         if paragraph.add_child(child):
             return num
@@ -299,63 +305,61 @@ class DuplexItemBuilder:
         # 첫 번째 리스트인 경우 (num=0)
         if num == 0:
             # 첫 번째 리스트 생성 (좌단)
-            self.append_new_list_to_paragraph_piece(paragraph, num, overlayer, align)
+            self.append_new_list_to_paragraph_piece(paragraph, num, overlayer, local_start_page, align)
             paragraph.add_child(child)
-            # num 증가 (열 변경)
-            num += 1
-            return num
-
-        # 두 번째 이상의 리스트인 경우
+            return num + 1
 
         # 이전 열 확인 (num-1의 열)
         prev_column = (num - 1) % 2
 
         # 이전 열이 우단(1)이면 다음 페이지로 넘어감
         if prev_column == 1:  # 우단이 채워짐 -> 새 페이지 필요
-            # 현재 페이지의 짝/홀수 확인
-            total_page = self.doc_page + self.curr_page
-            template_page_num = 31 - (total_page % 2)
+            # 새로 추가될 페이지의 절대 번호 계산
+            new_absolute_page = local_start_page + overlayer.doc.page_count
+            template_page_num = 31 - (new_absolute_page % 2)
 
             # 새 페이지 추가
             overlayer.add_page(self.get_component_on_resources(template_page_num))
-            # 문서 내 페이지 카운터만 증가
-            self.doc_page += 1
 
         # 새 리스트 추가
-        self.append_new_list_to_paragraph_piece(paragraph, num, overlayer, align)
+        self.append_new_list_to_paragraph_piece(paragraph, num, overlayer, local_start_page, align)
         paragraph.add_child(child)
 
-        # num 증가 (열 변경)
-        num += 1
+        return num + 1
 
         return num
+
     def build_page_sd_sol(self, sd_code):
-        self.doc_page = 0
+        # 로컬 페이지 기준점 설정
+        local_start_page = self.curr_page
+
         doc_sd_sol = fitz.open()
-        self.overlayer = Overlayer(doc_sd_sol)
-        self.overlayer.add_page(self.get_component_on_resources(31 - self.curr_page % 2))
+        overlayer = Overlayer(doc_sd_sol)
 
+        # 첫 페이지 추가 (로컬 기준)
+        overlayer.add_page(self.get_component_on_resources(31 - local_start_page % 2))
 
-        # 페이지 전체 컨테이너 생성
-        page_container = AreaOverlayObject(self.doc_page, Coord(0, 0, 0), Ratio.mm_to_px(371))
+        # 페이지 전체 컨테이너 생성 (문서 내 0번 페이지)
+        page_container = AreaOverlayObject(0, Coord(0, 0, 0), Ratio.mm_to_px(371))
 
-        # 제목 컴포넌트 추가
+        # 제목 컴포넌트 추가 (로컬 기준)
         title_sd_sol = self.bake_title_sd_sol(sd_code)
-        title_sd_sol.coord = Coord(Ratio.mm_to_px(22 - ((self.curr_page + self.doc_page) % 2) * 4), Ratio.mm_to_px(24), 0)
+        current_page_index = local_start_page + overlayer.doc.page_count - 1
+        page_side = current_page_index % 2
+        title_x = Ratio.mm_to_px(22 - page_side * 4)
+        title_sd_sol.coord = Coord(title_x, Ratio.mm_to_px(24), 0)
         page_container.add_child(title_sd_sol)
 
-        # 문제 컴포넌트 추가
+        # 문제 컴포넌트 추가 (로컬 기준)
         problem = self.get_problem_component(sd_code)
-        problem_compo = ComponentOverlayObject(self.doc_page,
-                                               Coord(Ratio.mm_to_px(22 - ((self.curr_page + self.doc_page) % 2) * 4 - 0.762), Ratio.mm_to_px(47),
-                                                     0),
-                                               problem)
+        problem_x = Ratio.mm_to_px(22 - (local_start_page % 2) * 4 - 0.762)
+        problem_compo = ComponentOverlayObject(0, Coord(problem_x, Ratio.mm_to_px(47), 0), problem)
         page_container.add_child(problem_compo)
 
         # 전체 컨테이너 오버레이
-        page_container.overlay(self.overlayer, Coord(0, 0, 0))
+        page_container.overlay(overlayer, Coord(0, 0, 0))
 
-        # 솔루션 부분은 기존 방식 유지 (ParagraphOverlayObject 활용)
+        # 솔루션 부분 (로컬 기준으로 처리)
         paragraph = ParagraphOverlayObject()
         paragraph_cnt = 0
 
@@ -368,68 +372,85 @@ class DuplexItemBuilder:
         solutions_info.reverse()
         for solution_info in solutions_info:
             so = self.bake_solution_object(solution_info, sTF[solution_info.hexcode], sd_pdf)
-            paragraph_cnt = self.add_child_to_paragraph(paragraph, so, paragraph_cnt, self.overlayer)
+            paragraph_cnt = self.add_child_to_paragraph(paragraph, so, paragraph_cnt, overlayer, local_start_page)
 
-        paragraph.overlay(self.overlayer, Coord(0, 0, 0))
+        paragraph.overlay(overlayer, Coord(0, 0, 0))
 
+        # 완료 후 전역 카운터 업데이트
         self.curr_page += doc_sd_sol.page_count
+
         return doc_sd_sol
 
     def build_page_theory(self, sd_code, list_theory_piece_code):
-        self.doc_page = 0
+        # 로컬 페이지 기준점 설정
+        local_start_page = self.curr_page
+
         doc_theory = fitz.open()
-        self.overlayer = Overlayer(doc_theory)
-        self.overlayer.add_page(self.get_component_on_resources(31 - self.curr_page % 2))
+        overlayer = Overlayer(doc_theory)
+
+        # 첫 페이지 추가 (로컬 기준)
+        overlayer.add_page(self.get_component_on_resources(31 - local_start_page % 2))
 
         # 페이지 전체 컨테이너 생성
-        page_container = AreaOverlayObject(self.doc_page, Coord(0, 0, 0), Ratio.mm_to_px(371))
+        page_container = AreaOverlayObject(0, Coord(0, 0, 0), Ratio.mm_to_px(371))
 
-        # 제목 컴포넌트 추가
+        # 제목 컴포넌트 추가 (로컬 기준)
+
         title_theory = self.bake_title_theory(sd_code, list_theory_piece_code)
-        title_theory.coord = Coord(Ratio.mm_to_px(22 - ((self.curr_page + self.doc_page) % 2) * 4), Ratio.mm_to_px(24), 0)
+        current_page_index = local_start_page + overlayer.doc.page_count - 1
+        page_side = current_page_index % 2
+        title_x = Ratio.mm_to_px(22 - page_side * 4)
+        title_theory.coord = Coord(title_x, Ratio.mm_to_px(24), 0)
         page_container.add_child(title_theory)
 
         # 전체 컨테이너 오버레이
-        page_container.overlay(self.overlayer, Coord(0, 0, 0))
+        page_container.overlay(overlayer, Coord(0, 0, 0))
 
-        # 이론 조각 부분 처리
+        # 이론 조각 부분 처리 (로컬 기준)
         paragraph = ParagraphOverlayObject()
         paragraph_cnt = 0
         for piece_code in list_theory_piece_code:
             piece = self.bake_theory_piece(piece_code)
-            paragraph_cnt = self.add_child_to_paragraph_piece(paragraph, piece, paragraph_cnt, self.overlayer, align=0)
+            paragraph_cnt = self.add_child_to_paragraph_piece(paragraph, piece, paragraph_cnt, overlayer,
+                                                                    local_start_page, align=0)
 
-        paragraph.overlay(self.overlayer, Coord(0, 0, 0))
+        paragraph.overlay(overlayer, Coord(0, 0, 0))
 
+        # 완료 후 전역 카운터 업데이트
         self.curr_page += doc_theory.page_count
         return doc_theory
 
     def build_page_rel_sol(self, sd_code, rel_code):
-        self.doc_page = 0
+        # 로컬 페이지 기준점 설정
+        local_start_page = self.curr_page
+
         doc_rel_sol = fitz.open()
-        self.overlayer = Overlayer(doc_rel_sol)
-        self.overlayer.add_page(self.get_component_on_resources(31 - self.curr_page % 2))
+        overlayer = Overlayer(doc_rel_sol)
+
+        # 첫 페이지 추가 (로컬 기준)
+        overlayer.add_page(self.get_component_on_resources(31 - local_start_page % 2))
 
         # 페이지 전체 컨테이너 생성
-        page_container = AreaOverlayObject(self.doc_page, Coord(0, 0, 0), Ratio.mm_to_px(371))
+        page_container = AreaOverlayObject(0, Coord(0, 0, 0), Ratio.mm_to_px(371))
 
-        # 제목 컴포넌트 추가
+        # 제목 컴포넌트 추가 (로컬 기준)
+        current_page_index = local_start_page + overlayer.doc.page_count - 1
+        page_side = current_page_index % 2
         title_rel_sol = self.bake_title_rel_sol(sd_code, rel_code)
-        title_rel_sol.coord = Coord(Ratio.mm_to_px(22 - ((self.curr_page + self.doc_page) % 2) * 4), Ratio.mm_to_px(24), 0)
+        title_x = Ratio.mm_to_px(22 - page_side * 4)
+        title_rel_sol.coord = Coord(title_x, Ratio.mm_to_px(24), 0)
         page_container.add_child(title_rel_sol)
 
-        # 문제 컴포넌트 추가
+        # 문제 컴포넌트 추가 (로컬 기준)
         problem = self.get_problem_component(rel_code)
-        problem_compo = ComponentOverlayObject(self.doc_page,
-                                               Coord(Ratio.mm_to_px(22 - ((self.curr_page + self.doc_page) % 2) * 4- 0.762), Ratio.mm_to_px(47),
-                                                     0),
-                                               problem)
+        problem_x = Ratio.mm_to_px(22 - (local_start_page % 2) * 4 - 0.762)
+        problem_compo = ComponentOverlayObject(0, Coord(problem_x, Ratio.mm_to_px(47), 0), problem)
         page_container.add_child(problem_compo)
 
         # 전체 컨테이너 오버레이
-        page_container.overlay(self.overlayer, Coord(0, 0, 0))
+        page_container.overlay(overlayer, Coord(0, 0, 0))
 
-        # 솔루션 부분은 기존 방식 유지 (ParagraphOverlayObject 활용)
+        # 솔루션 부분 (로컬 기준으로 처리)
         paragraph = ParagraphOverlayObject()
         paragraph_cnt = 0
 
@@ -442,10 +463,11 @@ class DuplexItemBuilder:
         solutions_info.reverse()
         for solution_info in solutions_info:
             so = self.bake_solution_object(solution_info, sTF[solution_info.hexcode], rel_pdf)
-            paragraph_cnt = self.add_child_to_paragraph(paragraph, so, paragraph_cnt, self.overlayer)
+            paragraph_cnt = self.add_child_to_paragraph(paragraph, so, paragraph_cnt, overlayer, local_start_page)
 
-        paragraph.overlay(self.overlayer, Coord(0, 0, 0))
+        paragraph.overlay(overlayer, Coord(0, 0, 0))
 
+        # 완료 후 전역 카운터 업데이트
         self.curr_page += doc_rel_sol.page_count
         return doc_rel_sol
 
@@ -485,11 +507,23 @@ class DuplexItemBuilder:
             commentary_data = json.load(file)
         return commentary_data
 
-
-
     def build_page_memo(self):
         memo_doc = fitz.open()
         memo_overlayer = Overlayer(memo_doc)
         memo_overlayer.add_page(self.get_component_on_resources(37))
 
         return memo_doc
+
+    def add_page_index(self, overlayer, number, page_num):
+        index_object = self.get_component_on_resources(33 - (page_num % 2))
+        x0 = Ratio.mm_to_px(20) if page_num % 2 == 0 else Ratio.mm_to_px(250)
+        y0 = Ratio.mm_to_px(13 + 20 * number)
+        page_num_object = ComponentOverlayObject(number, Coord(x0, y0, 10), index_object)
+
+        xText = Ratio.mm_to_px(10.5) if page_num % 2 == 0 else Ratio.mm_to_px(1.5)
+        yText = Ratio.mm_to_px(7.764)
+        align = fitz.TEXT_ALIGN_RIGHT if page_num % 2 == 0 else fitz.TEXT_ALIGN_LEFT
+        to = TextOverlayObject(number, Coord(xText, yText, 10),"Pretendard-Bold.ttf", 15, str(number), (0, 0, 0, 0),
+                                                align)
+        page_num_object.add_child(to)
+        page_num_object.overlay(overlayer, page_num_object.coord)

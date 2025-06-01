@@ -1363,6 +1363,7 @@ class DatabaseManager(QMainWindow):
                     print(f"Error: {e}")
 
     def refractor_item_code(self, item_code, new_code):
+        # TODO: 기존 json file의 item_code까지 변경
         # 원본 코드의 정보 파싱
         if item_code[5:7] == 'KC':
             old_base_path = KICE_DB_PATH
@@ -1429,7 +1430,7 @@ class DatabaseManager(QMainWindow):
         except PermissionError as e:
             QMessageBox.critical(self, 'Error', str(e))
         except Exception as e:
-            QMessageBox.critical(self, 'Error', f'예상치 못한 오류가 발생했습니다: {str(e)}')
+            QMessageBox.critical(self, 'Error', f'예상치 못한 오류가 발생했습니다: {str(e)}') #
 
 
     def refractor_item_code_by_gui(self, item_code):

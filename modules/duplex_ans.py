@@ -33,11 +33,20 @@ class DXAnswerBuilder:
 
         for item_code, item_data in items.items():
             print(f"item_code: {item_code}, item_data: {item_data}")
+
+            rel_item_answers = []
+            for rel_item_code in item_data['list_rel_item_code']:
+                rel_item_pdf = code2pdf(rel_item_code)
+                rel_answer = self.get_problem_answer(rel_item_pdf)
+                rel_item_answers.append(rel_answer)
+
             dict_entry = {
                 item_data['number']: {
                     'item_code': item_code,
                     'score': item_data['score'],  # int; 2 or 3
-                    'answer': self.get_problem_answer(code2pdf(item_code))  # int; 1, 2, 3, 4, 5
+                    'answer': self.get_problem_answer(code2pdf(item_code)),  # int; 1, 2, 3, 4, 5
+                    'rel_item_code': item_data['list_rel_item_code'],  # list of item codes
+                    'rel_item_answer': rel_item_answers,  # list of answers
                 }
             }
             self.items.update(dict_entry)
@@ -114,9 +123,77 @@ class DXAnswerBuilder:
 
         return new_doc
 
-    def build_footer_page(self):
+    def build_footer_page(self, local_start_page):
         new_doc = fitz.open()
         overlayer = Overlayer(new_doc)
-        overlayer.add_page(self.get_component_on_resources(8))
+
+        exsiting_page_count = local_start_page + 2  # 마지막에 whole_answer_page 및 10번 page를 넣으므로 +1 + 1을 더해야 함
+        empty_pages_needed = 4 - (exsiting_page_count % 4)
+        for i in range(empty_pages_needed):
+            overlayer.add_page(self.get_component_on_resources(8))
+        whole_answer_doc = self.build_whole_answer_page()
+        new_doc.insert_pdf(whole_answer_doc)
         overlayer.add_page(self.get_component_on_resources(10))
+        return new_doc
+
+    def build_whole_answer_page(self):
+        new_doc = fitz.open()
+        overlayer = Overlayer(new_doc)
+        overlayer.add_page(self.get_component_on_resources(13))
+
+        def get_item_box_coord(item_number):     #1 따위로 입력됨.
+            x0_List = {"A" :60, "B": 100, "C": 140, "D": 180}
+            y0_List = [47 + i * 15 for i in range(20)]
+
+            y0 = y0_List[item_number - 1]  # 첫 글자
+            return Coord(Ratio.mm_to_px(28), Ratio.mm_to_px(y0), 0)
+        def get_rel_box_coord(item_number, rel_item_number):
+            x0_List = {"A": 60, "B": 100, "C": 140, "D": 180}
+            y0_List = [47 + i * 15 for i in range(20)]
+
+            y0 = y0_List[item_number - 1]
+            x0 = x0_List[rel_item_number]
+            return Coord(Ratio.mm_to_px(x0), Ratio.mm_to_px(y0), 0)
+        def bake_item_box(item_number, answer):
+            answer_list = {1: "①", 2: "②", 3: "③", 4: "④", 5: "⑤"}
+            answer_text = answer_list.get(answer, "X")  # 답이 없으면 "X"로 표시
+            box_color = (0, 0, 0, 0.8) if item_number % 2 == 0 else (1, 0, 0, 0)  # 홀수는 별색, 짝수는 검정
+            so = AreaOverlayObject(0, Coord(0,0,0), Ratio.mm_to_px(14))
+            shape = ShapeOverlayObject(0,  Coord(0,0,0), Rect(0, 0, Ratio.mm_to_px(16), Ratio.mm_to_px(14)),  box_color)
+            to_number = TextOverlayObject(0, Coord(Ratio.mm_to_px(8), Ratio.mm_to_px(9.7), 0), "Montserrat-Bold.ttf", 22,
+                                   str(item_number), (0, 0, 0, 0), fitz.TEXT_ALIGN_CENTER)
+            to_answer = TextOverlayObject(0, Coord(Ratio.mm_to_px(23), Ratio.mm_to_px(9.7), 0), "NanumSquareNeo-cBd.ttf", 18,
+                                   answer_text, (0, 0, 0, 1), fitz.TEXT_ALIGN_CENTER)
+            so.add_child(shape)
+            so.add_child(to_number)
+            so.add_child(to_answer)
+            return so
+
+        def bake_rel_box(item_number, rel_item_number, rel_answer):
+            answer_list = {1: "①", 2: "②", 3: "③", 4: "④", 5: "⑤"}
+            answer_text = answer_list.get(rel_answer, "X")  # 답이 없으면 "X"로 표시
+            compo = self.get_component_on_resources(15 - item_number % 2)  # 홀수는 별색, 짝수는 검정
+            so = ComponentOverlayObject(0, Coord(0, 0, 0), compo)
+            to_number = TextOverlayObject(0, Coord(Ratio.mm_to_px(12), Ratio.mm_to_px(9.7), 0), "Montserrat-Bold.ttf", 22,
+                                   str(item_number) + str(rel_item_number), (0, 0, 0, 0), fitz.TEXT_ALIGN_CENTER)
+            to_answer = TextOverlayObject(0, Coord(Ratio.mm_to_px(32), Ratio.mm_to_px(9.7), 0), "NanumSquareNeo-cBd.ttf", 18,
+                                      answer_text, (0, 0, 0, 1), fitz.TEXT_ALIGN_CENTER)
+            so.add_child(to_number)
+            so.add_child(to_answer)
+            return so
+
+        for item_number, item_data in self.items.items():
+            answer = item_data['answer']
+            box_coord = get_item_box_coord(item_number)
+            so = bake_item_box(item_number, answer)
+            so.overlay(overlayer, box_coord)
+
+            for i in range(len(item_data['rel_item_code'])):
+                rel_item_number = chr(ord('A') + i)  # 'A', 'B', 'C', 'D' 순서로
+                rel_item_answer = item_data['rel_item_answer'][i]
+                box_coord = get_rel_box_coord(item_number, rel_item_number)
+                so = bake_rel_box(item_number, rel_item_number, rel_item_answer)
+                so.overlay(overlayer, box_coord)
+
+
         return new_doc

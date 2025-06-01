@@ -122,6 +122,7 @@ def convert_hwp_to_pdf(hwp_path):
 
             if os.path.exists(pdf_path):
                 os.remove(pdf_path)
+                time.sleep(0.5)
 
             if attempt > 1:
                 print(f"Failed to convert {hwp_path} to PDF. Retrying...")

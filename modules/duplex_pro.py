@@ -20,7 +20,6 @@ class DuplexProBuilder:
     def __init__(self, items, curr_page):
         self.items = items
         self.curr_page = curr_page
-        self.doc_page = 0           #이번 doc에 한정한 page 번호
         self.resources_pdf = RESOURCES_PATH + "/duplex_item_resources.pdf"
         self.resources_doc = fitz.open(self.resources_pdf)
         self.rel_ref = {}
@@ -180,28 +179,51 @@ class DuplexProBuilder:
         problem.height = curr_height + self.space_btw_problem                      #더해지는 값이 문항 - 문항 간 간격을 결정함
         return problem
 
-    def append_new_list_to_paragraph(self, paragraph: ParagraphOverlayObject, num, overlayer: Overlayer):
-        x0_list = [[Ratio.mm_to_px(22), Ratio.mm_to_px(133)], [Ratio.mm_to_px(18), Ratio.mm_to_px(129)]]     #[[우수 Lt, 우수 Rt], [좌수 Lt, 좌수 Rt]]
+    def append_new_list_to_paragraph(self, paragraph: ParagraphOverlayObject, num, overlayer: Overlayer,
+                                           local_start_page):
+        x0_list = [[Ratio.mm_to_px(22), Ratio.mm_to_px(133)],
+                   [Ratio.mm_to_px(18), Ratio.mm_to_px(129)]]  # [[우수 Lt, 우수 Rt], [좌수 Lt, 좌수 Rt]]
         y0 = Ratio.mm_to_px(24)
         y1 = Ratio.mm_to_px(347)
         height = y1 - y0
 
-        x0 = x0_list[(self.doc_page + self.curr_page) % 2][0]
-        paragraph_list = ListOverlayObject(self.doc_page, Coord(x0, y0, 0), height, 2)
+        # 현재 작업 중인 페이지의 절대 번호 계산
+        current_absolute_page = local_start_page + overlayer.doc.page_count - 1
+
+        # 현재 페이지의 짝/홀수 확인 (우수/좌수)
+        page_side = current_absolute_page % 2
+
+        x0 = x0_list[page_side][0]  # 항상 왼쪽 컬럼 사용 (single column layout)
+
+        # 새 리스트 생성 및 추가 (문서 내 페이지 인덱스 사용)
+        doc_page_index = overlayer.doc.page_count - 1
+        paragraph_list = ListOverlayObject(doc_page_index, Coord(x0, y0, 0), height, 2)
         paragraph.add_paragraph_list(paragraph_list=paragraph_list)
 
         pass
 
-    def add_child_to_paragraph(self, paragraph: ParagraphOverlayObject, child: OverlayObject, num, overlayer: Overlayer):
-        if paragraph.add_child(child): return num
-        self.append_new_list_to_paragraph(paragraph, num, overlayer)
+    def add_child_to_paragraph(self, paragraph: ParagraphOverlayObject, child: OverlayObject, num,
+                                     overlayer: Overlayer, local_start_page):
+        if paragraph.add_child(child):
+            return num
+
+        # 새 리스트 생성
+        self.append_new_list_to_paragraph(paragraph, num, overlayer, local_start_page)
         paragraph.add_child(child)
-        # 새로운 page를 만들어주고 끝내기.
-        overlayer.add_page(self.get_component_on_resources(29 - (self.doc_page + self.curr_page) % 2))      #홀짝 판정해야 해서 좌우 구분 필요
-        self.doc_page += 1
-        return num + 1
+
+        # 새로운 page를 만들어주고 끝내기
+        # 새로 추가될 페이지의 절대 번호 계산
+        new_absolute_page = local_start_page + overlayer.doc.page_count
+        template_page_num = 29 - (new_absolute_page % 2)  # 홀짝 판정해서 좌우 구분
+        overlayer.add_page(self.get_component_on_resources(template_page_num))
+
+        # num 증가
+        num += 1
+        return num
 
     def build_page_pro(self):
+        local_start_page = self.curr_page
+
         pro_doc = fitz.open()
         self.overlayer = Overlayer(pro_doc)
         paragraph = ParagraphOverlayObject()
@@ -209,12 +231,15 @@ class DuplexProBuilder:
 
         for sd_code in self.items.keys():
             problem_sd = self.bake_problem_sd(sd_code)
-            paragraph_cnt = self.add_child_to_paragraph(paragraph, problem_sd, paragraph_cnt, self.overlayer)
+            paragraph_cnt = self.add_child_to_paragraph(paragraph, problem_sd, paragraph_cnt, self.overlayer, local_start_page)
 
             for rel_code in self.items[sd_code]['list_rel_item_code']:
                 problem_rel = self.bake_problem_rel(sd_code, rel_code)
-                paragraph_cnt = self.add_child_to_paragraph(paragraph, problem_rel, paragraph_cnt, self.overlayer)
+                paragraph_cnt = self.add_child_to_paragraph(paragraph, problem_rel, paragraph_cnt, self.overlayer, local_start_page)
 
         paragraph.overlay(self.overlayer, Coord(0,0,0))
+
+        # 완료 후 전역 카운터 업데이트
+        self.curr_page += pro_doc.page_count
 
         return pro_doc

@@ -24,8 +24,8 @@ class DXBuilder:
         }
 
 
-    def add_page_num(self, overlayer):
-        for num in range(7, overlayer.doc.page_count - 1):  # 7P부터 시작
+    def add_page_num(self, overlayer, page_num):
+        for num in range(7, page_num):  # 7P부터 시작
             if num % 2:
                 page_num_object = TextOverlayObject(num - 1, Coord(Ratio.mm_to_px(244), Ratio.mm_to_px(358.5), -1),
                                                     "Pretendard-Bold.ttf", 14, f"{num}", (0, 0, 0, 1),
@@ -55,7 +55,7 @@ class DXBuilder:
         fdo.add_page(DXAB.get_component_on_resources(8))        #empty
 
         curr_page = new_doc.page_count + 2
-        print(f"curr_page1: {curr_page}")
+        print(f"curr_page1: {curr_page}")   #curr_page는 현재 페이지수를 의미하는데, 1부터 시작하는 번호이다.
 
         DXPB = DuplexProBuilder(self.items, curr_page)
         doc_pro = DXPB.build_page_pro()
@@ -81,6 +81,7 @@ class DXBuilder:
         DXIB.rel_ref = DXPB.rel_ref
         DXIB.rel_number = DXPB.rel_number
 
+
         for sd_code in self.items.keys():
             if log_callback:
                 log_callback(f"Building {sd_code}")
@@ -100,6 +101,7 @@ class DXBuilder:
                 back_doc.insert_pdf(doc_rel_sol)
                 doc_rel_sol.close()
 
+
             DXIB.doc_page = 0
             '''
             메모 삽입 로직
@@ -118,17 +120,18 @@ class DXBuilder:
         new_doc.insert_pdf(back_doc)
 
         curr_page = DXIB.curr_page
+        page_num_end = curr_page
 
         # Memopage 삽입 로직, curr_page 제어 필요
         #Footer
-        footer_doc = DXAB.build_footer_page()
+        footer_doc = DXAB.build_footer_page(curr_page)
         new_doc.insert_pdf(footer_doc)
         curr_page += footer_doc.page_count
         footer_doc.close()
 
-        # 점수 삽입
+        # 페이지 번호 삽입
         new_doc_overlayer = Overlayer(new_doc)
-        self.add_page_num(new_doc_overlayer)
+        self.add_page_num(new_doc_overlayer, page_num_end + 1)
         PdfUtils.save_to_pdf(new_doc, output, garbage=4)
         new_doc.close()
 
