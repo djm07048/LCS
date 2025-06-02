@@ -28,6 +28,7 @@ class Overlayer:
             new_page.set_cropbox(new_page.rect)
         pass
 
+
     def text_overlay(self, page_num, coord, font_file, size, text, color, text_align):
         font_path = RESOURCES_PATH + "/fonts/" + font_file
         font = fitz.Font(fontfile=font_path)

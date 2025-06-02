@@ -26,7 +26,9 @@ class ExamTestBuilder():
         item['item_code']: {
         'number': item['number'],
         'score': item['score'],
-        'para': item['para']
+        'para': item['para'],
+        'list_rel_item_code': item['list_rel_item_code'],
+        'list_theory_piece_code': item['list_theory_piece_code']
         }
         for item in items
 }

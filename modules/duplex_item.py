@@ -225,15 +225,12 @@ class DuplexItemBuilder:
         # 좌표 선택
         x0 = x0_list[page_side][column]
 
-        # 디버깅 메시지
-        print(f"Adding new list: absolute_page={current_absolute_page}, page_side={page_side}, column={column}, x0={x0}, num={num}")
-
         # 새 리스트 생성 및 추가
         doc_page_index = overlayer.doc.page_count - 1
         paragraph_list = ListOverlayObject(doc_page_index, Coord(x0, y0, 0), height, align)
         paragraph.add_paragraph_list(paragraph_list=paragraph_list)
 
-    def add_child_to_paragraph(self, paragraph: ParagraphOverlayObject, child: OverlayObject, num, overlayer: Overlayer, local_start_page, align=3):
+    def add_child_to_paragraph(self, paragraph: ParagraphOverlayObject, child: OverlayObject, num, overlayer: Overlayer, local_start_page, item_number=1, align=3):
         if child is None:
             print("Warning: child is None")
             return num
@@ -259,8 +256,7 @@ class DuplexItemBuilder:
             new_absolute_page = local_start_page + overlayer.doc.page_count
             template_page_num = 31 - (new_absolute_page % 2)
 
-            # 새 페이지 추가
-            overlayer.add_page(self.get_component_on_resources(template_page_num))
+            self.add_page_with_index(overlayer, template_page_num, item_number, local_start_page)
 
         # 새 리스트 추가
         self.append_new_list_to_paragraph(paragraph, num, overlayer, align)
@@ -287,17 +283,13 @@ class DuplexItemBuilder:
         # 좌표 선택
         x0 = x0_list[page_side][column]
 
-        # 디버깅 메시지
-        print(
-            f"Adding new list (piece): absolute_page={current_absolute_page}, page_side={page_side}, column={column}, x0={x0}, num={num}")
-
         # 새 리스트 생성 및 추가 (문서 내 페이지 인덱스 사용)
         doc_page_index = overlayer.doc.page_count - 1
         paragraph_list = ListOverlayObject(doc_page_index, Coord(x0, y0, 0), height, align)
         paragraph.add_paragraph_list(paragraph_list=paragraph_list)
 
     def add_child_to_paragraph_piece(self, paragraph: ParagraphOverlayObject, child: OverlayObject, num,
-                                           overlayer: Overlayer, local_start_page, align=0):
+                                           overlayer: Overlayer, local_start_page, item_number=1, align=0):
         # 기존 리스트에 추가 가능하면 추가하고 num 그대로 반환
         if paragraph.add_child(child):
             return num
@@ -319,7 +311,7 @@ class DuplexItemBuilder:
             template_page_num = 31 - (new_absolute_page % 2)
 
             # 새 페이지 추가
-            overlayer.add_page(self.get_component_on_resources(template_page_num))
+            self.add_page_with_index(overlayer, template_page_num, item_number, local_start_page)
 
         # 새 리스트 추가
         self.append_new_list_to_paragraph_piece(paragraph, num, overlayer, local_start_page, align)
@@ -332,12 +324,13 @@ class DuplexItemBuilder:
     def build_page_sd_sol(self, sd_code):
         # 로컬 페이지 기준점 설정
         local_start_page = self.curr_page
+        item_number = self.items[sd_code]['number']
 
         doc_sd_sol = fitz.open()
         overlayer = Overlayer(doc_sd_sol)
 
-        # 첫 페이지 추가 (로컬 기준)
-        overlayer.add_page(self.get_component_on_resources(31 - local_start_page % 2))
+        # 페이지 인덱스 추가
+        self.add_page_with_index(overlayer, 31 - local_start_page % 2, item_number, local_start_page)
 
         # 페이지 전체 컨테이너 생성 (문서 내 0번 페이지)
         page_container = AreaOverlayObject(0, Coord(0, 0, 0), Ratio.mm_to_px(371))
@@ -372,7 +365,7 @@ class DuplexItemBuilder:
         solutions_info.reverse()
         for solution_info in solutions_info:
             so = self.bake_solution_object(solution_info, sTF[solution_info.hexcode], sd_pdf)
-            paragraph_cnt = self.add_child_to_paragraph(paragraph, so, paragraph_cnt, overlayer, local_start_page)
+            paragraph_cnt = self.add_child_to_paragraph(paragraph, so, paragraph_cnt, overlayer, local_start_page, item_number)
 
         paragraph.overlay(overlayer, Coord(0, 0, 0))
 
@@ -384,12 +377,13 @@ class DuplexItemBuilder:
     def build_page_theory(self, sd_code, list_theory_piece_code):
         # 로컬 페이지 기준점 설정
         local_start_page = self.curr_page
+        item_number = self.items[sd_code]['number']
 
         doc_theory = fitz.open()
         overlayer = Overlayer(doc_theory)
 
-        # 첫 페이지 추가 (로컬 기준)
-        overlayer.add_page(self.get_component_on_resources(31 - local_start_page % 2))
+        # 페이지 인덱스 추가
+        self.add_page_with_index(overlayer, 31 - local_start_page % 2, item_number, local_start_page)
 
         # 페이지 전체 컨테이너 생성
         page_container = AreaOverlayObject(0, Coord(0, 0, 0), Ratio.mm_to_px(371))
@@ -412,7 +406,7 @@ class DuplexItemBuilder:
         for piece_code in list_theory_piece_code:
             piece = self.bake_theory_piece(piece_code)
             paragraph_cnt = self.add_child_to_paragraph_piece(paragraph, piece, paragraph_cnt, overlayer,
-                                                                    local_start_page, align=0)
+                                                                    local_start_page, item_number, align=0)
 
         paragraph.overlay(overlayer, Coord(0, 0, 0))
 
@@ -423,12 +417,14 @@ class DuplexItemBuilder:
     def build_page_rel_sol(self, sd_code, rel_code):
         # 로컬 페이지 기준점 설정
         local_start_page = self.curr_page
+        item_number = self.items[sd_code]['number']
 
         doc_rel_sol = fitz.open()
         overlayer = Overlayer(doc_rel_sol)
 
         # 첫 페이지 추가 (로컬 기준)
-        overlayer.add_page(self.get_component_on_resources(31 - local_start_page % 2))
+        # 페이지 인덱스 추가
+        self.add_page_with_index(overlayer, 31 - local_start_page % 2, item_number, local_start_page)
 
         # 페이지 전체 컨테이너 생성
         page_container = AreaOverlayObject(0, Coord(0, 0, 0), Ratio.mm_to_px(371))
@@ -463,7 +459,7 @@ class DuplexItemBuilder:
         solutions_info.reverse()
         for solution_info in solutions_info:
             so = self.bake_solution_object(solution_info, sTF[solution_info.hexcode], rel_pdf)
-            paragraph_cnt = self.add_child_to_paragraph(paragraph, so, paragraph_cnt, overlayer, local_start_page)
+            paragraph_cnt = self.add_child_to_paragraph(paragraph, so, paragraph_cnt, overlayer, local_start_page, item_number)
 
         paragraph.overlay(overlayer, Coord(0, 0, 0))
 
@@ -514,16 +510,30 @@ class DuplexItemBuilder:
 
         return memo_doc
 
-    def add_page_index(self, overlayer, number, page_num):
-        index_object = self.get_component_on_resources(33 - (page_num % 2))
-        x0 = Ratio.mm_to_px(20) if page_num % 2 == 0 else Ratio.mm_to_px(250)
-        y0 = Ratio.mm_to_px(13 + 20 * number)
-        page_num_object = ComponentOverlayObject(number, Coord(x0, y0, 10), index_object)
+    def add_page_with_index(self, overlayer, resource_page_num, item_number, local_start_page):
+        overlayer.add_page(self.get_component_on_resources(resource_page_num))
+        """
+        Args:
+            overlayer: Overlayer 객체
+            item_number: 표시할 문항번호 (1, 2, 3...)
+            page_num: 실제 페이지 번호
+        """
+        current_page_index = overlayer.doc.page_count - 1
+        page_num = local_start_page + current_page_index
+        print(f"Adding page with index: {resource_page_num}, item_number: {item_number}, current_page_index: {current_page_index}, page_num: {page_num}")
+        index_object = self.get_component_on_resources(32 + (page_num % 2))
+        x0 = Ratio.mm_to_px(0) if page_num % 2 == 1 else Ratio.mm_to_px(250)
+        y0 = Ratio.mm_to_px(8 + 16 * item_number)
 
-        xText = Ratio.mm_to_px(10.5) if page_num % 2 == 0 else Ratio.mm_to_px(1.5)
+        page_num_object = ComponentOverlayObject(current_page_index, Coord(x0, y0, 10), index_object)
+
+        xText = Ratio.mm_to_px(10.5) if page_num % 2 == 1 else Ratio.mm_to_px(1.5)
         yText = Ratio.mm_to_px(7.764)
-        align = fitz.TEXT_ALIGN_RIGHT if page_num % 2 == 0 else fitz.TEXT_ALIGN_LEFT
-        to = TextOverlayObject(number, Coord(xText, yText, 10),"Pretendard-Bold.ttf", 15, str(number), (0, 0, 0, 0),
-                                                align)
+        align = fitz.TEXT_ALIGN_RIGHT if page_num % 2 == 1 else fitz.TEXT_ALIGN_LEFT
+
+        to = TextOverlayObject(current_page_index, Coord(xText, yText, 10),
+                               "Pretendard-Bold.ttf", 15, str(item_number),
+                               (0, 0, 0, 0), align)
+
         page_num_object.add_child(to)
         page_num_object.overlay(overlayer, page_num_object.coord)

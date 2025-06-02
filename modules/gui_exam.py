@@ -590,6 +590,20 @@ class DatabaseManager(QMainWindow):
             for j, cell_data in enumerate(row_data):
                 self.list_table.setItem(i, j, QTableWidgetItem(cell_data))
 
+    def sort_list_by_number_in_ascending_order(self):
+        data = []
+        for row in range(self.list_table.rowCount()):
+            row_data = []
+            for col in range(self.list_table.columnCount()):
+                item = self.list_table.item(row, col)
+                row_data.append(item.text() if item else "")
+            data.append(row_data)
+
+        data.sort(key=lambda x: int(x[1]) if x[1].isdigit() else float('inf'))
+
+        for i, row_data in enumerate(data):
+            for j, cell_data in enumerate(row_data):
+                self.list_table.setItem(i, j, QTableWidgetItem(cell_data))
 
     def get_list_used_items(self):
         # HISTORY_DB_PATH 내의 모든 JSON 파일 가져오기
@@ -1257,11 +1271,10 @@ class DatabaseManager(QMainWindow):
         self.list_table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.list_table.customContextMenuRequested.connect(self.show_context_menu)
 
+    # DatabaseManager 클래스에 추가할 메서드들
+
     def show_context_menu(self, pos):
-        """
-        컨텍스트 메뉴 표시 (오른쪽 버튼 클릭 시)
-        메모리 누수와 중첩 이벤트 처리 문제를 방지하기 위한 개선된 구현
-        """
+        """가장 간단한 컨텍스트 메뉴 - QAction 데이터 사용"""
         try:
             sender = self.sender()
             if not sender:
@@ -1270,61 +1283,98 @@ class DatabaseManager(QMainWindow):
             row = sender.rowAt(pos.y())
             col = sender.columnAt(pos.x())
 
-            # 유효한 셀 위치인지 확인
             if row < 0 or col < 0:
                 return
 
-            # 안전하게 item_code 가져오기
             item_code = ""
             if sender.item(row, 0) and sender.item(row, 0).text():
                 item_code = sender.item(row, 0).text()
 
-            # 새 QMenu 객체 생성
-            menu = QMenu(self)  # 부모 위젯 지정하여 메모리 관리 개선
+            menu = QMenu(self)
 
-            # 메뉴 액션 리스트 초기화
-            swap_actions = []
-            move_actions = []
-            move_options = []
-
-            # POOL 또는 LIST 테이블의 col = 0, 1, 2 열에서의 컨텍스트 메뉴
+            # POOL 또는 LIST 테이블의 col = 0, 1, 2 열
             if sender in [self.pool_table, self.list_table] and col in [0, 1, 2]:
-                if item_code:  # 항목 코드가 있는 경우에만 해당 액션 추가
-                    menu.addAction("Open item HWP", lambda: self.open_item_hwp(item_code))
-                    menu.addAction("Open Folder", lambda: self.open_item_folder(item_code))
-                    menu.addAction("Refractor Item Code", lambda: self.refractor_item_code_by_gui(item_code))
+                if item_code:
+                    action1 = menu.addAction("Open item HWP")
+                    action1.setData({'type': 'hwp', 'code': item_code})
+                    action1.triggered.connect(self.handle_context_action)
 
-                    # 구분선 추가
+                    action2 = menu.addAction("Open Folder")
+                    action2.setData({'type': 'folder', 'code': item_code})
+                    action2.triggered.connect(self.handle_context_action)
+
+                    action3 = menu.addAction("Refractor Item Code")
+                    action3.setData({'type': 'refactor', 'code': item_code})
+                    action3.triggered.connect(self.handle_context_action)
+
                     menu.addSeparator()
 
-                # Swap to xx 옵션 추가 (람다 함수로 직접 연결)
+                # Swap to xx 옵션
                 for i in range(1, 21):
-                    num = i  # 람다에서 참조할 로컬 변수
-                    action = menu.addAction(f"Swap to {i:02d}",
-                                            lambda num: self.safe_swap_item_number(row, num, sender))
-                    swap_actions.append(action)
+                    action = menu.addAction(f"Swap to {i:02d}")
+                    action.setData({'type': 'swap', 'row': row, 'number': i, 'sender': sender})
+                    action.triggered.connect(self.handle_context_action)
 
-            # LIST 테이블의 col = 3 열에서의 컨텍스트 메뉴
+            # LIST 테이블의 col = 3 열
             elif sender == self.list_table and col == 3:
                 move_options = ["1L", "1R", "2L", "2R", "3L", "3R", "4L", "4R"]
 
                 for option in move_options:
-                    opt = option  # 람다에서 참조할 로컬 변수
-                    action = menu.addAction(f"Move to {option}",
-                                            lambda opt: self.safe_change_item_para(row, opt))
-                    move_actions.append(action)
+                    action = menu.addAction(f"Move to {option}")
+                    action.setData({'type': 'para', 'row': row, 'para': option})
+                    action.triggered.connect(self.handle_context_action)
 
-
-
-            # 메뉴가 비어있는지 확인하고 실행
             if not menu.isEmpty():
                 menu.exec_(sender.mapToGlobal(pos))
 
-            # 메뉴 객체 명시적 정리
-            menu.deleteLater()
+        except Exception as e:
+            self.log_message(f"Context menu error: {str(e)}")
+
+    def handle_context_action(self):
+        """컨텍스트 메뉴 액션 처리"""
+        try:
+            action = self.sender()
+            if not action or not action.data():
+                return
+
+            data = action.data()
+            action_type = data.get('type')
+
+            if action_type == 'hwp':
+                self.open_item_hwp(data['code'])
+            elif action_type == 'folder':
+                self.open_item_folder(data['code'])
+            elif action_type == 'refactor':
+                self.refractor_item_code_by_gui(data['code'])
+            elif action_type == 'swap':
+                self.safe_swap_item_number(data['row'], data['number'], data['sender'])
+            elif action_type == 'para':
+                self.safe_change_item_para(data['row'], data['para'])
 
         except Exception as e:
-            self.log_message(f"Error in context menu: {str(e)}")
+            self.log_message(f"Context action error: {str(e)}")
+
+    def safe_swap_item_number(self, row, dst_number, sender=None):
+        """안전한 번호 변경"""
+        try:
+            if sender is None:
+                sender = self.list_table
+            self.swap_item_number(row, dst_number, sender)
+        except Exception as e:
+            self.log_message(f"Swap error: {str(e)}")
+
+    def safe_change_item_para(self, row, new_para):
+        """안전한 para 변경"""
+        try:
+            if row < 0 or row >= self.list_table.rowCount():
+                self.log_message(f"Invalid row: {row}")
+                return
+
+            self.list_table.setItem(row, 3, QTableWidgetItem(str(new_para)))
+            self.log_message(f"Changed row {row} para to {new_para}")
+
+        except Exception as e:
+            self.log_message(f"Para change error: {str(e)}")
 
     def safe_swap_item_number(self, row, new_number, sender):
         """swap_item_number의 안전한 래퍼 함수"""
@@ -1529,6 +1579,8 @@ class DatabaseManager(QMainWindow):
             else:
                 self.swap_item_number_in_list(row, dst_number)
 
+            # LIST 테이블을 col=1 기준으로하여 오름차순 정렬
+            self.sort_list_by_number_in_ascending_order()
         except Exception as e:
             self.log_message(f"Error in swap_item_number: {str(e)}")
 
@@ -1574,6 +1626,13 @@ class DatabaseManager(QMainWindow):
                 self.list_table.setItem(row, 1, QTableWidgetItem(str(dst_number)))
                 # dst_number를 갖고 있던 행의 number를 src_number로 변경
                 self.list_table.setItem(dst_row, 1, QTableWidgetItem(str(src_number)))
+
+                # 현재 행의 단을 dst의 단으로 변경
+                if self.list_table.item(dst_row, 3):
+                    self.list_table.setItem(row, 3, QTableWidgetItem(self.list_table.item(dst_row, 3).text()))
+                # dst_number를 갖고 있던 행의 단을 src의 단으로 변경
+                if self.list_table.item(row, 3):
+                    self.list_table.setItem(dst_row, 3, QTableWidgetItem(self.list_table.item(row, 3).text()))
                 self.log_message(f"Swapped numbers: {src_number} ↔ {dst_number}")
 
             # 2) src number가 20 이하 자연수 & dst number를 갖는 cell 없음

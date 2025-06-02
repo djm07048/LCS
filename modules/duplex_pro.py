@@ -206,16 +206,15 @@ class DuplexProBuilder:
                                      overlayer: Overlayer, local_start_page):
         if paragraph.add_child(child):
             return num
-
-        # 새 리스트 생성
-        self.append_new_list_to_paragraph(paragraph, num, overlayer, local_start_page)
-        paragraph.add_child(child)
-
         # 새로운 page를 만들어주고 끝내기
         # 새로 추가될 페이지의 절대 번호 계산
         new_absolute_page = local_start_page + overlayer.doc.page_count
         template_page_num = 29 - (new_absolute_page % 2)  # 홀짝 판정해서 좌우 구분
         overlayer.add_page(self.get_component_on_resources(template_page_num))
+
+        # 새 리스트 생성
+        self.append_new_list_to_paragraph(paragraph, num, overlayer, local_start_page)
+        paragraph.add_child(child)
 
         # num 증가
         num += 1

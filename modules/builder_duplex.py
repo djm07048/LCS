@@ -55,7 +55,6 @@ class DXBuilder:
         fdo.add_page(DXAB.get_component_on_resources(8))        #empty
 
         curr_page = new_doc.page_count + 2
-        print(f"curr_page1: {curr_page}")   #curr_page는 현재 페이지수를 의미하는데, 1부터 시작하는 번호이다.
 
         DXPB = DuplexProBuilder(self.items, curr_page)
         doc_pro = DXPB.build_page_pro()
@@ -63,7 +62,6 @@ class DXBuilder:
         curr_page += doc_pro.page_count
         new_doc.insert_pdf(front_doc)
         doc_pro.close()
-        print(f"curr_page2: {curr_page}")
 
 
         back_doc = fitz.open()

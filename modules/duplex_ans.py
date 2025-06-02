@@ -35,7 +35,7 @@ class DXAnswerBuilder:
             print(f"item_code: {item_code}, item_data: {item_data}")
 
             rel_item_answers = []
-            for rel_item_code in item_data['list_rel_item_code']:
+            for rel_item_code in item_data.get('list_rel_item_code', []):
                 rel_item_pdf = code2pdf(rel_item_code)
                 rel_answer = self.get_problem_answer(rel_item_pdf)
                 rel_item_answers.append(rel_answer)
@@ -142,14 +142,13 @@ class DXAnswerBuilder:
         overlayer.add_page(self.get_component_on_resources(13))
 
         def get_item_box_coord(item_number):     #1 따위로 입력됨.
-            x0_List = {"A" :60, "B": 100, "C": 140, "D": 180}
-            y0_List = [47 + i * 15 for i in range(20)]
+            y0_List = [60 + i * 13.5 for i in range(20)]
 
             y0 = y0_List[item_number - 1]  # 첫 글자
             return Coord(Ratio.mm_to_px(28), Ratio.mm_to_px(y0), 0)
         def get_rel_box_coord(item_number, rel_item_number):
-            x0_List = {"A": 60, "B": 100, "C": 140, "D": 180}
-            y0_List = [47 + i * 15 for i in range(20)]
+            x0_List = {"A": 60, "B": 95, "C": 130, "D": 175, "E": 220}
+            y0_List = [60 + i * 13.5 for i in range(20)]
 
             y0 = y0_List[item_number - 1]
             x0 = x0_List[rel_item_number]
@@ -159,10 +158,10 @@ class DXAnswerBuilder:
             answer_text = answer_list.get(answer, "X")  # 답이 없으면 "X"로 표시
             box_color = (0, 0, 0, 0.8) if item_number % 2 == 0 else (1, 0, 0, 0)  # 홀수는 별색, 짝수는 검정
             so = AreaOverlayObject(0, Coord(0,0,0), Ratio.mm_to_px(14))
-            shape = ShapeOverlayObject(0,  Coord(0,0,0), Rect(0, 0, Ratio.mm_to_px(16), Ratio.mm_to_px(14)),  box_color)
-            to_number = TextOverlayObject(0, Coord(Ratio.mm_to_px(8), Ratio.mm_to_px(9.7), 0), "Montserrat-Bold.ttf", 22,
+            shape = ShapeOverlayObject(0,  Coord(0,0,0), Rect(0, 0, Ratio.mm_to_px(14), Ratio.mm_to_px(11)),  box_color)
+            to_number = TextOverlayObject(0, Coord(Ratio.mm_to_px(7), Ratio.mm_to_px(7.5), 0), "Montserrat-Bold.ttf", 18,
                                    str(item_number), (0, 0, 0, 0), fitz.TEXT_ALIGN_CENTER)
-            to_answer = TextOverlayObject(0, Coord(Ratio.mm_to_px(23), Ratio.mm_to_px(9.7), 0), "NanumSquareNeo-cBd.ttf", 18,
+            to_answer = TextOverlayObject(0, Coord(Ratio.mm_to_px(21), Ratio.mm_to_px(7), 0), "NanumSquareNeo-cBd.ttf", 15,
                                    answer_text, (0, 0, 0, 1), fitz.TEXT_ALIGN_CENTER)
             so.add_child(shape)
             so.add_child(to_number)
@@ -174,9 +173,9 @@ class DXAnswerBuilder:
             answer_text = answer_list.get(rel_answer, "X")  # 답이 없으면 "X"로 표시
             compo = self.get_component_on_resources(15 - item_number % 2)  # 홀수는 별색, 짝수는 검정
             so = ComponentOverlayObject(0, Coord(0, 0, 0), compo)
-            to_number = TextOverlayObject(0, Coord(Ratio.mm_to_px(12), Ratio.mm_to_px(9.7), 0), "Montserrat-Bold.ttf", 22,
+            to_number = TextOverlayObject(0, Coord(Ratio.mm_to_px(10), Ratio.mm_to_px(7.5), 0), "Montserrat-Bold.ttf", 18,
                                    str(item_number) + str(rel_item_number), (0, 0, 0, 0), fitz.TEXT_ALIGN_CENTER)
-            to_answer = TextOverlayObject(0, Coord(Ratio.mm_to_px(32), Ratio.mm_to_px(9.7), 0), "NanumSquareNeo-cBd.ttf", 18,
+            to_answer = TextOverlayObject(0, Coord(Ratio.mm_to_px(27), Ratio.mm_to_px(7), 0), "NanumSquareNeo-cBd.ttf", 15,
                                       answer_text, (0, 0, 0, 1), fitz.TEXT_ALIGN_CENTER)
             so.add_child(to_number)
             so.add_child(to_answer)
