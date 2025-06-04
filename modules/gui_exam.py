@@ -505,7 +505,7 @@ class DatabaseManager(QMainWindow):
     def remove_selected_rows(self):
         # 태그 관리 프레임이 열려있다면 닫기
         if self.tag_management_frame.isVisible():
-            self.cancel_tag_edit()
+            self.save_tags()
         if not self.show_warning_dialog("Are you sure you want to remove these rows?"):
             return
         selected_rows = sorted(set(item.row() for item in self.list_table.selectedItems()), reverse=True)
@@ -788,7 +788,7 @@ class DatabaseManager(QMainWindow):
     def move_row_up(self):
         # 태그 관리 프레임이 열려있다면 닫기
         if self.tag_management_frame.isVisible():
-            self.cancel_tag_edit()
+            self.save_tags()
         selected_rows = sorted(set(item.row() for item in self.list_table.selectedItems()))
         if not selected_rows or selected_rows[0] <= 0:
             return
@@ -819,7 +819,7 @@ class DatabaseManager(QMainWindow):
     def move_row_down(self):
         # 태그 관리 프레임이 열려있다면 닫기
         if self.tag_management_frame.isVisible():
-            self.cancel_tag_edit()
+            self.save_tags()
         selected_rows = sorted(set(item.row() for item in self.list_table.selectedItems()), reverse=True)
         if not selected_rows or selected_rows[-1] >= self.list_table.rowCount() - 1:
             return
@@ -1849,13 +1849,9 @@ class DatabaseManager(QMainWindow):
         else:
             # 태그 관련 컬럼이 아닌 경우 태그 관리 UI 숨김
             if self.tag_management_frame.isVisible():
-                # 태그 편집 중이었다면 저장 여부 확인
+                # 태그 편집 중이었다면 자동으로 저장
                 if self.current_edit_row >= 0 and self.current_edit_col >= 0:
-                    reply = QMessageBox.question(self, '태그 편집 중단',
-                                                 '태그 편집을 중단하시겠습니까? 변경사항이 저장되지 않습니다.',
-                                                 QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-                    if reply == QMessageBox.Yes:
-                        self.cancel_tag_edit()
+                    self.save_tags()
                 else:
                     self.cancel_tag_edit()
 

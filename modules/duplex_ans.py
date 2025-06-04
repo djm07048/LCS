@@ -57,16 +57,34 @@ class DXAnswerBuilder:
         self.resources_doc = fitz.open(self.resources_pdf)
 
     def get_problem_answer(self, item_pdf):
-        with fitz.open(item_pdf) as file:
-            ic = ItemCropper()
-            solutions_info = ic.get_solution_infos_from_file(file, 10)
-            answer = ic.get_answer_from_file(file)
-            answer_dict = {"①": 1, "②": 2, "③": 3, "④": 4, "⑤": 5}
-            if answer in answer_dict:
-                answer = answer_dict[answer]
-            else:
-                answer = 0
-            return answer
+        try:
+            print(f"🔍 PDF 처리 시작: {item_pdf}")
+
+            if not os.path.exists(item_pdf):
+                print(f"❌ 파일 없음: {item_pdf}")
+                return 0
+
+            with fitz.open(item_pdf) as file:
+                if file.page_count == 0:
+                    print(f"❌ 빈 파일: {item_pdf}")
+                    return 0
+
+                ic = ItemCropper()
+                solutions_info = ic.get_solution_infos_from_file(file, 10)
+                answer = ic.get_answer_from_file(file)
+                print(f"✅ 답안 추출: {answer}")
+
+                answer_dict = {"①": 1, "②": 2, "③": 3, "④": 4, "⑤": 5}
+                if answer in answer_dict:
+                    answer = answer_dict[answer]
+                else:
+                    print(f"❌ 정답 못 찾음: {item_pdf}")
+                    answer = 0
+                return answer
+
+        except Exception as e:
+            print(f"❌ get_problem_answer 오류 - {item_pdf}: {e}")
+            return 0
     def build_1p(self):
         return self.resources_doc.load_page(0)
 
