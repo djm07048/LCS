@@ -128,7 +128,7 @@ class DXAnswerBuilder:
         overlayer = Overlayer(new_doc)
 
         exsiting_page_count = local_start_page + 2  # 마지막에 whole_answer_page 및 10번 page를 넣으므로 +1 + 1을 더해야 함
-        empty_pages_needed = 4 - (exsiting_page_count % 4)
+        empty_pages_needed = (4 - exsiting_page_count) % 4  # 4k -> 0 / 4k+1 -> 3 / 4k+2 -> 2 / 4k+3 -> 1
         for i in range(empty_pages_needed):
             overlayer.add_page(self.get_component_on_resources(8))
         whole_answer_doc = self.build_whole_answer_page()
