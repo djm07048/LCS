@@ -120,8 +120,22 @@ class KiceCropper:
             page = file.load_page(page_num)
             rects = self.get_problem_rects(page, accuracy)
             for rect in rects:
-                if rect.height > Ratio.mm_to_px(25):        #TODO: 임시로 해둔것
-                    ret.append(ProblemInfo(page_num, rect))
+                ret.append(ProblemInfo(page_num, rect))
+
+        # 특정 파일에 대해서만 20번째 문제 x0 조정
+        target_file = r'T:\Software\LCS\input\temp2\2026학년도 6월 지1.pdf'
+        if self.pdf_name == target_file and len(ret) >= 20:
+            original_rect = ret[19].rect  # 20번째 문제 (인덱스 19)
+            adjusted_rect = fitz.Rect(
+                original_rect.x0,
+                original_rect.y0 - Ratio.mm_to_px(2.3),
+                original_rect.x1,
+                original_rect.y1
+            )
+            ret[19].rect = adjusted_rect
+            print(
+                f"📝 '{os.path.basename(self.pdf_name)}' 파일의 20번째 문제 x0 조정: {original_rect.x0:.1f} → {adjusted_rect.x0:.1f} (Δ={Ratio.mm_to_px(10):.1f}px)")
+
         ret.pop()
         return ret
 
@@ -183,8 +197,8 @@ class KiceCropper:
 
                 code = self.cite_from_json(key)
                 if code is None:
-                    PdfUtils.save_to_pdf(new_doc, KICE_DB_PATH + f"/XS/{key}_original.pdf", garbage=4)
-                    print(f"saved original for {key}: {KICE_DB_PATH + f'/XS/{key}_original.pdf'}")
+                    PdfUtils.save_to_pdf(new_doc, KICE_DB_PATH + f"/지1/{key}_original.pdf", garbage=4)
+                    print(f"saved original for {key}: {KICE_DB_PATH + f'/지1/{key}_original.pdf'}")
                 else:
                     PdfUtils.save_to_pdf(new_doc, code2original(code), garbage=4)
                     print(f"saved original for {code}: {code2original(code)}")
@@ -209,7 +223,7 @@ class KiceCropper:
                 code = self.cite_from_json(cite)
                 original_pdf = code2original(code)
             else:
-                original_pdf = KICE_DB_PATH + f"/XS/{cite}_original.pdf"
+                original_pdf = KICE_DB_PATH + f"/지1/{cite}_original.pdf"
             origin = self.bake_origin(cite)
             origin.coord = Coord(Ratio.mm_to_px(0.25), Ratio.mm_to_px(0.25), 0)
             with fitz.open(original_pdf) as file:
@@ -270,7 +284,7 @@ def save_caption_from_original_indie(item_code):
 if __name__ == '__main__':
     from pathlib import Path
 
-    folder_path = Path(r"T:\Software\LCS\input\t")
+    folder_path = Path(r"T:\Software\LCS\input\temp2")
     pdf_files = sorted(folder_path.glob('*.pdf'))
 
     for pdf_file in pdf_files:

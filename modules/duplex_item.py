@@ -46,8 +46,11 @@ class DuplexItemBuilder:
         return component
 
     def bake_title_sd_sol(self, sd_code):
-        if sd_code[5:7] == 'KC':        #6평대비 듀플렉스 용으로 추가
-            pass
+        if sd_code[5:7] == 'KC':
+            source = code2cite(sd_code)     #'{2026}학년도 {6월} {20}번 {지1}'
+            text_number = source.split(" ")[2][:-1]
+            text_cite = source
+
         else:
             source = sdcode2cite(sd_code)
             text_number = source.split(" ")[4][:-1]
@@ -79,9 +82,15 @@ class DuplexItemBuilder:
 
         text_exam = ''.join(list_theory_piece_code[0].split(" ")[2])
         text_number = ', '.join([list_theory_piece_code[i].split(" ")[3] for i in range(len(list_theory_piece_code))])
+        if sd_code[5:7] == 'KC':
+            source = code2cite(sd_code)  # '{2026}학년도 {6월} {20}번 {지1}'
+            text_cite = source + " 개념"
 
-        sd_source = sdcode2cite(sd_code)
-        text_cite = sd_source.split(" ")[1] + " " + sd_source.split(" ")[2] + " " + sd_source.split(" ")[3] + " " + sd_source.split(" ")[4] + " " + "개념"
+        else:
+            sd_source = sdcode2cite(sd_code)
+            text_cite = sd_source.split(" ")[1] + " " + sd_source.split(" ")[2] + " " + sd_source.split(" ")[3] + " " + \
+                        sd_source.split(" ")[4] + " " + "개념"
+
 
         to_exam = TextOverlayObject(0, Coord(Ratio.mm_to_px(41), Ratio.mm_to_px(8.62), 0),
                                     "Pretendard-ExtraBold.ttf", 13,
@@ -101,12 +110,15 @@ class DuplexItemBuilder:
         return box
 
     def bake_title_rel_sol(self, sd_code, rel_code):
-        if sd_code[5:7] == 'KC':            #6평대비 듀플렉스 용으로 추가
-            pass
+        if sd_code[5:7] == 'KC':
+            source = code2cite(sd_code)     #'{2026}학년도 {6월} {20}번 {지1}'
+            text_number = source.split(" ")[2][:-1] + chr(64 + self.rel_number[rel_code])
+            text_cite = source + " 연계"
         else:
             sd_source = sdcode2cite(sd_code)
             text_number = str(sd_source.split(" ")[4][:-1]) + chr(64 + self.rel_number[rel_code])
             text_cite = sd_source.split(" ")[1] + " " + sd_source.split(" ")[2] + " " + sd_source.split(" ")[3] + " " + sd_source.split(" ")[4] + " 연계"
+
         if rel_code[5:7] == 'KC' or rel_code[5:7] == 'NC':
             text_ref = code2cite(rel_code)            # 2026학년도 6월 12번 지1
         else:
@@ -259,7 +271,7 @@ class DuplexItemBuilder:
             self.add_page_with_index(overlayer, template_page_num, item_number, local_start_page)
 
         # 새 리스트 추가
-        self.append_new_list_to_paragraph(paragraph, num, overlayer, align)
+        self.append_new_list_to_paragraph(paragraph, num, overlayer, local_start_page, align)
         paragraph.add_child(child)
         return num + 1
 

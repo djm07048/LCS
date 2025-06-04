@@ -72,10 +72,20 @@ class DXAnswerBuilder:
 
     def get_component_on_header(self, output):
         filename = Path(output).stem
-        page_num = int(filename.split('_')[-2][:-1]) - 1
-        header_pdf = RESOURCES_PATH + "/duplex_header_resources.pdf"
-        header_doc = fitz.open(header_pdf)
-        component = Component(header_pdf, page_num, header_doc.load_page(page_num).rect)
+
+        if filename.split('_')[0] == "EX":  #
+            page_num = int(filename.split('_')[-2][:-1]) - 1
+            header_pdf = RESOURCES_PATH + "/duplex_header_resources.pdf"
+            header_doc = fitz.open(header_pdf)
+            component = Component(header_pdf, page_num, header_doc.load_page(page_num).rect)
+
+        else:
+            kice_list = {"2606E1": 0, "2609E1": 1, "2611E1": 2, "2706E1": 3, "2709E1": 4, "2711E1": 5}
+            page_num = kice_list[filename.split('_')[1]]
+            header_pdf = RESOURCES_PATH + "/exam_header_kice_resources.pdf"
+            header_doc = fitz.open(header_pdf)
+            component = Component(header_pdf, page_num, header_doc.load_page(page_num).rect)
+
         return component
 
     def get_component_on_resources(self, page_num):
@@ -87,15 +97,6 @@ class DXAnswerBuilder:
 
         #page1
         overlayer.add_page(self.get_component_on_resources(9))
-
-        filenum = int(Path(output).stem.split('_')[1][:-1])
-        filecontents = Path(output).stem.split('_')[0]
-        contents = "정태혁 모의고사" if filecontents == "EX" else "정태혁 모의고사"
-        text = f"{contents} {filenum}회"
-        # 이 부분 text 추가
-        text_compo = TextOverlayObject(0, Coord(Ratio.mm_to_px(131), Ratio.mm_to_px(47.5), 0),
-                                       "Pretendard-Bold.ttf", 14, text, (0, 0, 0, 1),
-                                       fitz.TEXT_ALIGN_CENTER)
 
         #page2
         overlayer.add_page(self.get_component_on_resources(8))
@@ -121,6 +122,7 @@ class DXAnswerBuilder:
         # page4
         overlayer.add_page(self.get_component_on_resources(8))
 
+        new_doc.save(output.replace('.pdf', '_answer.pdf'), garbage=4, deflate=True, clean=True)
         return new_doc
 
     def build_footer_page(self, local_start_page):
