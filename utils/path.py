@@ -5,7 +5,8 @@ KICE_DB_PATH = r'T:\THedu\KiceDB'
 ITEM_DB_PATH = r'T:\THedu\ItemDB'
 NICE_DB_PATH = r'T:\THedu\NiceDB'
 
-RESOURCES_PATH = 'T:/Software/LCS/resources'
+RESOURCES_PATH = r'T:\Software\LCS\resources'
+TEMPORARY_PATH = r'T:\Software\LCS\temporary'
 
 INPUT_PATH = r'T:\Software\LCS\input'
 OUTPUT_PATH = r'T:\Software\LCS\output'

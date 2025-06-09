@@ -2,6 +2,7 @@ import os
 import time
 import subprocess
 import sys
+import uuid
 from glob import glob
 from tqdm import tqdm
 from hwps.ezpdf import *
@@ -19,8 +20,10 @@ from utils.coord import Coord
 from utils.ratio import Ratio
 import fitz
 from pyhwpx import Hwp
+from utils.path import *
 
 hwp_lock = Lock()
+
 
 def code2path(item_code):
     hwp_path = code2pdf(item_code).replace('.pdf', '.hwp')
@@ -40,6 +43,7 @@ def font_integrity_test(pdf_path):
                 return False
     doc.close()
     return True
+
 
 def print_pdf(hwp_path, pdf_path):
     pythoncom.CoInitialize()
@@ -99,6 +103,33 @@ def print_pdf(hwp_path, pdf_path):
         pythoncom.CoUninitialize()
 
 
+def safe_file_move(src_path, dest_path, max_retries=5, delay=0.5):
+    """Safely move a file with retry logic for file lock issues"""
+    for attempt in range(max_retries):
+        try:
+            if os.path.exists(src_path):
+                # Try to remove destination file if it exists
+                if os.path.exists(dest_path):
+                    try:
+                        os.remove(dest_path)
+                    except PermissionError:
+                        time.sleep(delay)
+                        continue
+
+                # Try to move the file
+                os.rename(src_path, dest_path)
+                return True
+        except (PermissionError, FileExistsError, OSError) as e:
+            if attempt < max_retries - 1:
+                print(f"File move attempt {attempt + 1} failed: {e}. Retrying in {delay}s...")
+                time.sleep(delay)
+                delay *= 1.5  # Exponential backoff
+            else:
+                print(f"Failed to move file after {max_retries} attempts: {e}")
+                return False
+    return False
+
+
 def convert_hwp_to_pdf(hwp_path):
     pdf_path = hwp_path.replace('.hwp', '.pdf')
     try:
@@ -109,57 +140,90 @@ def convert_hwp_to_pdf(hwp_path):
                 hwp_time = os.path.getmtime(hwp_path)
                 pdf_time = os.path.getmtime(pdf_path)
                 # TODO: Main pdf은 if 없이 무조건 생성됨
-                # PDF가 HWP보다 나중에 생성되었으며 10kb 이상이면서 font_integrity_test를 통과하면 변환 불필요
+                # PDF가 HWP보다 나중에 생성되었으며 10kb 이상이면 변환 불필요
                 if pdf_time > hwp_time:
                     pdf_size = os.path.getsize(pdf_path)
                     if pdf_size > 10 * 1024:
-                        if font_integrity_test(pdf_path):
-                            return pdf_path
-                            break
+                        return pdf_path
 
             # 2) PDF 변환 시도 (최대 3회)
             pythoncom.CoInitialize()
 
             if os.path.exists(pdf_path):
-                os.remove(pdf_path)
-                time.sleep(0.5)
+                try:
+                    os.remove(pdf_path)
+                    time.sleep(0.5)
+                except PermissionError:
+                    # If we can't remove the existing file, skip this conversion
+                    print(f"Cannot remove existing PDF file: {pdf_path}")
+                    pythoncom.CoUninitialize()
+                    continue
 
             if attempt > 1:
                 print(f"Failed to convert {hwp_path} to PDF. Retrying...")
-                time.sleep(0.5)
-
-            else:
-                pass
+                time.sleep(1.0)  # Longer delay on retry
 
             hwp = None
+
+            # Create unique temporary filename to avoid conflicts
+            unique_id = str(uuid.uuid4())[:8]
+            temp_filename = f"{Path(pdf_path).stem}_{unique_id}.pdf"
+            temporary_pdf_path = str(Path(TEMPORARY_PATH) / temp_filename)
+
             try:
                 with hwp_lock:
+                    ''''
                     if parse_code(Path(hwp_path).stem.split('_')[0])["section"] == "KC":
                         hwp = win32.gencache.EnsureDispatch("HWPFrame.HwpObject")
                         hwp.XHwpWindows.Item(0).Visible = False
                         hwp.RegisterModule("FilePathCheckDLL", "FilePathCheckerModule")  # 보안 모듈 pass
                         hwp.Open(hwp_path)
-                        hwp.XHwpDocuments.Item(0).XHwpPrint.filename = pdf_path
+                        hwp.XHwpDocuments.Item(0).XHwpPrint.filename = temporary_pdf_path
                         hwp.XHwpDocuments.Item(0).XHwpPrint.RunToPDF()
-                        pass
                     else:
                         hwp = None
-                        print_pdf(hwp_path, pdf_path)
-                    return pdf_path
+                        print_pdf(hwp_path, temporary_pdf_path)
+                    
+                    모든 file을 동일한 방식으로 ez pdf 로 변환하는 로직으로 수정하였기 때문에 주석처리함
+                
+                    '''
+                    hwp = None
+                    print_pdf(hwp_path, temporary_pdf_path)
+
+                    time.sleep(1.0)  # Give more time for file operations to complete
+
+                    # Use safe file move with retry logic
+                    if safe_file_move(temporary_pdf_path, pdf_path):
+                        print(f"Converted {hwp_path} to {pdf_path}")
+                        return pdf_path
+                    else:
+                        print(f"Failed to move temporary file for {hwp_path}")
+
             except Exception as e:
                 print(f"Error converting {hwp_path} to PDF: {e}")
+                # Clean up temporary file if it exists
+                if os.path.exists(temporary_pdf_path):
+                    try:
+                        os.remove(temporary_pdf_path)
+                    except:
+                        pass
 
             finally:
                 if hwp:
                     try:
                         hwp.Quit()
+                        time.sleep(0.5)  # Give HWP time to properly close
                     except:
                         pass
                 pythoncom.CoUninitialize()
 
+        print(f"Failed to convert {hwp_path} after {3} attempts")
+        return None
+
     except Exception as e:
         print(f"Error in convert_hwp_to_pdf: {e}")
         return None
+
 
 def create_pdfs(item_codes, log_callback=None):
     existing_paths = []
@@ -173,9 +237,9 @@ def create_pdfs(item_codes, log_callback=None):
 
     completed = 0
 
-    # CPU 코어 수를 고려하여 최적의 worker 수 결정
-    # HWP 변환은 리소스를 많이 사용하므로 worker 수를 제한
-    max_workers = min(os.cpu_count() // 2 or 1, 2)
+    # Reduce concurrency to minimize file conflicts
+    # Use only 1 worker to avoid file locking issues
+    max_workers = 1
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         future_to_file = {
@@ -192,6 +256,9 @@ def create_pdfs(item_codes, log_callback=None):
                     progress = int((completed / total_files) * 100)
                     if log_callback:
                         log_callback(f"Progress: {progress}% - Converted: {os.path.basename(file)}")
+                else:
+                    if log_callback:
+                        log_callback(f"Failed to convert: {os.path.basename(file)}")
             except Exception as e:
                 if log_callback:
                     log_callback(f"Error processing {file}: {str(e)}")
@@ -199,11 +266,3 @@ def create_pdfs(item_codes, log_callback=None):
         # Ensure progress reaches 100%
         if log_callback:
             log_callback("Progress: 100% - PDF creation completed.")
-
-
-def main():
-    item_codes = ["E1bafZG250001", "E1bafZG250002", "E1bafZG250003", "E1bafZG250004", "E1bafZG250005", "E1baaKC210607"]
-    create_pdfs(item_codes)
-
-if __name__ == "__main__":
-    main()
