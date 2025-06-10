@@ -334,8 +334,8 @@ kice_trimmer_with_redaction_v2(pdf_path, crop_box)
 #trim_specs = [("E1gcbKC220608", 9)]
 #trim_specs = [("E1meiKC260619", 13.5)]
 #trim_specs = [("E1ebhKC260620", 0)]
-'''
+trim_specs = [("E1jdhKC160911", 8), ("E1iciKC220602", 15)]
+
 for item in trim_specs:
     kice_trimmer(code2original(item[0]), item[1])
     kice_trimmer(code2caption(item[0]), item[1])
-'''

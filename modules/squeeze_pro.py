@@ -50,7 +50,7 @@ class ProblemBuilder:
 
         x0_list = [17 - 1.5, 133 - 1.5, 20 - 0.5, 136 - 0.5] #LL, LR, RL, RR의 x0
         if self.page == 0:
-            x0 = x0_list[num]
+            x0 = x0_list[num % 4]
         else:
             x0 = x0_list[(num+2) % 4]
         paragraph_list = ListOverlayObject(num//2, Coord(Ratio.mm_to_px(x0), Ratio.mm_to_px(34), 0), Ratio.mm_to_px(303), 2)

@@ -41,8 +41,9 @@ class SQBuilder:
                 else:
                     self.proitems[topic] = []
                     self.proitems[topic].append(item)
-
-
+        print(f"Total {len(self.items)} topics found.")
+        print(f"pro: {self.proitems}")
+        print(f"main: {self.mainitems}")
 
     def bake_topic_list(self, page_num, topic_num):
         resources_pdf = RESOURCES_PATH + "/squeeze_main_resources.pdf"
@@ -53,10 +54,10 @@ class SQBuilder:
                 box = Component(resources_pdf, 8, resources_doc.load_page(8).rect)
             else:
                 box = Component(resources_pdf, 7, resources_doc.load_page(7).rect)
-            box_object = ComponentOverlayObject(page_num, Coord(Ratio.mm_to_px(i*8), 0, 0), box)
+            box_object = ComponentOverlayObject(page_num, Coord(Ratio.mm_to_px(i*8 - 8), 0, 0), box)
             topic_list.add_child(box_object)
         return topic_list
-    
+
     def add_page_num(self, overlayer, start_page_num, end_page_num):
         for num in range(start_page_num, end_page_num): #4P부터 시작
             if num % 2:
@@ -72,7 +73,7 @@ class SQBuilder:
 
         tb = TocBuilder()
         tb.topic_num = len(self.topics)
-        new_doc = tb.build_empty()            #empty page 격의 toc를 overlay
+        new_doc = tb.build_empty()  # empty page 격의 toc를 overlay
         total.insert_pdf(new_doc)
 
         fc_pages = []
@@ -85,7 +86,8 @@ class SQBuilder:
 
             # Find the corresponding pro_topic_set
             pro_topic_set = next((pro_set for pro_set in self.proitems.items() if pro_set[0] == topic_set[0]), None)
-            main_topic_set = next((main_set for main_set in self.mainitems.items() if main_set[0] == topic_set[0]), None)
+            main_topic_set = next((main_set for main_set in self.mainitems.items() if main_set[0] == topic_set[0]),
+                                  None)
 
             if log_callback:
                 log_callback(f"Building topic {topic_set[0]}")
@@ -102,24 +104,33 @@ class SQBuilder:
             if log_callback:
                 log_callback("Done!")
 
-            topic_pages[1]["Main"] = int(total.page_count + result.page_count + 2)
 
-            if log_callback:
-                log_callback("  (2) Building Main Solution...")
-            mb = MainsolBuilder(main_topic_set[0], main_topic_set[1])
-            new_doc = mb.build()
+            # Initialize flag
             flag = 0
-            if new_doc is not None:
-                flag = 1
-                overlayer = Overlayer(result)
-                overlayer.add_page(Component(RESOURCES_PATH + "/squeeze_pro_resources.pdf", 4, result.load_page(0).rect))
 
-                result.insert_pdf(new_doc)
+            # Only build main solution if main_topic_set exists (is not None)
+            if main_topic_set is not None:
+                topic_pages[1]["Main"] = int(total.page_count + result.page_count + 2)
                 if log_callback:
-                    log_callback("Done!")
+                    log_callback("  (2) Building Main Solution...")
+                mb = MainsolBuilder(main_topic_set[0], main_topic_set[1])
+                new_doc = mb.build()
+                if new_doc is not None:
+                    flag = 1
+                    overlayer = Overlayer(result)
+                    overlayer.add_page(
+                        Component(RESOURCES_PATH + "/squeeze_pro_resources.pdf", 4, result.load_page(0).rect))
+
+                    result.insert_pdf(new_doc)
+                    if log_callback:
+                        log_callback("Done!")
+                else:
+                    if log_callback:
+                        log_callback("Main solution build returned None!")
             else:
+                topic_pages[1]["Main"] = -1         # 존재하지 않음을 표현
                 if log_callback:
-                    log_callback("Skipped!")
+                    log_callback("  (2) No main items found for this topic, skipping main solution...")
 
             topic_pages[1]["Problem"] = int(total.page_count + result.page_count + 1)
 
@@ -145,7 +156,6 @@ class SQBuilder:
 
             toc_pages.append(topic_pages)
             index += 1
-
 
         ans_page = int(total.page_count + 1)
 
@@ -195,7 +205,7 @@ class SQBuilder:
 
         '''ob = OffsetBuilder(book_doc=total)
         new_doc = ob.build()
-'''
+    '''
 
         if log_callback:
             log_callback("Done!")
@@ -204,5 +214,3 @@ class SQBuilder:
         if log_callback:
             log_callback(f"Build Complete! ({output})")
         pass
-
-

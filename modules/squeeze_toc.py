@@ -100,7 +100,10 @@ class TocBuilder:
             pro_page = toc_pages[i][1]["Problem"]
 
             topic_area = AreaOverlayObject(topic_loc[0], Coord(0, 0, 1), 0)
-            component = Component(self.resources_pdf, 5, self.resources_doc.load_page(5).rect)
+            if main_page > 0:
+                component = Component(self.resources_pdf, 5, self.resources_doc.load_page(5).rect)
+            else:
+                component = Component(self.resources_pdf, 9, self.resources_doc.load_page(9).rect)
             to_object = ComponentOverlayObject(0, Coord(0, 0, 1), component)
             topic_area.height += to_object.get_height()
             unit_title = self.get_unit_title(toc_pages[i][0])
@@ -113,17 +116,22 @@ class TocBuilder:
                                          fitz.TEXT_ALIGN_LEFT)
             to_flow = TextOverlayObject(0, Coord(Ratio.mm_to_px(217), Ratio.mm_to_px(36), 1), "Pretendard-Bold.ttf", 16,
                                         f"{flow_page}", (0, 0, 0, 1), fitz.TEXT_ALIGN_RIGHT)
-            to_main = TextOverlayObject(0, Coord(Ratio.mm_to_px(217), Ratio.mm_to_px(45), 1), "Pretendard-Bold.ttf", 16,
-                                        f"{main_page}", (0, 0, 0, 1), fitz.TEXT_ALIGN_RIGHT)
-            to_pro = TextOverlayObject(0, Coord(Ratio.mm_to_px(217), Ratio.mm_to_px(54), 1), "Pretendard-Bold.ttf", 16,
-                                       f"{pro_page}", (0, 0, 0, 1), fitz.TEXT_ALIGN_RIGHT)
 
             topic_area.add_child(to_object)
             topic_area.add_child(to_num)
             topic_area.add_child(to_title)
             topic_area.add_child(to_flow)
-            topic_area.add_child(to_main)
-            topic_area.add_child(to_pro)
+            if main_page > 0:
+                to_main = TextOverlayObject(0, Coord(Ratio.mm_to_px(217), Ratio.mm_to_px(45), 1), "Pretendard-Bold.ttf", 16,
+                                        f"{main_page}", (0, 0, 0, 1), fitz.TEXT_ALIGN_RIGHT)
+                to_pro = TextOverlayObject(0, Coord(Ratio.mm_to_px(217), Ratio.mm_to_px(54), 1), "Pretendard-Bold.ttf", 16,
+                                       f"{pro_page}", (0, 0, 0, 1), fitz.TEXT_ALIGN_RIGHT)
+                topic_area.add_child(to_main)
+                topic_area.add_child(to_pro)
+            else:
+                to_pro = TextOverlayObject(0, Coord(Ratio.mm_to_px(217), Ratio.mm_to_px(45), 1), "Pretendard-Bold.ttf", 16,
+                                           f"{pro_page}", (0, 0, 0, 1), fitz.TEXT_ALIGN_RIGHT)
+                topic_area.add_child(to_pro)
 
             topic_area.overlay(overlayer=Overlayer(total_doc), absolute_coord=topic_loc[1])
 

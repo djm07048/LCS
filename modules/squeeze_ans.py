@@ -150,7 +150,7 @@ class AnswerBuilder:
             else:
                 print(f"Warning: Invalid item in proitems_list: {item}")
 
-        combined_items = [("Main", mainitems_whole)] + valid_proitems_list
+        combined_items = [("Main", mainitems_whole)] + valid_proitems_list if mainitems_whole is not None else valid_proitems_list
 
         self.proitems = dict(combined_items)
 
@@ -166,11 +166,12 @@ class AnswerBuilder:
                 unit_problem_answers.append(self.get_problem_answer(item_pdf))
             unit_num += 1
 
-            unit = self.bake_unit(topic_set[0], unit_num, unit_problem_numbers, unit_problem_answers)
-            unit_problem_answers = []
-            unit_problem_numbers = []
-            paragraph_cnt = self.add_child_to_paragraph(paragraph, unit, paragraph_cnt, self.overlayer, base)
-            paragraph.add_child(AreaOverlayObject(0, Coord(0, 0, 0), Ratio.mm_to_px(15)))
+            if not topic_set[0] == "Main":
+                unit = self.bake_unit(topic_set[0], unit_num, unit_problem_numbers, unit_problem_answers)
+                unit_problem_answers = []
+                unit_problem_numbers = []
+                paragraph_cnt = self.add_child_to_paragraph(paragraph, unit, paragraph_cnt, self.overlayer, base)
+                paragraph.add_child(AreaOverlayObject(0, Coord(0, 0, 0), Ratio.mm_to_px(15)))
 
         paragraph.overlay(self.overlayer, Coord(0, 0, 0))
         self.resources_doc.close()
