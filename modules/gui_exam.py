@@ -1189,6 +1189,7 @@ class DatabaseManager(QMainWindow):
         try:
             add_watermark_and_rasterize(os.path.join(OUTPUT_PATH, book_name.split('.')[0] + '_TEST.pdf'),
                                         os.path.join(OUTPUT_PATH, book_name.split('.')[0] + '_TEST_R.pdf'))
+            print(f"Rasterized PDF saved to: {os.path.join(OUTPUT_PATH, book_name.split('.')[0] + '_TEST_R.pdf')}")
             self.log_message("TEST PDF rasterization completed successfully.")
         except Exception as e:
             self.log_message(f"Error during PDF rasterization: {e}")

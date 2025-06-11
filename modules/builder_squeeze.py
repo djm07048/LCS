@@ -199,7 +199,7 @@ class SQBuilder:
                     topic_list = self.bake_topic_list(fc_pages[i][0] + 3, i)
                     topic_list.overlay(overlayer, Coord(Ratio.mm_to_px(159), Ratio.mm_to_px(16.5), 0))
 
-        start_page_num = 2 * (len(self.topics) // 7) + 4
+        start_page_num = 2 * (len(self.topics) // 7) + 6
 
         self.add_page_num(overlayer, start_page_num, end_page_num)
 

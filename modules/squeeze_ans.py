@@ -166,12 +166,11 @@ class AnswerBuilder:
                 unit_problem_answers.append(self.get_problem_answer(item_pdf))
             unit_num += 1
 
-            if not topic_set[0] == "Main":
-                unit = self.bake_unit(topic_set[0], unit_num, unit_problem_numbers, unit_problem_answers)
-                unit_problem_answers = []
-                unit_problem_numbers = []
-                paragraph_cnt = self.add_child_to_paragraph(paragraph, unit, paragraph_cnt, self.overlayer, base)
-                paragraph.add_child(AreaOverlayObject(0, Coord(0, 0, 0), Ratio.mm_to_px(15)))
+            unit = self.bake_unit(topic_set[0], unit_num, unit_problem_numbers, unit_problem_answers)
+            unit_problem_answers = []
+            unit_problem_numbers = []
+            paragraph_cnt = self.add_child_to_paragraph(paragraph, unit, paragraph_cnt, self.overlayer, base)
+            paragraph.add_child(AreaOverlayObject(0, Coord(0, 0, 0), Ratio.mm_to_px(15)))
 
         paragraph.overlay(self.overlayer, Coord(0, 0, 0))
         self.resources_doc.close()

@@ -45,18 +45,18 @@ class TocBuilder:
         }
 
         loc_coord_dict = {
-            "L1" : [1, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(53), 1)],
-            "L2" : [1, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(113), 1)],
-            "L3" : [1, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(173), 1)],
-            "L4" : [1, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(233), 1)],
-            "R1" : [2, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(53), 1)],
-            "R2" : [2, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(113), 1)],
-            "R3" : [2, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(173), 1)],
-            "R4" : [2, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(233), 1)],
-            "BackL1" : [3, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(53), 1)],
-            "BackL2" : [3, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(113), 1)],
-            "BackL3" : [3, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(173), 1)],
-            "BackL4" : [3, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(233), 1)],
+            "L1" : [3, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(53), 1)],
+            "L2" : [3, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(113), 1)],
+            "L3" : [3, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(173), 1)],
+            "L4" : [3, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(233), 1)],
+            "R1" : [4, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(53), 1)],
+            "R2" : [4, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(113), 1)],
+            "R3" : [4, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(173), 1)],
+            "R4" : [4, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(233), 1)],
+            "BackL1" : [5, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(53), 1)],
+            "BackL2" : [5, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(113), 1)],
+            "BackL3" : [5, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(173), 1)],
+            "BackL4" : [5, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(233), 1)],
         }
 
         for topic in topic_loc_dict[self.topic_num]:
@@ -70,9 +70,11 @@ class TocBuilder:
 
         self.overlayer = Overlayer(new_doc)
 
-        self.page_amount = 3
+        self.page_amount = 5
 
-        self.overlayer.add_page(self.get_component_on_resources(0))
+        self.overlayer.add_page(self.get_component_on_resources(0)) # Sq 도비라
+        self.overlayer.add_page(self.get_component_on_resources(1)) # Empty
+        self.overlayer.add_page(self.get_component_on_resources(10))    # 반수반 도비라
 
         if self.topic_num < 4:
             self.overlayer.add_page(self.get_component_on_resources(1))
@@ -122,14 +124,14 @@ class TocBuilder:
             topic_area.add_child(to_title)
             topic_area.add_child(to_flow)
             if main_page > 0:
-                to_main = TextOverlayObject(0, Coord(Ratio.mm_to_px(217), Ratio.mm_to_px(45), 1), "Pretendard-Bold.ttf", 16,
+                to_main = TextOverlayObject(2, Coord(Ratio.mm_to_px(217), Ratio.mm_to_px(45), 1), "Pretendard-Bold.ttf", 16,
                                         f"{main_page}", (0, 0, 0, 1), fitz.TEXT_ALIGN_RIGHT)
-                to_pro = TextOverlayObject(0, Coord(Ratio.mm_to_px(217), Ratio.mm_to_px(54), 1), "Pretendard-Bold.ttf", 16,
+                to_pro = TextOverlayObject(2, Coord(Ratio.mm_to_px(217), Ratio.mm_to_px(54), 1), "Pretendard-Bold.ttf", 16,
                                        f"{pro_page}", (0, 0, 0, 1), fitz.TEXT_ALIGN_RIGHT)
                 topic_area.add_child(to_main)
                 topic_area.add_child(to_pro)
             else:
-                to_pro = TextOverlayObject(0, Coord(Ratio.mm_to_px(217), Ratio.mm_to_px(45), 1), "Pretendard-Bold.ttf", 16,
+                to_pro = TextOverlayObject(2, Coord(Ratio.mm_to_px(217), Ratio.mm_to_px(45), 1), "Pretendard-Bold.ttf", 16,
                                            f"{pro_page}", (0, 0, 0, 1), fitz.TEXT_ALIGN_RIGHT)
                 topic_area.add_child(to_pro)
 
@@ -137,9 +139,9 @@ class TocBuilder:
 
         # 마지막 페이지에 답지와 해설 페이지 번호 추가
         topic_area = AreaOverlayObject(2 + int(self.topic_num // 8), Coord(0, 0, 1), 371)
-        to_ans = TextOverlayObject(0, Coord(Ratio.mm_to_px(217), Ratio.mm_to_px(313), 1), "Pretendard-Bold.ttf", 16,
+        to_ans = TextOverlayObject(2, Coord(Ratio.mm_to_px(217), Ratio.mm_to_px(313), 1), "Pretendard-Bold.ttf", 16,
                                    f"{ans_page}", (0, 0, 0, 1), fitz.TEXT_ALIGN_RIGHT)
-        to_sol = TextOverlayObject(0, Coord(Ratio.mm_to_px(217), Ratio.mm_to_px(340), 1), "Pretendard-Bold.ttf", 16,
+        to_sol = TextOverlayObject(2, Coord(Ratio.mm_to_px(217), Ratio.mm_to_px(340), 1), "Pretendard-Bold.ttf", 16,
                                     f"{sol_page}", (0, 0, 0, 1), fitz.TEXT_ALIGN_RIGHT)
         topic_area.add_child(to_ans)
         topic_area.add_child(to_sol)
