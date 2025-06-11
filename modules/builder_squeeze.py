@@ -176,12 +176,15 @@ class SQBuilder:
 
         end_page_num = int(total.page_count + 1)
         # Add Memo pages due to the number of pages
-        if not total.page_count % 4 == 3:  # 4k+3 형태가 아닐 때
-            for i in range((3 - total.page_count % 4) % 4):  # 필요한 페이지 수만큼
+        if not total.page_count % 4 == 2:  # 4k+1 형태가 아닐 때
+            for i in range((2 - total.page_count % 4) % 4):  # 필요한 페이지 수만큼
                 src_pdf = RESOURCES_PATH + "/squeeze_pro_resources.pdf"
                 src_doc = fitz.open(src_pdf)
                 total.insert_pdf(src_doc, from_page=4, to_page=4)
 
+        tb = TocBuilder()
+        ban_doc = tb.build_ban()
+        total.insert_pdf(ban_doc)
         total.insert_pdf(fitz.open(RESOURCES_PATH + "/squeeze_toc_resources.pdf"), from_page=6, to_page=6)
 
         # Overlay TOC to the total document
