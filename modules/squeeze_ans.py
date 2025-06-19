@@ -166,6 +166,7 @@ class AnswerBuilder:
                 unit_problem_answers.append(self.get_problem_answer(item_pdf))
             unit_num += 1
 
+        # 유체3의 경우, 이 부분을 if not Main일 때만 실행
             unit = self.bake_unit(topic_set[0], unit_num, unit_problem_numbers, unit_problem_answers)
             unit_problem_answers = []
             unit_problem_numbers = []
