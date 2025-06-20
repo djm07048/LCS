@@ -46,12 +46,16 @@ class DuplexProBuilder:
                         continue  # Skip empty or invalid JSON files
                     for item in data:
                         if item['item_code'] == item_code:
+                            number = None  # 초기화
                             if item['mainsub'] is not None:
                                 number = item['mainsub']
-                            else:
-                                if item['item_num'] is not None:
-                                    number = item['item_num']
-                            return f"{filename.replace('.json', '')}_{number}번"
+                            elif item['item_num'] is not None:
+                                number = item['item_num']
+
+                            if number is not None:
+                                ref = f"{filename.replace('.json', '')}_{number}번"
+                                print(ref)
+                                return ref
         return None
     def get_component_on_resources(self, page_num):
         return Component(self.resources_pdf, page_num, self.resources_doc.load_page(page_num).rect)
