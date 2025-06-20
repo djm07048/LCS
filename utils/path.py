@@ -12,6 +12,7 @@ INPUT_PATH = r'T:\Software\LCS\input'
 OUTPUT_PATH = r'T:\Software\LCS\output'
 BOOK_DB_PATH = r'T:\Software\LCS\input\BookDB'
 EXAM_DB_PATH = r'T:\Software\LCS\input\ExamDB'
+SWEEP_DB_PATH = r'T:\Software\LCS\input\SweepDB'
 HISTORY_DB_PATH = r'T:\Software\LCS\input\HistoryDB'
 
 

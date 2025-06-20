@@ -3,6 +3,7 @@ from modules.builder_squeeze import SQBuilder
 from modules.builder_squeeze_mini import SQMiniBuilder
 from modules.builder_duplex import DXBuilder
 from modules.exam_test import ExamTestBuilder
+from modules.builder_sweep import SWBuilder
 
 from pathlib import Path
 import json
@@ -58,8 +59,14 @@ def build_exam_test(input, output, log_callback=None):
     bd = ExamTestBuilder(items)
     bd.build_test(output)
 
-if __name__ == '__main__':
-    build_squeeze_paper()
-    pass
+def build_sweep(input, output, log_callback=None):
+    if log_callback:
+        log_callback("Sweep Paper Build Start")
+        log_callback(f"Building {input} to {output}")
+    with open(input, encoding='UTF8') as file:
+        items = json.load(file)
+    bd = SWBuilder(items)
+    bd.build(output, log_callback=log_callback)
+
 
 #numpy version 1.46 으로 하였을 때 정상
