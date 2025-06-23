@@ -10,7 +10,7 @@ from utils.path import *
 from utils.overlay_object import *
 from pathlib import Path
 from pyhwpx import Hwp
-
+import utils.path
 import pythoncom
 import win32com.client as win32
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -224,6 +224,33 @@ def convert_hwp_to_pdf(hwp_path):
         print(f"Error in convert_hwp_to_pdf: {e}")
         return None
 
+
+def create_theme_pdfs(theme_codes, log_callback=None):
+    existing_paths = []
+    for theme_code in theme_codes:
+        theme_hwp = os.path.join(THEME_PATH, f"{theme_code}.hwp")
+        if os.path.exists(theme_hwp):
+            existing_paths.append(theme_hwp)
+
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        future_to_file = {
+            executor.submit(convert_hwp_to_pdf, file): file
+            for file in existing_paths
+        }
+
+        for future in as_completed(future_to_file):
+            file = future_to_file[future]
+            try:
+                pdf_path = future.result()
+                if pdf_path:
+                    if log_callback:
+                        log_callback(f"Converted: {os.path.basename(file)}")
+                else:
+                    if log_callback:
+                        log_callback(f"Failed to convert: {os.path.basename(file)}")
+            except Exception as e:
+                if log_callback:
+                    log_callback(f"Error processing {file}: {str(e)}")
 
 def create_pdfs(item_codes, log_callback=None):
     existing_paths = []

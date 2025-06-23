@@ -7,6 +7,7 @@ NICE_DB_PATH = r'T:\THedu\NiceDB'
 
 RESOURCES_PATH = r'T:\Software\LCS\resources'
 TEMPORARY_PATH = r'T:\Software\LCS\temporary'
+THEME_PATH = r'T:\Software\LCS\theme'
 
 INPUT_PATH = r'T:\Software\LCS\input'
 OUTPUT_PATH = r'T:\Software\LCS\output'

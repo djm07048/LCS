@@ -88,16 +88,22 @@ class ColoredTableWidget(QTableWidget):
 class PDFCreationThread(QThread):
     progress_signal = pyqtSignal(str)
 
-    def __init__(self, item_list):
+    def __init__(self, item_list, type="item"):
         super().__init__()
-        self.item_list = item_list
+        self.list = item_list
+        self.type = type
 
     def run(self):
-        try:
-            create_pdfs(self.item_list, log_callback=self.log_message)
-        except Exception as e:
-            self.progress_signal.emit(f"Error during PDF creation: {e}")
-
+        if type == "item":
+            try:
+                create_pdfs(self.list, log_callback=self.log_message)
+            except Exception as e:
+                self.progress_signal.emit(f"Error during PDF creation: {e}")
+        elif type == "theme":
+            try:
+                create_theme_pdfs(self.list, log_callback=self.log_message)
+            except Exception as e:
+                self.progress_signal.emit(f"Error during Theme PDF creation: {e}")
     def log_message(self, message):
         self.progress_signal.emit(message)
 
@@ -200,7 +206,7 @@ class DatabaseManagerSweep(QMainWindow):
         self.list_table = ColoredTableWidget(self)
         self.list_table.setColumnCount(6)
         self.list_table.setFixedHeight(700)
-        self.list_table.setHorizontalHeaderLabels(['Item Code', '번', '타입', '추가', '테마', '메모'])
+        self.list_table.setHorizontalHeaderLabels(['Item Code', '번', '타입', '추가', '테마', '자료'])
 
         # Set fixed column widths for List table
         self.list_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Fixed)
@@ -216,7 +222,7 @@ class DatabaseManagerSweep(QMainWindow):
         self.list_table.setColumnWidth(2, 70)  # type
         self.list_table.setColumnWidth(3, 70)  # plus
         self.list_table.setColumnWidth(4, 70)  # theme
-        self.list_table.setColumnWidth(5, 90)  # memo
+        self.list_table.setColumnWidth(5, 90)  # figs
 
         # Calculate and set fixed total width
         self.list_table.setFixedWidth(470)
@@ -231,7 +237,7 @@ class DatabaseManagerSweep(QMainWindow):
         self.load_book_names()
         self.delete_pdfs_btn = QPushButtonGui('DELETE PDFs As Shown')
         self.create_pdfs_btn = QPushButtonGui('CREATE PDFs As Shown')
-        self.create_rel_pdfs_btn = QPushButtonGui('CREATE REL PDFs As Shown')
+        self.create_theme_pdfs_btn = QPushButtonGui('CREATE THEME PDFs As Shown')
         self.export_json_btn = QPushButtonGui('EXPORT JSON to DB')
         self.add_item_folder = QPushButtonGui('ADD ITEM FOLDER As Shown')
 
@@ -247,7 +253,7 @@ class DatabaseManagerSweep(QMainWindow):
         right_button_layout.addWidget(self.book_name_input)
         right_button_layout.addWidget(self.delete_pdfs_btn)
         right_button_layout.addWidget(self.create_pdfs_btn)
-        right_button_layout.addWidget(self.create_rel_pdfs_btn)
+        right_button_layout.addWidget(self.create_theme_pdfs_btn)
         right_button_layout.addWidget(self.export_json_btn)
         right_button_layout.addWidget(self.add_item_folder)
 
@@ -304,6 +310,7 @@ class DatabaseManagerSweep(QMainWindow):
         self.book_name_input.currentIndexChanged.connect(self.load_selected_book)
         self.delete_pdfs_btn.clicked.connect(self.delete_pdfs_gui)
         self.create_pdfs_btn.clicked.connect(self.create_pdfs_gui)
+        self.create_theme_pdfs_btn.clicked.connect(self.create_theme_pdfs_gui)
         self.add_item_folder.clicked.connect(self.add_item_folder_gui)
         self.merge_pdfs_btn.clicked.connect(self.merge_pdfs_gui)
         self.export_json_btn.clicked.connect(self.export_to_json)
@@ -313,6 +320,59 @@ class DatabaseManagerSweep(QMainWindow):
         self.open_naive_sweep_pdf_btn.clicked.connect(self.open_naive_sweep_pdf)
         self.open_rasterized_sweep_pdf_btn.clicked.connect(self.open_rasterized_sweep_pdf)
 
+
+        # 셀 클릭 이벤트 연결
+        self.list_table.cellClicked.connect(self.handle_cell_click)
+
+        # 우측 버튼 레이아웃에 태그 관리 UI 추가
+        self.tag_management_frame = QWidget()
+        self.tag_management_frame.setVisible(False)  # 초기에는 숨김
+        self.tag_management_frame.setFixedWidth(240)
+        tag_management_layout = QVBoxLayout(self.tag_management_frame)
+
+        # 태그 관리 영역 제목
+        tag_title_label = QLabel("태그 관리")
+        tag_title_label.setAlignment(Qt.AlignCenter)
+        tag_management_layout.addWidget(tag_title_label)
+
+        # 태그 입력 영역
+        tag_input_layout = QHBoxLayout()
+        self.tag_input = QLineEdit()
+        self.tag_input.setPlaceholderText("새 태그 입력 후 Enter")
+        self.tag_input.returnPressed.connect(self.add_tag)
+        self.tag_add_btn = QPushButton("+")
+        self.tag_add_btn.setMaximumWidth(30)
+        self.tag_add_btn.clicked.connect(self.add_tag)
+        tag_input_layout.addWidget(self.tag_input)
+        tag_input_layout.addWidget(self.tag_add_btn)
+        tag_management_layout.addLayout(tag_input_layout)
+
+        # 태그 목록 영역
+        self.tag_list = QListWidget()
+        self.tag_list.setDragDropMode(QAbstractItemView.InternalMove)
+        self.tag_list.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.tag_list.model().rowsMoved.connect(self.on_tags_reordered)
+        self.tag_list.installEventFilter(self)
+        tag_management_layout.addWidget(self.tag_list)
+
+        # 태그 버튼 영역
+        tag_button_layout = QHBoxLayout()
+        self.tag_remove_btn = QPushButton("삭제")
+        self.tag_remove_btn.clicked.connect(self.remove_selected_tag)
+        self.tag_save_btn = QPushButton("저장")
+        self.tag_save_btn.clicked.connect(self.save_tags)
+        self.tag_cancel_btn = QPushButton("취소")
+        self.tag_cancel_btn.clicked.connect(self.cancel_tag_edit)
+        tag_button_layout.addWidget(self.tag_remove_btn)
+        tag_button_layout.addWidget(self.tag_save_btn)
+        tag_button_layout.addWidget(self.tag_cancel_btn)
+        tag_management_layout.addLayout(tag_button_layout)
+
+        # 태그 관리 프레임을 우측 레이아웃에 추가
+        right_button_layout.addWidget(self.tag_management_frame)
+
+        self.tag_list.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.tag_list.customContextMenuRequested.connect(self.show_tag_context_menu)
 
         # 현재 편집 중인 셀 위치 저장 변수
         self.current_edit_row = -1
@@ -340,6 +400,9 @@ class DatabaseManagerSweep(QMainWindow):
                 self.list_table.removeRow(row)
 
     def remove_selected_rows(self):
+        # 태그 관리 프레임이 열려있다면 닫기
+        if self.tag_management_frame.isVisible():
+            self.save_tags()
         if not self.show_warning_dialog("Are you sure you want to remove these rows?"):
             return
         selected_rows = sorted(set(item.row() for item in self.list_table.selectedItems()), reverse=True)
@@ -351,6 +414,17 @@ class DatabaseManagerSweep(QMainWindow):
         if event.type() == event.KeyPress:
             key = event.key()
 
+            # 태그 리스트에서의 키 처리
+            if obj == self.tag_list:
+                if key == Qt.Key_Delete:
+                    # 태그 리스트에서 DELETE 키는 선택된 태그 삭제
+                    self.remove_selected_tag()
+                    return True
+                elif key == Qt.Key_Escape:
+                    # 태그 리스트에서 ESC 키는 태그 저장
+                    self.save_tags()
+                    return True
+
             # 테이블에서의 키 처리
             if obj in [self.pool_table, self.list_table]:
                 if key == Qt.Key_Shift:
@@ -359,6 +433,9 @@ class DatabaseManagerSweep(QMainWindow):
                     obj.setSelectionBehavior(QTableWidget.SelectRows)
                 elif key == Qt.Key_Escape:
                     # ESC 키 처리
+                    if self.tag_management_frame.isVisible():
+                        # 태그 에디터가 보이는 상태에서는 태그 저장
+                        self.save_tags()
                     if self.pool_table.hasFocus():
                         # POOL 테이블에서는 선택 해제
                         self.deselect_pool_items()
@@ -566,11 +643,11 @@ class DatabaseManagerSweep(QMainWindow):
                 self.list_table.setItem(current_row, 0, QTableWidgetItem(item_code))
                 self.list_table.setItem(current_row, 1, QTableWidgetItem(str(current_row + 1)))
                 self.list_table.setItem(current_row, 2, QTableWidgetItem("대표"))
-                self.list_table.setItem(current_row, 3, QTableWidgetItem())
+                self.list_table.setItem(current_row, 3, QTableWidgetItem("없음"))
 
                 # 태그 컬럼에 빈 JSON 배열 설정
-                self.list_table.setItem(current_row, 4, QTableWidgetItem())
-                self.list_table.setItem(current_row, 5, QTableWidgetItem())
+                self.list_table.setItem(current_row, 4, QTableWidgetItem(""))
+                self.list_table.setItem(current_row, 5, QTableWidgetItem("[]"))
 
     def add_empty_row(self):
         current_row = self.list_table.rowCount()
@@ -579,9 +656,9 @@ class DatabaseManagerSweep(QMainWindow):
         self.list_table.setItem(current_row, 0, QTableWidgetItem(""))
         self.list_table.setItem(current_row, 1, QTableWidgetItem(str(current_row + 1)))
         self.list_table.setItem(current_row, 2, QTableWidgetItem("대표"))
-        self.list_table.setItem(current_row, 3, QTableWidgetItem())
-        self.list_table.setItem(current_row, 4, QTableWidgetItem())
-        self.list_table.setItem(current_row, 5, QTableWidgetItem())
+        self.list_table.setItem(current_row, 3, QTableWidgetItem("없음"))
+        self.list_table.setItem(current_row, 4, QTableWidgetItem(""))
+        self.list_table.setItem(current_row, 5, QTableWidgetItem("[]"))
 
     def sort_pool_by_order(self):
         # Get currently displayed items
@@ -605,6 +682,9 @@ class DatabaseManagerSweep(QMainWindow):
         self.list_table.clearSelection()
 
     def move_row_up(self):
+        # 태그 관리 프레임이 열려있다면 닫기
+        if self.tag_management_frame.isVisible():
+            self.save_tags()
         selected_rows = sorted(set(item.row() for item in self.list_table.selectedItems()))
         if not selected_rows or selected_rows[0] <= 0:
             return
@@ -633,6 +713,9 @@ class DatabaseManagerSweep(QMainWindow):
         self.check_and_remove_empty_rows()
 
     def move_row_down(self):
+        # 태그 관리 프레임이 열려있다면 닫기
+        if self.tag_management_frame.isVisible():
+            self.save_tags()
         selected_rows = sorted(set(item.row() for item in self.list_table.selectedItems()), reverse=True)
         if not selected_rows or selected_rows[-1] >= self.list_table.rowCount() - 1:
             return
@@ -738,7 +821,23 @@ class DatabaseManagerSweep(QMainWindow):
 
         time.sleep(3)
 
-        self.pdf_thread = PDFCreationThread(item_list)
+        self.pdf_thread = PDFCreationThread(item_list, "item")
+        self.pdf_thread.progress_signal.connect(self.log_message)
+        self.pdf_thread.start()
+
+    def create_theme_pdfs_gui(self):
+        if not self.show_warning_dialog("Are you sure you want to create Theme PDFs?"):
+            return
+        theme_list = []
+        for row in range(self.list_table.rowCount()):
+            item_code = self.list_table.item(row, 4).text() if self.list_table.item(row, 4) else None
+            theme_list.append(item_code)
+        self.log_message("Starting Theme PDF creation...")
+
+        print(theme_list)
+        self.refresh_folder(THEME_PATH)
+
+        self.pdf_thread = PDFCreationThread(theme_list, "theme")
         self.pdf_thread.progress_signal.connect(self.log_message)
         self.pdf_thread.start()
 
@@ -866,8 +965,8 @@ class DatabaseManagerSweep(QMainWindow):
                 if row_data.get('theme') is not None:
                     self.list_table.setItem(row_count, 4, QTableWidgetItem(str(row_data['theme'])))
 
-                if row_data.get('memo') is not None:
-                    self.list_table.setItem(row_count, 5, QTableWidgetItem(str(row_data['memo'])))
+                if row_data.get('fig') is not None:
+                    self.list_table.setItem(row_count, 5, QTableWidgetItem(json.dumps(row_data['fig'])))
 
         except Exception as e:
             self.log_message(f"Error loading book: {e}")
@@ -882,7 +981,7 @@ class DatabaseManagerSweep(QMainWindow):
         data = []
 
         # JSON에서 원하는 키 순서
-        json_keys = ['item_code', 'number', 'type', 'plus', 'theme', 'memo']
+        json_keys = ['item_code', 'number', 'type', 'plus', 'theme', 'fig']
 
         for row in range(self.list_table.rowCount()):
             temp_data = {}
@@ -892,7 +991,13 @@ class DatabaseManagerSweep(QMainWindow):
             temp_data['type'] = (self.list_table.item(row, 2).text()) if self.list_table.item(row, 2) else None
             temp_data['plus'] = self.list_table.item(row, 3).text() if self.list_table.item(row, 3) else None
             temp_data['theme'] = (self.list_table.item(row, 4).text()) if self.list_table.item(row, 4) else None
-            temp_data['memo'] = self.list_table.item(row, 5).text() if self.list_table.item(row, 5) else None
+            if self.list_table.item(row, 5) and self.list_table.item(row, 5).text():
+                try:
+                    temp_data['fig'] = json.loads(self.list_table.item(row, 5).text())
+                except json.JSONDecodeError:
+                    temp_data['fig'] = []  # Default to an empty list if parsing fails
+            else:
+                temp_data['fig'] = []
             # 딕셔너리를 리스트에 추가
             data.append(temp_data)
 
@@ -1027,7 +1132,7 @@ class DatabaseManagerSweep(QMainWindow):
 
                 for option in move_options:
                     action = menu.addAction(f"Type: {option}")
-                    action.setData({'type': 'type', 'row': row, 'para': option})
+                    action.setData({'type': 'type', 'row': row, 'type_value': option})
                     action.triggered.connect(self.handle_context_action)
 
             # LIST 테이블의 col = 3 열
@@ -1036,7 +1141,7 @@ class DatabaseManagerSweep(QMainWindow):
 
                 for option in move_options:
                     action = menu.addAction(f"Plus: {option}")
-                    action.setData({'type': 'plus', 'row': row, 'para': option})
+                    action.setData({'type': 'plus', 'row': row, 'plus_value': option})
                     action.triggered.connect(self.handle_context_action)
 
             if not menu.isEmpty():
@@ -1076,9 +1181,9 @@ class DatabaseManagerSweep(QMainWindow):
                 if ok:
                     self.safe_swap_item_number(data['row'], dst_number, data['sender'])
             elif action_type == 'type':
-                self.safe_change_item_type(data['row'], data['type'])
+                self.safe_change_item_type(data['row'], data['type_value'])
             elif action_type == 'plus':
-                self.safe_change_item_plus(data['row'], data['plus'])
+                self.safe_change_item_plus(data['row'], data['plus_value'])
 
         except Exception as e:
             self.log_message(f"Context action error: {str(e)}")
@@ -1210,17 +1315,17 @@ class DatabaseManagerSweep(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, 'Error', f'An unexpected error occurred: {str(e)}')
 
-    def change_item_type(self, row, new_type):
+    def safe_change_item_type(self, row, new_type):
         """항목 type 값 변경"""
         if self.list_table.item(row, 2):
             self.list_table.setItem(row, 2, QTableWidgetItem(str(new_type)))
-            self.log_message(f"Changed item para to {new_type}")
+            self.log_message(f"Changed item type to {new_type}")
 
-    def change_item_plus(self, row, new_plus):
+    def safe_change_item_plus(self, row, new_plus):
         """항목 type 값 변경"""
         if self.list_table.item(row, 3):
             self.list_table.setItem(row, 3, QTableWidgetItem(str(new_plus)))
-            self.log_message(f"Changed item para to {new_plus}")
+            self.log_message(f"Changed item plus to {new_plus}")
     def swap_item_number(self, row, dst_number, sender=None):
         """
         항목 번호 변경 함수
@@ -1380,6 +1485,139 @@ class DatabaseManagerSweep(QMainWindow):
             self.log_message(f"Error filtering by topic: {str(e)}")
 
 
+    # TAG
+    def show_tag_context_menu(self, pos):
+        """태그 리스트에서 우클릭 시 컨텍스트 메뉴 표시"""
+        try:
+            # 클릭한 위치의 아이템 가져오기
+            item = self.tag_list.itemAt(pos)
+            if not item:
+                return
+
+            # 아이템의 텍스트를 item_code로 사용
+            item_code = item.text()
+
+            # 코드가 항목 코드 형식(13자리)인지 확인
+            if len(item_code) == 13:
+                # 컨텍스트 메뉴 생성
+                menu = QMenu(self)
+
+                # 메뉴 항목 추가
+                menu.addAction("Open item HWP", lambda: self.open_item_hwp(item_code))
+                menu.addAction("Open Folder", lambda: self.open_item_folder(item_code))
+                menu.addAction("Refractor Item Code", lambda: self.refractor_item_code_by_gui(item_code))
+
+                # 메뉴 표시
+                menu.exec_(self.tag_list.mapToGlobal(pos))
+
+                # 메뉴 객체 정리
+                menu.deleteLater()
+
+        except Exception as e:
+            self.log_message(f"태그 컨텍스트 메뉴 오류: {str(e)}")
+
+    def add_tag(self):
+        """새 태그 추가"""
+        tag_text = self.tag_input.text().strip()
+        if tag_text:
+            # 중복 검사
+            existing_tags = [self.tag_list.item(i).text() for i in range(self.tag_list.count())]
+            if tag_text not in existing_tags:
+                item = QListWidgetItem(tag_text)
+                item.setFlags(item.flags() | Qt.ItemIsEditable)
+                self.tag_list.addItem(item)
+                self.tag_input.clear()
+
+    def remove_selected_tag(self):
+        """선택된 태그 삭제"""
+        selected_items = self.tag_list.selectedItems()
+        if selected_items:
+            for item in selected_items:
+                self.tag_list.takeItem(self.tag_list.row(item))
+
+    def on_tags_reordered(self):
+        """태그 순서가 변경되었을 때 호출"""
+        # 순서 변경 시 특별한 처리가 필요하면 여기에 구현
+
+    def save_tags(self):
+        """태그 편집 완료 및 저장"""
+        if self.current_edit_row >= 0 and self.current_edit_col >= 0:
+            # 현재 태그 목록 가져오기
+            tags = [self.tag_list.item(i).text() for i in range(self.tag_list.count())]
+
+            # JSON 형식으로 변환하여 셀에 저장
+            json_str = json.dumps(tags)
+            self.list_table.setItem(self.current_edit_row, self.current_edit_col,
+                                    QTableWidgetItem(json_str))
+
+            # 셀 배경색 변경하여 수정되었음을 표시
+            if tags:  # 태그가 있는 경우만 색상 변경
+                self.list_table.item(self.current_edit_row, self.current_edit_col).setBackground(
+                    QColor(230, 255, 230))  # 연한 녹색
+
+            # 편집 상태 초기화
+            self.tag_management_frame.setVisible(False)
+            self.current_edit_row = -1
+            self.current_edit_col = -1
+
+    def cancel_tag_edit(self):
+        """태그 편집 취소"""
+        self.tag_management_frame.setVisible(False)
+        self.current_edit_row = -1
+        self.current_edit_col = -1
+
+    def handle_cell_click(self, row, col):
+        """셀 클릭 시 태그 관리 UI 표시 (태그 컬럼인 경우)"""
+        # 태그 관련 컬럼인 경우 (4, 5번 컬럼)
+        if col == 5:
+            # 현재 편집 중인 셀 정보 저장
+            self.current_edit_row = row
+            self.current_edit_col = col
+
+            # 현재 셀의 태그 가져오기
+            current_tags = []
+            cell_item = self.list_table.item(row, col)
+
+            if cell_item and cell_item.text():
+                try:
+                    # JSON 형식으로 되어 있는지 체크
+                    if cell_item.text().startswith('[') and cell_item.text().endswith(']'):
+                        text = cell_item.text().replace("'", "\"")  # 작은따옴표를 큰따옴표로 변환
+                        try:
+                            current_tags = json.loads(text)
+                        except json.JSONDecodeError:
+                            # 작은따옴표를 썼을 때 파싱 실패하는 경우 수동으로 파싱
+                            text = cell_item.text().strip('[]')
+                            if text:
+                                # 쉼표로 구분된 항목을 파싱
+                                items = [item.strip().strip("'\"") for item in text.split(',')]
+                                current_tags = items
+                    else:
+                        # 단일 문자열인 경우
+                        current_tags = [cell_item.text()] if cell_item.text().strip() else []
+                except Exception as e:
+                    self.log_message(f"태그 파싱 오류: {e}")
+                    current_tags = []
+
+            # 태그 목록 초기화 및 로드
+            self.tag_list.clear()
+            for tag in current_tags:
+                if tag:  # 빈 태그는 추가하지 않음
+                    item = QListWidgetItem(tag)
+                    item.setFlags(item.flags() | Qt.ItemIsEditable)
+                    self.tag_list.addItem(item)
+
+            # 태그 관리 UI 표시
+            self.tag_management_frame.setVisible(True)
+            self.tag_input.setFocus()
+        else:
+            # 태그 관련 컬럼이 아닌 경우 태그 관리 UI 숨김
+            if self.tag_management_frame.isVisible():
+                # 태그 편집 중이었다면 자동으로 저장
+                if self.current_edit_row >= 0 and self.current_edit_col >= 0:
+                    self.save_tags()
+                else:
+                    self.cancel_tag_edit()
 class FilterDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)

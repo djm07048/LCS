@@ -14,21 +14,6 @@ import json
 # NC or 자작이면 문항은 pdf, 해설도 pdf에서 가져옴
 
 
-def get_problem_dict(path):
-    folder_path = Path(path)
-    pdf_files = folder_path.glob('**/*.pdf')
-
-    problem_dict = dict()
-    for pdf_file in pdf_files:
-        pdf_src_path = str(pdf_file)
-        item_code = pdf_file.stem
-        problem_dict[item_code] = pdf_src_path
-    return problem_dict
-
-def get_item_json():
-    with open("input/squeeze_item.json", encoding='UTF8') as file:
-        item_data = json.load(file)
-    return item_data
 
 class MainsolBuilder:
     def __init__(self, topic, mainitems):

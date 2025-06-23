@@ -183,16 +183,17 @@ class LineOverlayObject(OverlayObject):
         return None
 
 class TextOverlayObject(OverlayObject):
-    def __init__(self, page_num, coord, font, size, text, color, text_align):
+    def __init__(self, page_num, coord, font, size, text, color, text_align, weight=None):
         self.font = font
         self.size = size
         self.text = text
         self.color = color
         self.text_align = text_align
+        self.weight = weight
         super().__init__(page_num, coord)
 
     def overlay(self, overlayer, absolute_coord):
-        overlayer.text_overlay(self.page_num, absolute_coord, self.font, self.size, self.text, self.color, self.text_align)
+        overlayer.text_overlay(self.page_num, absolute_coord, self.font, self.size, self.text, self.color, self.text_align, self.weight)
         super().overlay(overlayer, absolute_coord)
 
     def get_height(self):
@@ -200,5 +201,80 @@ class TextOverlayObject(OverlayObject):
         return None
 
     def get_width(self):
-        font = fitz.Font(fontfile=RESOURCES_PATH+"/fonts/"+self.font)
-        return font.text_length(self.text, self.size)
+        try:
+            font_path = RESOURCES_PATH + "/fonts/" + self.font
+            font = fitz.Font(fontfile=font_path)
+            if self.weight is not None and hasattr(font, 'set_variation'):
+                font.set_variation(wght=self.weight)
+            return font.text_length(self.text, self.size)
+        except Exception as e:
+            print(f"Weight {self.weight}에서 폭 계산 실패: {e}")
+            return self.get_width()  # 기본 방식으로 fallback
+
+
+class ImageOverlayObject(OverlayObject):
+    def __init__(self, page_num, coord, image_path, dpi=300, max_width=None, max_height=None):
+        """
+        이미지 오버레이 객체 (top-center 정렬)
+
+        Args:
+            page_num: 페이지 번호
+            coord: 이미지 배치 기준 좌표 (중심선의 상단 지점)
+            image_path: 이미지 파일 경로
+            dpi: 이미지 해상도 (기본값: 300)
+            max_width: 최대 너비 제한 (None이면 제한 없음)
+            max_height: 최대 높이 제한 (None이면 제한 없음)
+        """
+        self.image_path = image_path
+        self.dpi = dpi
+        self.max_width = max_width
+        self.max_height = max_height
+        self._calculated_height = None
+        super().__init__(page_num, coord)
+
+    def overlay(self, overlayer, absolute_coord):
+        """이미지를 실제로 오버레이"""
+        overlayer.image_overlay(
+            self.page_num,
+            absolute_coord,
+            self.image_path,
+            self.dpi,
+            self.max_width,
+            self.max_height
+        )
+        super().overlay(overlayer, absolute_coord)
+
+    def get_height(self):
+        """이미지의 실제 높이 계산"""
+        if self._calculated_height is None:
+            try:
+                # 이미지 크기 계산
+                img_doc = fitz.open(self.image_path)
+                img_page = img_doc.load_page(0)
+                original_height = img_page.rect.height
+                img_doc.close()
+
+                # DPI 적용
+                scale_factor = self.dpi / 72.0
+                scaled_height = original_height * scale_factor
+
+                # 최대 크기 제한 적용
+                if self.max_height is not None:
+                    if self.max_width is not None:
+                        # 종횡비 유지하면서 크기 조정
+                        original_width = img_page.rect.width
+                        scaled_width = original_width * scale_factor
+                        width_ratio = self.max_width / scaled_width
+                        height_ratio = self.max_height / scaled_height
+                        resize_ratio = min(width_ratio, height_ratio, 1.0)
+                        self._calculated_height = scaled_height * resize_ratio
+                    else:
+                        self._calculated_height = min(scaled_height, self.max_height)
+                else:
+                    self._calculated_height = scaled_height
+
+            except Exception as e:
+                print(f"이미지 높이 계산 실패: {e}")
+                self._calculated_height = 0
+
+        return self._calculated_height
