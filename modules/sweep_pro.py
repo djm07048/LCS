@@ -148,7 +148,7 @@ class SWProBuilder:
 
         box = AreaOverlayObject(0, Coord(0, 0, 0), 0)
         to_number = TextOverlayObject(0, Coord(Ratio.mm_to_px(1.5), Ratio.mm_to_px(9.31), 0),
-                                      "BebasNeue-Regular.ttf", 16, f"{item_number}", (1, 0, 0, 0), fitz.TEXT_ALIGN_LEFT)
+                                      "BebasNeue-Regular.ttf", 32, f"{item_number}", (1, 0, 0, 0), fitz.TEXT_ALIGN_LEFT)
         box.add_child(to_number)
 
         type_dict = {
