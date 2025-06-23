@@ -178,7 +178,7 @@ class SWProBuilder:
         compo_problem = self.get_problem_component(item_code)
         co_problem = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(13), 0), compo_problem)
         box.add_child(co_problem)
-        box.height = Ratio.mm_to_px(13) + co_problem.get_height()
+        box.height = Ratio.mm_to_px(13) + co_problem.get_height() + self.space_btw_problem
         return box
 
     def append_new_list_to_paragraph(self, paragraph: ParagraphOverlayObject, num, overlayer: Overlayer,
@@ -245,7 +245,6 @@ class SWProBuilder:
                     item_whole = self.bake_item(item_code)
                     paragraph_cnt = self.add_child_to_paragraph(paragraph, item_whole, paragraph_cnt, self.overlayer,
                                                                 local_start_page)
-            paragraph_cnt += 1      # 테마가 끝나면 다음 단으로 강제 넘김.
             theme_number += 1
         paragraph.overlay(self.overlayer, Coord(0, 0, 0))
 
