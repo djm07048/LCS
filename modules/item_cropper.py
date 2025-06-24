@@ -7,7 +7,7 @@ from utils.direction import Direction
 from utils.pdf_utils import PdfUtils
 from utils.ratio import Ratio
 from utils.problem_info import ProblemInfo
-from utils.solution_info import SolutionInfo
+from utils.solution_info import ThemeInfo
 
 class ItemCropper:
     def __init__(self):
@@ -58,7 +58,7 @@ class ItemCropper:
         rect = Rect(140, 0, 142, 420)
         return Ratio.rect_mm_to_px(rect)
 
-    def get_solution_infos_from_file(self, file: fitz.Document, accuracy = 1) -> list[SolutionInfo]:
+    def get_solution_infos_from_file(self, file: fitz.Document, accuracy = 1) -> list[ThemeInfo]:
         page = file.load_page(0)
         rect = self.get_solution_bar_area()
         na = PdfUtils.pdf_clip_to_array(page, rect, fitz.Matrix(1, accuracy))
@@ -74,7 +74,7 @@ class ItemCropper:
                         solutions[hexcode].rect.y0 = min(solutions[hexcode].rect.y0, y / accuracy)
                         solutions[hexcode].rect.y1 = max(solutions[hexcode].rect.y1, y / accuracy)
                     else:
-                        solutions[hexcode] = SolutionInfo(hexcode, self.get_solution_component_area())
+                        solutions[hexcode] = ThemeInfo(hexcode, self.get_solution_component_area())
                         solutions[hexcode].rect.y0 = y / accuracy
                         solutions[hexcode].rect.y1 = y / accuracy
         

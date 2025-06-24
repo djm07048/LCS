@@ -225,32 +225,105 @@ def convert_hwp_to_pdf(hwp_path):
         return None
 
 
-def create_theme_pdfs(theme_codes, log_callback=None):
+def create_theme_pdfs_printer(theme_codes, log_callback=None):
+    if not theme_codes:
+        if log_callback:
+            log_callback("No theme codes provided.")
+        return
+
     existing_paths = []
     for theme_code in theme_codes:
         theme_hwp = os.path.join(THEME_PATH, f"{theme_code}.hwp")
         if os.path.exists(theme_hwp):
             existing_paths.append(theme_hwp)
+            if log_callback:
+                log_callback(f"Adding theme file: {theme_hwp}")
+        else:
+            if log_callback:
+                log_callback(f"Theme file not found: {theme_hwp}")
 
+    if not existing_paths:
+        if log_callback:
+            log_callback("No existing theme files to process.")
+        return
+
+    if log_callback:
+        log_callback(f"Processing {len(existing_paths)} theme files...")
+
+    # 단일 스레드로 처리 (파일 충돌 방지)
     with ThreadPoolExecutor(max_workers=1) as executor:
         future_to_file = {
             executor.submit(convert_hwp_to_pdf, file): file
             for file in existing_paths
         }
 
+        completed = 0
+        total = len(existing_paths)
+
         for future in as_completed(future_to_file):
             file = future_to_file[future]
             try:
                 pdf_path = future.result()
+                completed += 1
+                progress = int((completed / total) * 100)
+
                 if pdf_path:
                     if log_callback:
-                        log_callback(f"Converted: {os.path.basename(file)}")
+                        log_callback(f"Progress: {progress}% - Converted: {os.path.basename(file)}")
                 else:
                     if log_callback:
-                        log_callback(f"Failed to convert: {os.path.basename(file)}")
+                        log_callback(f"Progress: {progress}% - Failed to convert: {os.path.basename(file)}")
             except Exception as e:
+                completed += 1
+                progress = int((completed / total) * 100)
                 if log_callback:
-                    log_callback(f"Error processing {file}: {str(e)}")
+                    log_callback(f"Progress: {progress}% - Error processing {file}: {str(e)}")
+
+        if log_callback:
+            log_callback("Theme PDF creation completed.")
+
+
+def convert_theme_hwp_to_pdf(hwp_path, log_callback=None):
+    """테마 전용 HWP to PDF 변환 함수"""
+    pdf_path = hwp_path.replace('.hwp', '.pdf')
+
+    if log_callback:
+        log_callback(f"Converting theme: {hwp_path}")
+
+    try:
+        # 기존 PDF 체크
+        if os.path.exists(pdf_path):
+            hwp_time = os.path.getmtime(hwp_path)
+            pdf_time = os.path.getmtime(pdf_path)
+            if pdf_time > hwp_time:
+                pdf_size = os.path.getsize(pdf_path)
+                if pdf_size > 10 * 1024:
+                    if log_callback:
+                        log_callback(f"Theme PDF already exists and is up to date: {pdf_path}")
+                    return pdf_path
+
+        # PDF 변환 시도
+        for attempt in range(3):
+            if log_callback:
+                log_callback(f"Theme conversion attempt {attempt + 1}/3 for {os.path.basename(hwp_path)}")
+
+            result = convert_hwp_to_pdf(hwp_path)
+            if result:
+                if log_callback:
+                    log_callback(f"Successfully converted theme: {os.path.basename(hwp_path)}")
+                return result
+
+            if attempt < 2:
+                time.sleep(2)  # 재시도 전 대기
+
+        if log_callback:
+            log_callback(f"Failed to convert theme after 3 attempts: {os.path.basename(hwp_path)}")
+        return None
+
+    except Exception as e:
+        if log_callback:
+            log_callback(f"Error converting theme {hwp_path}: {e}")
+        return None
 
 def create_pdfs(item_codes, log_callback=None):
     existing_paths = []

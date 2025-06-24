@@ -7,7 +7,7 @@ from utils.direction import Direction
 from utils.pdf_utils import PdfUtils
 from utils.ratio import Ratio
 from utils.problem_info import ProblemInfo
-from utils.solution_info import SolutionInfo
+from utils.solution_info import ThemeInfo
 
 from utils.overlay_object import *
 from overlayer import Overlayer

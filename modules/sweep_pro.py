@@ -4,7 +4,8 @@ from pathlib import Path
 import fitz
 from utils.ratio import Ratio
 from utils.pdf_utils import PdfUtils
-from utils.solution_info import SolutionInfo
+from utils.solution_info import ThemeInfo
+from theme_cropper import ThemeCropper
 from utils.overlay_object import *
 from utils.coord import Coord
 from utils.path import *
@@ -56,6 +57,16 @@ class SWProBuilder:
                 else Component(item_pdf, 0, ic.get_problem_rect_from_file(file, accuracy=1))
         return component
 
+    def get_theme_type_dict(self):
+        theme_type_dict = {
+            "Off": 4,
+            "On": 5
+        }
+        return theme_type_dict
+    def get_commentary_data(self):
+        with open(RESOURCES_PATH + "/commentary.json") as file:
+            commentary_data = json.load(file)
+        return commentary_data
     def get_theme_json(self):
         theme_json_path = Path(RESOURCES_PATH) / 'theme.json'
         if not theme_json_path.exists():
@@ -93,11 +104,10 @@ class SWProBuilder:
 
     def bake_theme_quotation(self, theme_code):
         theme_quotation = self.get_theme_quotation(theme_code)
-
         compo_lt = self.get_component_on_resources(1)
         compo_rt = self.get_component_on_resources(2)
-
         box = AreaOverlayObject(0, Coord(0, 0, 0), Ratio.mm_to_px(10))
+
         box.add_child(ComponentOverlayObject(0, Coord(0, 0, 0), compo_lt))
 
         to_quotation = TextOverlayObject(0, Coord(Ratio.mm_to_px(5.5), Ratio.mm_to_px(5.88), 0),
@@ -109,14 +119,60 @@ class SWProBuilder:
         box.rect = compo_lt.src_rect    #x1 수정해야
 
         return box
+    def bake_theme_bulb_object(self, theme_info, theme_code):
+        so = AreaOverlayObject(0, Coord(0, 0, 0), 0)
+        theme_pdf = os.path.join(THEME_PATH, f'{theme_code}.pdf')
+        theme_compo = Component(theme_pdf, 0, theme_info.rect)
 
+        theme_type_dict = self.get_theme_type_dict()
+        commentary_data = self.get_commentary_data()
+
+        if theme_info.hexcode not in commentary_data:
+            # Handle the missing key case
+            print(f"Warning: Hexcode {theme_info.hexcode} not found in commentary data.")
+            return None
+
+        commentary_key = commentary_data[theme_info.hexcode]
+        if commentary_key not in theme_type_dict:
+            # Handle the missing key case
+            print(f"Warning: Commentary key {commentary_key} not found in solution type dictionary.")
+            return None
+        if commentary_data[theme_info.hexcode] == "Off":
+            bulb_compo = self.get_component_on_resources(4)
+        else:   #On일 때
+            bulb_compo = self.get_component_on_resources(5)
+        so.add_child(ComponentOverlayObject(0, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(0), 2), bulb_compo))
+        so.add_child(ComponentOverlayObject(0, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(0), 2), theme_compo))
+        so.height = max(bulb_compo.src_rect.height, theme_compo.src_rect.height)
+        return so
     def bake_theme_input(self, theme_code):
+        theme_pdf = os.path.join(THEME_PATH, f'{theme_code}.pdf')
+        print(f"Loading theme PDF: {theme_pdf}")
+        with fitz.open(theme_pdf) as file:
+            tc = ThemeCropper()
+            themes_info = tc.get_theme_infos_from_file(file, 10)
+
         box = AreaOverlayObject(0, Coord(0, 0, 0), Ratio.mm_to_px(12))
+        curr_y = 0
         compo_bar1 = self.get_component_on_resources(3)
         box.add_child(ComponentOverlayObject(0, Coord(0, 0, 0), compo_bar1))
-        # 여기에 theme cropper로 자른 것을 넣어주기
+        curr_y += compo_bar1.src_rect.height
+        print(themes_info)
+        for theme_info in themes_info:
+            if self.get_commentary_data()[theme_info.hexcode] == "Off":
+                theme_bulb_off_object = self.bake_theme_bulb_object(theme_info, theme_code)
+                theme_bulb_off_object.coord.y = curr_y
+                curr_y += theme_bulb_off_object.height
+                box.add_child(theme_bulb_off_object)
+            if self.get_commentary_data()[theme_info.hexcode] == "On":
+                theme_bulb_on_object = self.bake_theme_bulb_object(theme_info, theme_code)
+                theme_bulb_on_object.coord.y = curr_y
+                curr_y += theme_bulb_on_object.height
+                box.add_child(theme_bulb_on_object)
         compo_bar2 = self.get_component_on_resources(3)
-        box.add_child(ComponentOverlayObject(0, Coord(0, Ratio.mm_to_px(6), 0), compo_bar2))
+        curr_y += compo_bar2.src_rect.height
+        box.add_child(ComponentOverlayObject(0, Coord(0, curr_y, 0), compo_bar2))
+        box.height = curr_y
         return box
 
 

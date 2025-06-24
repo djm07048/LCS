@@ -6,7 +6,7 @@ from pathlib import Path
 import fitz
 from utils.ratio import Ratio
 from utils.pdf_utils import PdfUtils
-from utils.solution_info import SolutionInfo
+from utils.solution_info import ThemeInfo
 from utils.overlay_object import *
 from utils.coord import Coord
 from utils.path import *

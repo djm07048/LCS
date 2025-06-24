@@ -88,25 +88,25 @@ class ColoredTableWidget(QTableWidget):
 class PDFCreationThread(QThread):
     progress_signal = pyqtSignal(str)
 
-    def __init__(self, item_list, type="item"):
+    def __init__(self, item_list, creation_type="item"):  # type -> creation_type으로 변경
         super().__init__()
         self.list = item_list
-        self.type = type
+        self.creation_type = creation_type  # 변수명 변경
 
     def run(self):
-        if type == "item":
+        if self.creation_type == "item":  # self.creation_type 사용
             try:
                 create_pdfs(self.list, log_callback=self.log_message)
             except Exception as e:
                 self.progress_signal.emit(f"Error during PDF creation: {e}")
-        elif type == "theme":
+        elif self.creation_type == "theme":  # self.creation_type 사용
             try:
-                create_theme_pdfs(self.list, log_callback=self.log_message)
+                create_theme_pdfs_printer(self.list, log_callback=self.log_message)
             except Exception as e:
                 self.progress_signal.emit(f"Error during Theme PDF creation: {e}")
+
     def log_message(self, message):
         self.progress_signal.emit(message)
-
 
 class DatabaseManagerSweep(QMainWindow):
     def __init__(self):
@@ -828,16 +828,37 @@ class DatabaseManagerSweep(QMainWindow):
     def create_theme_pdfs_gui(self):
         if not self.show_warning_dialog("Are you sure you want to create Theme PDFs?"):
             return
+
         theme_list = []
         for row in range(self.list_table.rowCount()):
-            item_code = self.list_table.item(row, 4).text() if self.list_table.item(row, 4) else None
-            theme_list.append(item_code)
-        self.log_message("Starting Theme PDF creation...")
+            theme_code = self.list_table.item(row, 4).text() if self.list_table.item(row, 4) else None
+            if theme_code and theme_code.strip() and theme_code not in theme_list:  # 빈 문자열 체크 추가
+                theme_list.append(theme_code.strip())
 
-        print(theme_list)
+        if not theme_list:
+            self.log_message("No theme codes found to create PDFs.")
+            return
+
+        self.log_message(f"Starting Theme PDF creation for themes: {theme_list}")
+
+        # 각 테마 파일이 실제로 존재하는지 확인
+        existing_themes = []
+        for theme_code in theme_list:
+            theme_hwp = os.path.join(THEME_PATH, f"{theme_code}.hwp")
+            if os.path.exists(theme_hwp):
+                existing_themes.append(theme_code)
+                self.log_message(f"Found theme file: {theme_hwp}")
+            else:
+                self.log_message(f"Theme file not found: {theme_hwp}")
+
+        if not existing_themes:
+            self.log_message("No existing theme files found.")
+            return
+
         self.refresh_folder(THEME_PATH)
+        time.sleep(1)  # 폴더 새로고침 대기
 
-        self.pdf_thread = PDFCreationThread(theme_list, "theme")
+        self.pdf_thread = PDFCreationThread(existing_themes, "theme")  # creation_type 명시
         self.pdf_thread.progress_signal.connect(self.log_message)
         self.pdf_thread.start()
 
@@ -1144,9 +1165,20 @@ class DatabaseManagerSweep(QMainWindow):
                     action.setData({'type': 'plus', 'row': row, 'plus_value': option})
                     action.triggered.connect(self.handle_context_action)
 
+            elif sender == self.list_table and col == 4:
+                if sender.item(row, 4).text():
+                    theme_code = sender.item(row, 4).text()
+                    # 테마 관련 액션
+                    action = menu.addAction("Open Theme HWP")
+                    action.setData({'type': 'theme_hwp', 'theme_code': theme_code})
+                    action.triggered.connect(self.handle_context_action)
+
+                action = menu.addAction("Open Theme Folder")
+                action.setData({'type': 'theme_folder'})
+                action.triggered.connect(self.handle_context_action)
+
             if not menu.isEmpty():
                 menu.exec_(sender.mapToGlobal(pos))
-
         except Exception as e:
             self.log_message(f"Context menu error: {str(e)}")
 
@@ -1184,6 +1216,10 @@ class DatabaseManagerSweep(QMainWindow):
                 self.safe_change_item_type(data['row'], data['type_value'])
             elif action_type == 'plus':
                 self.safe_change_item_plus(data['row'], data['plus_value'])
+            elif action_type == 'theme_hwp':
+                self.open_theme_hwp(data['theme_code'])
+            elif action_type == 'theme_folder':
+                self.open_theme_folder()
 
         except Exception as e:
             self.log_message(f"Context action error: {str(e)}")
@@ -1229,6 +1265,23 @@ class DatabaseManagerSweep(QMainWindow):
                 except subprocess.CalledProcessError as e:
                     print(f"Error: {e}")
 
+    def open_theme_hwp(self, theme_code):
+        # Construct and normalize path
+        hwp_path = os.path.join(THEME_PATH, f"{theme_code}.hwp")
+        if os.path.exists(hwp_path):
+            try:
+                os.startfile(hwp_path)
+            except Exception as e:
+                print(f"Error: {e}")
+
+    def open_theme_folder(self):
+        folder_path = THEME_PATH
+        if os.path.exists(folder_path):
+            if os.name == 'nt':
+                try:
+                    subprocess.run(['explorer', folder_path], check=True)
+                except subprocess.CalledProcessError as e:
+                    print(f"Error: {e}")
     def refractor_item_code(self, item_code, new_code):
         # 원본 코드의 정보 파싱
         if item_code[5:7] == 'KC':
