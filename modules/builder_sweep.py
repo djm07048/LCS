@@ -1,7 +1,7 @@
-from sweep_ans import SWAnswerBuilder
+#from sweep_ans import SWAnsBuilder
 from sweep_pro import SWProBuilder
-from sweep_sol import SWSolBuilder
-from sweep_toc import SWTocBuilder
+#from sweep_sol import SWSolBuilder
+#from sweep_toc import SWTocBuilder
 from modules.overlayer import Overlayer
 from utils.coord import Coord
 from utils.overlay_object import *
@@ -45,7 +45,7 @@ class SWBuilder:
         new_doc = fitz.open()
 
         # Add the quick answer page
-        SWAB = SWAnswerBuilder(self.items)
+        SWAB = SWAnsBuilder(self.items)
         ans_doc = SWAB.build_answer_page(output)
         new_doc.insert_pdf(ans_doc)
         ans_doc.close()

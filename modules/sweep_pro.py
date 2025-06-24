@@ -24,7 +24,7 @@ class SWProBuilder:
         self.resources_doc = fitz.open(self.resources_pdf)
         self.space_btw_problem = Ratio.mm_to_px(25)
         self.theme_dictionary = self.get_theme_json()
-
+        print(self.items)
         result = {}
         for item in self.items:
             theme = item["theme"]
@@ -79,7 +79,7 @@ class SWProBuilder:
         box = ComponentOverlayObject(0, Coord(0,0,0), compo)
 
         to_number = TextOverlayObject(0, Coord(Ratio.mm_to_px(3.25), Ratio.mm_to_px(6.67), 0),
-                                      "GowunBatang-Bold.ttf", 16, f"{self.arabic2roman(theme_number)}" + ". ", (0.2, 0, 0, 1), fitz.TEXT_ALIGN_LEFT)
+                                      "GowunBatang-Bold.ttf", 17, f"{self.arabic2roman(theme_number)}" + ". ", (0.2, 0, 0, 1), fitz.TEXT_ALIGN_LEFT)
 
         x0 = Ratio.mm_to_px(3.25) + to_number.get_width()
         to_name = TextOverlayObject(0, Coord(x0, Ratio.mm_to_px(6.31), 0),
@@ -97,7 +97,7 @@ class SWProBuilder:
         compo_lt = self.get_component_on_resources(1)
         compo_rt = self.get_component_on_resources(2)
 
-        box = AreaOverlayObject(0, Coord(0, 0, 0), Ratio.mm_to_px(8))
+        box = AreaOverlayObject(0, Coord(0, 0, 0), Ratio.mm_to_px(10))
         box.add_child(ComponentOverlayObject(0, Coord(0, 0, 0), compo_lt))
 
         to_quotation = TextOverlayObject(0, Coord(Ratio.mm_to_px(5.5), Ratio.mm_to_px(5.88), 0),
@@ -136,12 +136,14 @@ class SWProBuilder:
         theme_box.height = curr_y
         return theme_box
 
-    def bake_item(self, item_code):
-        for item in self.items:
-            if item['item_code'] == item_code:
-                item_number = item['number']
-                item_type = item['type']
-                item_plus = item['plus']
+    def bake_item(self, item_code, theme_code):
+        item_list = self.items_by_theme[theme_code]
+        for item_dict in item_list:
+            if item_code == list(item_dict.keys())[0]:  # item_code가 키인 경우
+                item_data = item_dict[item_code]
+                item_number = item_data['number']
+                item_type = item_data['type']
+                item_plus = item_data['plus']
 
         box = AreaOverlayObject(0, Coord(0, 0, 0), 0)
         to_number = TextOverlayObject(0, Coord(Ratio.mm_to_px(1.5), Ratio.mm_to_px(9.31), 0),
@@ -171,6 +173,12 @@ class SWProBuilder:
         else:
             box.add_child(to_type)
 
+        if item_code[5:7] == 'KC':
+            citation = code2cite(item_code)
+            to_citation = TextOverlayObject(0, Coord(Ratio.mm_to_px(15), Ratio.mm_to_px(8.8), 0),
+                                            "Pretendard-Medium.ttf", 10, citation, (0, 0, 0, 0.7),
+                                            fitz.TEXT_ALIGN_LEFT)
+            box.add_child(to_citation)
 
         compo_problem = self.get_problem_component(item_code)
         co_problem = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(13), 0), compo_problem)
@@ -180,8 +188,8 @@ class SWProBuilder:
 
     def append_new_list_to_paragraph(self, paragraph: ParagraphOverlayObject, num, overlayer: Overlayer,
                                      local_start_page):
-        x0_list = [[Ratio.mm_to_px(14), Ratio.mm_to_px(262 - 18 - 110)],
-                   [Ratio.mm_to_px(18), Ratio.mm_to_px(262 - 14 - 110)]]
+        x0_list = [[Ratio.mm_to_px(18), Ratio.mm_to_px(262 - 14 - 110)],
+                [Ratio.mm_to_px(14), Ratio.mm_to_px(262 - 18 - 110)]]
         y0 = Ratio.mm_to_px(22)
         y1 = Ratio.mm_to_px(347)
         height = y1 - y0
@@ -190,15 +198,12 @@ class SWProBuilder:
         current_absolute_page = local_start_page + overlayer.doc.page_count - 1
 
         # 페이지 타입 확인 (좌수/우수)
-        page_side = current_absolute_page % 2  # 0: 좌수, 1: 우수
+        page_side = current_absolute_page % 2  # 0: 우수, 1: 좌수
 
         # 현재 num에 해당하는 컬럼 (다음이 아닌 현재!)
-        current_column = num % 2  # 0: 1단, 1: 2단
+        current_column = num % 2  # 0: 좌단, 1: 우단
 
         x0 = x0_list[page_side][current_column]
-
-        print(f"  새 리스트 생성: 페이지 {current_absolute_page + 1}({'좌수' if page_side == 0 else '우수'}) {current_column + 1}단")
-
         # 새 리스트 생성
         doc_page_index = overlayer.doc.page_count - 1
         paragraph_list = ListOverlayObject(doc_page_index, Coord(x0, y0, 0), height, 2)
@@ -206,75 +211,59 @@ class SWProBuilder:
 
     def add_child_to_paragraph(self, paragraph: ParagraphOverlayObject, child: OverlayObject, num,
                                overlayer: Overlayer, local_start_page):
-        # 현재 위치 정보
-        current_doc_page = overlayer.doc.page_count - 1
-        current_absolute_page = local_start_page + current_doc_page
-        current_side = "좌수" if current_absolute_page % 2 == 0 else "우수"
-        current_column = (num % 2) + 1
 
-        child_info = self.get_child_info(child)
-
+        # 기존 리스트에 추가 가능하면 추가하고 num 그대로 반환
         if paragraph.add_child(child):
-            print(f"✓ {child_info} → 페이지 {current_absolute_page + 1}({current_side}) {current_column}단")
             return num
 
-        print(f"⚠ {child_info} → 현재 위치 공간 부족")
+        if len(paragraph.child) == 0:
+            # 첫 번째 항목인 경우
+            self.append_new_list_to_paragraph(paragraph, num, overlayer, local_start_page)
+            paragraph.add_child(child)
+            return num + 1
 
-        # 새 리스트 생성
-        self.append_new_list_to_paragraph(paragraph, num, overlayer, local_start_page)
+        # 두 번째 이상의 리스트인 경우
+        # 이전 열 확인 (num-1의 열)
+        prev_column = (num - 1) % 2
 
-        # **우수 2단에서 끝나면** 새 페이지 생성
-        if num % 2 == 1:  # 2단(우수)에서 다음으로 넘어갈 때
+        # 이전 열이 우단(1)이면 다음 페이지로 넘어감 (좌단->우단 순서에서)
+        if prev_column == 1:  # 좌단이 채워짐 -> 새 페이지 필요
+            # 현재 페이지의 짝/홀수 확인
             new_absolute_page = local_start_page + overlayer.doc.page_count
-            template_page_num = 20 - (new_absolute_page % 2)
+            template_page_num = 19 + (new_absolute_page % 2)
+
             overlayer.add_page(self.get_component_on_resources(template_page_num))
-            new_side = "좌수" if new_absolute_page % 2 == 0 else "우수"
-            print(f"📄 새 페이지 생성: 페이지 {new_absolute_page + 1}({new_side})")
 
-        # 다시 추가 시도
+        # 새 리스트 추가
+        self.append_new_list_to_paragraph(paragraph, num, overlayer, local_start_page)
         paragraph.add_child(child)
+        return num + 1
 
-        # 최종 위치 정보
-        final_doc_page = overlayer.doc.page_count - 1
-        final_absolute_page = local_start_page + final_doc_page
-        final_side = "좌수" if final_absolute_page % 2 == 0 else "우수"
-        final_column = (num % 2) + 1
-        print(f"✓ {child_info} → 페이지 {final_absolute_page + 1}({final_side}) {final_column}단")
-
-        num += 1
-        return num
-
-    def get_child_info(self, child):
-        """child 객체에서 디버깅용 정보 추출"""
-        if hasattr(child, 'children') and child.children:
-            for sub_child in child.children:
-                if hasattr(sub_child, 'text'):
-                    text = sub_child.text.strip()
-                    if text.endswith('.'):  # 테마 번호 (I., II., III. 등)
-                        return f"테마 {text}"
-                    elif text.isdigit() or (len(text) == 2 and text.isdigit()):  # 문항 번호
-                        return f"문항 {int(text):02d}번"
-        return f"{type(child).__name__}"
 
     def build_page_pro(self):
         local_start_page = self.curr_page
 
         pro_doc = fitz.open()
         self.overlayer = Overlayer(pro_doc)
+
+
+        template_page_num = 20 if local_start_page % 2 == 1 else 19
+        self.overlayer.add_page(self.get_component_on_resources(template_page_num))
+
         paragraph = ParagraphOverlayObject()
         paragraph_cnt = 0
-
         theme_number = 1
+
+
         for theme_code in self.items_by_theme.keys():
             theme_whole = self.bake_theme_whole(theme_code, theme_number)
             # 테마 제목 추가
             paragraph_cnt = self.add_child_to_paragraph(paragraph, theme_whole, paragraph_cnt, self.overlayer,
                                                         local_start_page)
             # 문항 추가
-            # 더 간단한 수정
             for item_dict in self.items_by_theme[theme_code]:
                 for item_code in item_dict.keys():  # 딕셔너리의 키 반복
-                    item_whole = self.bake_item(item_code)
+                    item_whole = self.bake_item(item_code, theme_code)
                     paragraph_cnt = self.add_child_to_paragraph(paragraph, item_whole, paragraph_cnt, self.overlayer,
                                                                 local_start_page)
             theme_number += 1
@@ -292,15 +281,15 @@ if __name__ == "__main__":
                 "number": 1,
                 "type": "대표",
                 "plus": "없음",
-                "theme": "aaga",
+                "theme": "aagc",
                 "fig": []
               },
               {
                 "item_code": "E1aagKC210920",
                 "number": 2,
                 "type": "기본",
-                "plus": "고난도",
-                "theme": "aaga",
+                "plus": "신유형",
+                "theme": "aagc",
                 "fig": []
               },
               {
@@ -332,7 +321,7 @@ if __name__ == "__main__":
                 "number": 6,
                 "type": "기본",
                 "plus": "고난도",
-                "theme": "aagc",
+                "theme": "aaga",
                 "fig": []
               },
               {
@@ -340,7 +329,7 @@ if __name__ == "__main__":
                 "number": 7,
                 "type": "발전",
                 "plus": "없음",
-                "theme": "aagc",
+                "theme": "aaga",
                 "fig": []
               },
               {
@@ -348,7 +337,7 @@ if __name__ == "__main__":
                 "number": 8,
                 "type": "대표",
                 "plus": "없음",
-                "theme": "aagc",
+                "theme": "aaga",
                 "fig": []
               },
               {
@@ -356,7 +345,7 @@ if __name__ == "__main__":
                 "number": 9,
                 "type": "발전",
                 "plus": "고난도",
-                "theme": "aagc",
+                "theme": "aaga",
                 "fig": []
               }
             ]
