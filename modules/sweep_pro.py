@@ -142,7 +142,7 @@ class SWProBuilder:
         else:   #On일 때
             bulb_compo = self.get_component_on_resources(5)
         so.add_child(ComponentOverlayObject(0, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(0), 2), bulb_compo))
-        so.add_child(ComponentOverlayObject(0, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(0), 2), theme_compo))
+        so.add_child(ComponentOverlayObject(0, Coord(Ratio.mm_to_px(10), Ratio.mm_to_px(0), 2), theme_compo))
         so.height = max(bulb_compo.src_rect.height, theme_compo.src_rect.height)
         return so
     def bake_theme_input(self, theme_code):
@@ -159,16 +159,18 @@ class SWProBuilder:
         curr_y += compo_bar1.src_rect.height
         print(themes_info)
         for theme_info in themes_info:
-            if self.get_commentary_data()[theme_info.hexcode] == "Off":
-                theme_bulb_off_object = self.bake_theme_bulb_object(theme_info, theme_code)
-                theme_bulb_off_object.coord.y = curr_y
-                curr_y += theme_bulb_off_object.height
-                box.add_child(theme_bulb_off_object)
-            if self.get_commentary_data()[theme_info.hexcode] == "On":
-                theme_bulb_on_object = self.bake_theme_bulb_object(theme_info, theme_code)
-                theme_bulb_on_object.coord.y = curr_y
-                curr_y += theme_bulb_on_object.height
-                box.add_child(theme_bulb_on_object)
+            key = self.get_commentary_data()[theme_info.hexcode]
+            if key:
+                if key == "Off":
+                    theme_bulb_off_object = self.bake_theme_bulb_object(theme_info, theme_code)
+                    theme_bulb_off_object.coord.y = curr_y
+                    curr_y += theme_bulb_off_object.height
+                    box.add_child(theme_bulb_off_object)
+                if key == "On":
+                    theme_bulb_on_object = self.bake_theme_bulb_object(theme_info, theme_code)
+                    theme_bulb_on_object.coord.y = curr_y
+                    curr_y += theme_bulb_on_object.height
+                    box.add_child(theme_bulb_on_object)
         compo_bar2 = self.get_component_on_resources(3)
         curr_y += compo_bar2.src_rect.height
         box.add_child(ComponentOverlayObject(0, Coord(0, curr_y, 0), compo_bar2))
