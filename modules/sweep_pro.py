@@ -18,9 +18,8 @@ import json
 class SWProBuilder:
     def __init__(self, items, curr_page):
         self.items = items
+        self.items_dict = {item['item_code']: item for item in self.items}
         self.curr_page = curr_page
-        self.item_cropper = ItemCropper()
-        #self.theme_cropper = ThemeCropper()
         self.resources_pdf = RESOURCES_PATH + '/sweep_pro_resources.pdf'
         self.resources_doc = fitz.open(self.resources_pdf)
         self.space_btw_problem = Ratio.mm_to_px(25)
@@ -30,11 +29,11 @@ class SWProBuilder:
         for item in self.items:
             theme = item["theme"]
             if theme not in result:
-                result[theme] = []
+                result[theme] = dict()
 
             # item_code를 키로, 나머지를 값으로 하는 딕셔너리 추가
             item_data = {k: v for k, v in item.items() if k != "item_code"}
-            result[theme].append({item["item_code"]: item_data})
+            result[theme].update({item["item_code"]: item_data})
         self.items_by_theme = result
         print(f"Items by theme: {self.items_by_theme}")
 
@@ -145,6 +144,7 @@ class SWProBuilder:
         so.add_child(ComponentOverlayObject(0, Coord(Ratio.mm_to_px(10), Ratio.mm_to_px(0), 2), theme_compo))
         so.height = max(bulb_compo.src_rect.height, theme_compo.src_rect.height)
         return so
+
     def bake_theme_input(self, theme_code):
         theme_pdf = os.path.join(THEME_PATH, f'{theme_code}.pdf')
         print(f"Loading theme PDF: {theme_pdf}")
@@ -194,18 +194,27 @@ class SWProBuilder:
         theme_box.height = curr_y
         return theme_box
 
+    def get_item_info(self, item_code, theme_code):
+        """
+        아이템 코드에 해당하는 아이템 정보를 반환합니다.
+        :param item_code: 아이템 코드 (예: 'E1nekZG260101')
+        :return: 아이템 정보 딕셔너리
+        """
+        item_dict = self.items_by_theme.get(theme_code, [])
+        if item_code not in item_dict:
+            raise ValueError(f"Item code {item_code} not found in items.")
+        return item_dict[item_code]
+
     def bake_item(self, item_code, theme_code):
-        item_list = self.items_by_theme[theme_code]
-        for item_dict in item_list:
-            if item_code == list(item_dict.keys())[0]:  # item_code가 키인 경우
-                item_data = item_dict[item_code]
-                item_number = item_data['number']
-                item_type = item_data['type']
-                item_plus = item_data['plus']
+        item_info = self.get_item_info(item_code, theme_code)
+        item_number = item_info['number']
+        item_type = item_info['type']
+        item_plus = item_info['plus']
 
         box = AreaOverlayObject(0, Coord(0, 0, 0), 0)
         to_number = TextOverlayObject(0, Coord(Ratio.mm_to_px(1.5), Ratio.mm_to_px(9.31), 0),
-                                      "BebasNeue-Regular.ttf", 32, f"{item_number:02d}", (1, 0, 0, 0), fitz.TEXT_ALIGN_LEFT)
+                                      "BebasNeue-Regular.ttf", 32, f"{item_number:02d}", (1, 0, 0, 0),
+                                      fitz.TEXT_ALIGN_LEFT)
         box.add_child(to_number)
 
         type_dict = {
@@ -241,7 +250,7 @@ class SWProBuilder:
         compo_problem = self.get_problem_component(item_code)
         co_problem = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(13), 0), compo_problem)
         box.add_child(co_problem)
-        box.height = Ratio.mm_to_px(13) + co_problem.get_height() + self.space_btw_problem
+        box.height = Ratio.mm_to_px(13) + co_problem.get_height()
         return box
 
     def append_new_list_to_paragraph(self, paragraph: ParagraphOverlayObject, num, overlayer: Overlayer,
@@ -319,11 +328,13 @@ class SWProBuilder:
             paragraph_cnt = self.add_child_to_paragraph(paragraph, theme_whole, paragraph_cnt, self.overlayer,
                                                         local_start_page)
             # 문항 추가
-            for item_dict in self.items_by_theme[theme_code]:
-                for item_code in item_dict.keys():  # 딕셔너리의 키 반복
-                    item_whole = self.bake_item(item_code, theme_code)
-                    paragraph_cnt = self.add_child_to_paragraph(paragraph, item_whole, paragraph_cnt, self.overlayer,
-                                                                local_start_page)
+            item_dict = self.items_by_theme[theme_code]
+            for item_code in item_dict.keys():
+                print(f"3: {item_dict.keys()}")
+                print(f"Processing item: {item_dict}")
+                item_whole = self.bake_item(item_code, theme_code)
+                paragraph_cnt = self.add_child_to_paragraph(paragraph, item_whole, paragraph_cnt, self.overlayer,
+                                                            local_start_page)
             theme_number += 1
         paragraph.overlay(self.overlayer, Coord(0, 0, 0))
 
@@ -408,6 +419,6 @@ if __name__ == "__main__":
               }
             ]
     builder = SWProBuilder(items, 1)
-
+    path = os.path.join(OUTPUT_PATH, 'sweep_pro_output.pdf')
     pro_doc = builder.build_page_pro()
-    pro_doc.save("sweep_pro_output.pdf")
+    pro_doc.save(path)
