@@ -708,7 +708,7 @@ if __name__ == "__main__":
                 "fig": []
               }
             ]
-    builder = SWSubBuilder(items, 1)
+    builder = SWSolBuilder(items, 1)
     total_doc = fitz.open()
     theme_number = 1
     for theme_code in builder.items_by_theme.keys():
