@@ -169,17 +169,22 @@ class SWSolBuilder:
         image_overlay = ImageOverlayObject(0, Coord(Ratio.mm_to_px(55), curr_y, 0), image_path,
                                            max_width= Ratio.mm_to_px(90), max_height=Ratio.mm_to_px(90))
         box.add_child(image_overlay)
-        curr_y += image_overlay.get_height() + Ratio.mm_to_px(20)
+        curr_y += image_overlay.get_height() + Ratio.mm_to_px(5)
+        memo = self.get_component_on_resources(25)
+        memo_cco = ComponentOverlayObject(0, Coord(0, curr_y, 0), memo)
+        box.add_child(memo_cco)
+        curr_y += memo.src_rect.height + Ratio.mm_to_px(20)  # 20mm 여백 추가
         # image_comment를 추가해야 함!
-        return box
+        return box, curr_y
 
     def bake_js(self, item_code, theme_code):
         box_whole = AreaOverlayObject(0, Coord(0, 0, 0), Ratio.mm_to_px(0))
         image_list = self.get_item_info(item_code, theme_code).get('fig', [])
         curr_y = 0
         for image in image_list:
-            box = self.bake_image(item_code, curr_y, image)
+            box, curr_new_y = self.bake_image(item_code, curr_y, image)
             box_whole.add_child(box)
+            curr_y = curr_new_y
         box_whole.height = curr_y
         return box_whole
 
