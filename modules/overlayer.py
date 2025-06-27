@@ -238,17 +238,6 @@ class Overlayer:
     def image_overlay(self, page_num, coord, image_path, dpi=300, max_width=None, max_height=None):
         """
         DPI를 적용하여 이미지를 PDF 페이지에 오버레이 (top-center 정렬)
-
-        Args:
-            page_num: 페이지 번호
-            coord: 이미지 배치 기준 좌표 (중심선의 상단 지점)
-            image_path: 이미지 파일 경로
-            dpi: 이미지 해상도 (기본값: 300)
-            max_width: 최대 너비 제한 (None이면 제한 없음)
-            max_height: 최대 높이 제한 (None이면 제한 없음)
-
-        Returns:
-            dict: 배치된 이미지의 경계 좌표 정보
         """
         try:
             # 이미지 파일 존재 확인
@@ -258,9 +247,16 @@ class Overlayer:
 
             # 페이지 로드
             page = self.doc.load_page(page_num)
+            if page is None:
+                print(f"페이지를 로드할 수 없습니다: {page_num}")
+                return None
 
             # 이미지를 PDF 문서로 변환
             img_doc = fitz.open(image_path)
+            if img_doc is None:
+                print(f"이미지 문서를 열 수 없습니다: {image_path}")
+                return None
+
             img_page = img_doc.load_page(0)
 
             # 원본 이미지 크기 (포인트 단위)
@@ -269,7 +265,6 @@ class Overlayer:
             original_height = original_rect.height
 
             # DPI 변환 계산
-            # 기본 PDF DPI는 72, 따라서 dpi/72가 스케일 팩터
             scale_factor = dpi / 72.0
 
             # DPI 적용된 크기 계산
@@ -286,14 +281,15 @@ class Overlayer:
                 height_ratio = max_height / scaled_height if max_height else float('inf')
 
                 # 더 작은 비율 적용
-                resize_ratio = min(width_ratio, height_ratio, 1.0)  # 1.0을 넘지 않도록
+                resize_ratio = min(width_ratio, height_ratio, 1.0)
 
                 final_width = scaled_width * resize_ratio
                 final_height = scaled_height * resize_ratio
 
-            # Top-Center 정렬을 위한 좌표 계산
+            # Top-Center 정렬을 위한 좌표 계산 (수정)
             # coord.x는 이미지의 중심선, coord.y는 이미지의 상단
-            center_x = coord.x
+            max_width = max_width if max_width is not None else final_width
+            center_x = coord.x  # 중심선의 x좌표
             top_y = coord.y
 
             # 실제 배치 좌표 계산
@@ -304,13 +300,18 @@ class Overlayer:
 
             target_rect = fitz.Rect(x0, y0, x1, y1)
 
-            # 이미지 삽입
-            page.show_pdf_page(
-                target_rect,
-                img_doc,
-                0,  # 첫 번째 페이지
-                clip=original_rect
-            )
+            # 이미지 삽입 (PNG 등 이미지 파일에 대해 insert_image 사용)
+            try:
+                # 이미지 파일을 직접 삽입하는 방식으로 변경
+                with open(image_path, 'rb') as img_file:
+                    img_data = img_file.read()
+
+                page.insert_image(target_rect, stream=img_data, keep_proportion=True)
+
+            except Exception as e:
+                print(f"insert_image 실패, show_pdf_page로 재시도: {e}")
+                # Fallback: show_pdf_page 방식
+                page.show_pdf_page(target_rect, img_doc, 0, clip=original_rect)
 
             # 이미지 문서 닫기
             img_doc.close()
@@ -324,8 +325,8 @@ class Overlayer:
                 "y1": y1,
                 "width": final_width,
                 "height": final_height,
-                "center_x": center_x,  # 원래 지정한 중심점
-                "center_y": (y0 + y1) / 2,  # 실제 이미지 중심점
+                "center_x": center_x,
+                "center_y": (y0 + y1) / 2,
                 "dpi": dpi,
                 "scale_factor": scale_factor
             }

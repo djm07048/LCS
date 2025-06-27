@@ -38,7 +38,7 @@ class ListOverlayObject(OverlayObject):
 
     def overlay(self, overlayer, absolute_coord):
         #TODO
-        if self.align == 0:         #align
+        if self.align == 0:         #top-align
             curr_height = 0
             for oo in self.child:
                 oo.overlay(overlayer, absolute_coord + Coord(0, curr_height, 0))
@@ -48,21 +48,15 @@ class ListOverlayObject(OverlayObject):
             for oo in self.child:
                 oo.overlay(overlayer, absolute_coord + Coord(0, curr_height, 0))
                 curr_height += oo.get_height() + self.left_height / max(len(self.child)-1, 1)
-        elif self.align == 2:      #semi-#justify
+        elif self.align == 2:      #semi-justify
             curr_height = 0
             for oo in self.child:
                 oo.overlay(overlayer, absolute_coord + Coord(0, curr_height, 0))
                 curr_height += oo.get_height() + self.left_height / len(self.child)
-        elif self.align == 3:  # bottom - 아래에서 위로 쌓기
-            # 컨테이너 하단에서 시작 (self.height는 전체 컨테이너 높이)
+        elif self.align == 3:  #bottom-align
             curr_y = self.height
-
-            # 자식 객체들을 아래에서 위로 순서대로 쌓아올림
             for oo in self.child:
-                # 현재 객체의 상단 위치 계산 (현재 y 위치에서 객체 높이를 뺌)
                 curr_y -= oo.get_height()
-
-                # 계산된 위치에 객체 배치
                 oo.overlay(overlayer, absolute_coord + Coord(0, curr_y, 0))
 
         pass
@@ -233,7 +227,7 @@ class ImageOverlayObject(OverlayObject):
         super().__init__(page_num, coord)
 
     def overlay(self, overlayer, absolute_coord):
-        """이미지를 실제로 오버레이"""
+        """absolute_coord는 x값이 중심선에 주의!!!!!!!"""
         overlayer.image_overlay(
             self.page_num,
             absolute_coord,
@@ -248,22 +242,31 @@ class ImageOverlayObject(OverlayObject):
         """이미지의 실제 높이 계산"""
         if self._calculated_height is None:
             try:
+                # 이미지 파일 존재 확인
+                if not os.path.exists(self.image_path):
+                    print(f"이미지 파일을 찾을 수 없습니다: {self.image_path}")
+                    self._calculated_height = 0
+                    return self._calculated_height
+
                 # 이미지 크기 계산
                 img_doc = fitz.open(self.image_path)
                 img_page = img_doc.load_page(0)
+
+                # 닫기 전에 필요한 값들을 모두 추출
                 original_height = img_page.rect.height
-                img_doc.close()
+                original_width = img_page.rect.width
+
+                img_doc.close()  # 값 추출 후 닫기
 
                 # DPI 적용
                 scale_factor = self.dpi / 72.0
                 scaled_height = original_height * scale_factor
+                scaled_width = original_width * scale_factor
 
                 # 최대 크기 제한 적용
                 if self.max_height is not None:
                     if self.max_width is not None:
                         # 종횡비 유지하면서 크기 조정
-                        original_width = img_page.rect.width
-                        scaled_width = original_width * scale_factor
                         width_ratio = self.max_width / scaled_width
                         height_ratio = self.max_height / scaled_height
                         resize_ratio = min(width_ratio, height_ratio, 1.0)

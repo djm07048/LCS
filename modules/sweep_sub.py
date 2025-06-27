@@ -10,11 +10,12 @@ from utils.coord import Coord
 from utils.path import *
 from item_cropper import ItemCropper
 import json
+from theme_cropper import ThemeCropper
 # KC이면 문항은 original, 해설은 Main에서 가져옴
 # NC or 자작이면 문항은 pdf, 해설도 pdf에서 가져옴
 
 
-class SWSolBuilder:
+class SWSubBuilder:
     def __init__(self, items, curr_page):
         self.items = items
         self.items_dict = {item['item_code']: item for item in self.items}
@@ -52,11 +53,26 @@ class SWSolBuilder:
     def get_theme_quotation(self, theme_code):
         return self.theme_dictionary.get(theme_code)[1]
 
+    def get_theme_type_dict(self):
+        theme_type_dict = {
+            "Off": 4,
+            "On": 5
+        }
+        return theme_type_dict
+
     def get_component_on_resources(self, page_num):
         return Component(self.resources_pdf, page_num, self.resources_doc.load_page(page_num).rect)
 
     def get_component_on_duplex_item_resources(self, page_num):
         return Component(self.duplex_item_pdf, page_num, self.duplex_item_doc.load_page(page_num).rect)
+
+    def get_image_path(self, item_code, image_name):
+        item_folder = code2folder(item_code)
+        image_stem = f"{item_code}_{image_name}.png"
+        image_path = os.path.join(item_folder, image_stem)
+        if not os.path.exists(image_path):
+            raise FileNotFoundError(f"Image file not found: {image_path}")
+        return image_path
 
     def get_problem_component(self, item_code):
         ic = ItemCropper()
@@ -73,11 +89,190 @@ class SWSolBuilder:
             component = Component(item_pdf, 0, page.rect) if item_code[5:7] == 'KC' \
                 else Component(item_pdf, 0, ic.get_problem_rect_from_file(file, accuracy=1))
         return component
-    def build_page_rep_sol_lt(self):
-        pass
 
-    def build_page_rep_sol_rt(self, item_code):
-        pass
+    def bake_theme_bulb_object(self, theme_info, theme_code):
+        so = AreaOverlayObject(0, Coord(0, 0, 0), 0)
+        theme_pdf = os.path.join(THEME_PATH, f'{theme_code}.pdf')
+        theme_compo = Component(theme_pdf, 0, theme_info.rect)
+
+        theme_type_dict = self.get_theme_type_dict()
+        commentary_data = self.get_commentary_data()
+
+        if theme_info.hexcode not in commentary_data:
+            # Handle the missing key case
+            print(f"Warning: Hexcode {theme_info.hexcode} not found in commentary data.")
+            return None
+
+        commentary_key = commentary_data[theme_info.hexcode]
+        if commentary_key not in theme_type_dict:
+            # Handle the missing key case
+            print(f"Warning: Commentary key {commentary_key} not found in solution type dictionary.")
+            return None
+        so.add_child(ComponentOverlayObject(0, Coord(Ratio.mm_to_px(8), Ratio.mm_to_px(0), 2), theme_compo))
+        so.height = theme_compo.src_rect.height
+        return so
+
+    def bake_lj(self, theme_code):
+        theme_pdf = os.path.join(THEME_PATH, f'{theme_code}.pdf')
+        print(f"Loading theme PDF: {theme_pdf}")
+        with fitz.open(theme_pdf) as file:
+            tc = ThemeCropper()
+            themes_info = tc.get_theme_infos_from_file(file, 10)
+
+        box = AreaOverlayObject(0, Coord(0, 0, 0), Ratio.mm_to_px(0))
+        curr_y = 0
+        header_lj = self.get_component_on_resources(13)
+        header_lj_cco = ComponentOverlayObject(0, Coord(0, curr_y, 0), header_lj)
+        box.add_child(header_lj_cco)
+        curr_y += header_lj.src_rect.height
+        print(themes_info)
+        commentary_data = self.get_commentary_data()
+        for theme_info in themes_info:
+            commentary_key = commentary_data[theme_info.hexcode]
+            if commentary_key == "On":
+                theme_bulb_object = self.bake_theme_bulb_object(theme_info, theme_code)
+                theme_bulb_object.coord.y = curr_y
+                curr_y += theme_bulb_object.height + Ratio.mm_to_px(1)  # 1mm 여백 추가
+                box.add_child(theme_bulb_object)
+        compo_bar = self.get_component_on_resources(3)
+        compo_bar_cco = ComponentOverlayObject(0, Coord(0, curr_y, 0), compo_bar)
+        box.add_child(compo_bar_cco)
+        curr_y += compo_bar.src_rect.height
+        box.height = curr_y + Ratio.mm_to_px(5)        #5의 여백 추가하기
+        return box
+
+    def bake_md(self, item_code, theme_code):
+        box = AreaOverlayObject(0, Coord(0, 0, 0), Ratio.mm_to_px(0))
+        header_md = self.get_component_on_resources(14)
+        header_md_cco = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(0), 0), header_md)
+        box.add_child(header_md_cco)
+        curr_y = header_md.src_rect.height
+        item = self.bake_item(item_code, theme_code)
+        item.coord.y = curr_y
+        box.add_child(item)
+        curr_y += item.get_height()
+        box.height = curr_y
+        return box
+
+    def bake_image(self, item_code, curr_y, image):
+        box = AreaOverlayObject(0, Coord(0, 0, 0), Ratio.mm_to_px(0))
+        header_js = self.get_component_on_resources(15)
+        header_js_cco = ComponentOverlayObject(0, Coord(0, curr_y, 0), header_js)
+        box.add_child(header_js_cco)
+        curr_x = header_js.src_rect.width
+        text_js = TextOverlayObject(0, Coord(curr_x, curr_y + Ratio.mm_to_px(7.1),0),
+                                      "GowunBatang-Bold.ttf", 15, image,
+                                      (0, 0, 0, 1), fitz.TEXT_ALIGN_LEFT)
+        box.add_child(text_js)
+        curr_y += header_js.src_rect.height + Ratio.mm_to_px(3)  # 3mm 여백 추가
+        image_path = self.get_image_path(item_code, image)
+        image_overlay = ImageOverlayObject(0, Coord(Ratio.mm_to_px(55), curr_y, 0), image_path,
+                                           max_width= Ratio.mm_to_px(90), max_height=Ratio.mm_to_px(90))
+        box.add_child(image_overlay)
+        curr_y += image_overlay.get_height() + Ratio.mm_to_px(20)
+        # image_comment를 추가해야 함!
+        return box
+
+    def bake_js(self, item_code, theme_code):
+        box_whole = AreaOverlayObject(0, Coord(0, 0, 0), Ratio.mm_to_px(0))
+        image_list = self.get_item_info(item_code, theme_code).get('fig', [])
+        curr_y = 0
+        for image in image_list:
+            box = self.bake_image(item_code, curr_y, image)
+            box_whole.add_child(box)
+        box_whole.height = curr_y
+        return box_whole
+
+    def build_page_memo(self, theme_code, theme_number):
+        local_start_page = self.curr_page
+        doc_memo = fitz.open()
+        overlayer = Overlayer(doc_memo)
+        self.add_page_with_index(overlayer, 24, local_start_page, theme_code, theme_number)
+        # 완료 후 전역 카운터 업데이트
+        self.curr_page += doc_memo.page_count
+
+        return doc_memo
+    def build_page_rep_sol_lt(self, item_code, theme_code, theme_number):
+        # 로컬 페이지 기준점 설정
+        local_start_page = self.curr_page
+        doc_rep_sol_lt = fitz.open()
+        overlayer = Overlayer(doc_rep_sol_lt)
+        current_page_index = local_start_page + overlayer.doc.page_count - 1
+        template_page_num = 21 + (current_page_index % 2)
+
+        self.add_page_with_index(overlayer, template_page_num, local_start_page, theme_code, theme_number)
+
+        # 페이지 전체 컨테이너 생성 (문서 내 0번 페이지)
+        page_container = AreaOverlayObject(0, Coord(0, 0, 0), Ratio.mm_to_px(371))
+
+        # 좌단/ 로직 점검하기 추가
+        lj_box = self.bake_lj(theme_code)
+        curr_x = Ratio.mm_to_px(18 - (current_page_index % 2) * 4)
+        curr_y = Ratio.mm_to_px(38)
+        lj_box.coord = Coord(curr_x, curr_y, 0)
+        curr_y += lj_box.get_height()
+        page_container.add_child(lj_box)
+
+        # 좌단/ 문항 다시보기 추가 (로컬 기준)
+        md_box = self.bake_md(item_code, theme_code)
+        curr_x = Ratio.mm_to_px(18 - (current_page_index % 2) * 4 - 0.762)
+        md_box.coord = Coord(curr_x, curr_y, 0)
+        curr_y += md_box.get_height()
+        page_container.add_child(md_box)
+
+        # 우단/ 자료 살펴보기 부분 추가해야함.
+        js_box = self.bake_js(item_code, theme_code)
+        curr_x = Ratio.mm_to_px(140 - (current_page_index % 2) * 4)
+        curr_y = Ratio.mm_to_px(38)
+        js_box.coord = Coord(curr_x, curr_y, 0)
+        curr_y += js_box.get_height()
+        page_container.add_child(js_box)
+
+        # 전체 컨테이너 오버레이
+        page_container.overlay(overlayer, Coord(0, 0, 0))
+
+        # 완료 후 전역 카운터 업데이트
+        self.curr_page += doc_rep_sol_lt.page_count
+
+        return doc_rep_sol_lt
+
+    def build_page_rep_sol_rt(self, item_code, theme_code, theme_number):
+        # 로컬 페이지 기준점 설정
+        local_start_page = self.curr_page
+        doc_rep_sol_rt = fitz.open()
+        overlayer = Overlayer(doc_rep_sol_rt)
+        current_page_index = local_start_page + overlayer.doc.page_count - 1
+        template_page_num = 21 + (current_page_index % 2)
+
+        self.add_page_with_index(overlayer, template_page_num, local_start_page, theme_code, theme_number)
+
+        paragraph = ParagraphOverlayObject()
+        paragraph_cnt = 0
+
+        item_pdf = code2pdf(item_code)
+        header_py = self.get_component_on_resources(16)
+        header_py_cco = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(0), 0), header_py)
+        self.add_child_to_paragraph_rep_rt(paragraph, header_py_cco, paragraph_cnt, overlayer, local_start_page, theme_code,
+                                           theme_number)
+        with fitz.open(item_pdf) as file:
+            ic = ItemCropper()
+            solutions_info = ic.get_solution_infos_from_file(file, 10)
+            sTF = ic.get_TF_of_solutions_from_file(file, 10)
+        for solution_info in solutions_info:
+            so = self.bake_solution_object(solution_info, sTF[solution_info.hexcode], item_pdf)
+            paragraph_cnt = self.add_child_to_paragraph_rep_rt(paragraph, so, paragraph_cnt, overlayer, local_start_page, theme_code, theme_number)
+
+        paragraph.overlay(overlayer, Coord(0, 0, 0))
+        print(f"Paragraph count: {paragraph_cnt}")
+        if paragraph_cnt == 0:      #좌단만 존재하는 경우, 우단에 메모를 넣음
+            compo_memo = self.get_component_on_resources(23)
+            compo_memo_cco = ComponentOverlayObject(0, Coord(0, 0, 0), compo_memo)
+            compo_memo_cco.overlay(overlayer, Coord(0, 0, 0))
+
+        # 완료 후 전역 카운터 업데이트
+        self.curr_page += doc_rep_sol_rt.page_count
+
+        return doc_rep_sol_rt
 
     def get_sol_type_dict(self):
         sol_type_dict = {
@@ -115,7 +310,59 @@ class SWSolBuilder:
             commentary_data = json.load(file)
         return commentary_data
 
-    def append_new_list_to_paragraph(self, paragraph: ParagraphOverlayObject, num, overlayer: Overlayer, local_start_page, align):
+    def append_new_list_to_paragraph_rep(self, paragraph: ParagraphOverlayObject, num, overlayer: Overlayer, local_start_page, align):
+        # 페이지 레이아웃 설정
+        x0_list = [[Ratio.mm_to_px(14), Ratio.mm_to_px(136)], [Ratio.mm_to_px(18), Ratio.mm_to_px(140)]]
+        y0 = Ratio.mm_to_px(38)
+        y1 = Ratio.mm_to_px(347)
+        height = y1 - y0
+
+        # 현재 페이지의 짝/홀수 확인 (우수/좌수)
+        current_absolute_page = local_start_page + overlayer.doc.page_count - 1
+        page_side = current_absolute_page % 2
+
+        # 좌단 -> 우단 순으로 적재
+        # num이 짝수(0,2,4...)면 좌단, 홀수(1,3,5...)면 우단
+        column = num % 2
+
+        # 좌표 선택
+        x0 = x0_list[page_side][column]
+
+        # 새 리스트 생성 및 추가
+        doc_page_index = overlayer.doc.page_count - 1
+        paragraph_list = ListOverlayObject(doc_page_index, Coord(x0, y0, 0), height, align)
+        paragraph.add_paragraph_list(paragraph_list=paragraph_list)
+
+    def add_child_to_paragraph_rep_rt(self, paragraph: ParagraphOverlayObject, child: OverlayObject, num, overlayer: Overlayer,
+                                   local_start_page, theme_code, theme_number=1):
+
+        # 기존 리스트에 추가 가능하면 추가하고 num 그대로 반환
+        if paragraph.add_child(child):
+            return num
+
+        # 첫 번째 리스트인 경우 (num=0)
+        if num == 0:
+            # 첫 번째 리스트 생성 (좌단)
+            self.append_new_list_to_paragraph_rep(paragraph, num, overlayer, local_start_page, align=0)
+            paragraph.add_child(child)
+            return num + 1
+
+        # 이전 열 확인 (num-1의 열)
+        prev_column = (num - 1) % 2
+
+        # 이전 열이 우단(1)이면 다음 페이지로 넘어감 (좌단->우단 순서에서)
+        if prev_column == 1:  # 우단이 채워짐 -> 새 페이지 필요
+            # 현재 페이지의 짝/홀수 확인
+            new_absolute_page = local_start_page + overlayer.doc.page_count - 1
+            template_page_num = 20 + (new_absolute_page % 2)
+
+            self.add_page_with_index(overlayer, template_page_num, local_start_page, theme_code, theme_number)
+
+        self.append_new_list_to_paragraph_rep(paragraph, num, overlayer, local_start_page, align = 0)
+        paragraph.add_child(child)
+        return num + 1
+
+    def append_new_list_to_paragraph_sub(self, paragraph: ParagraphOverlayObject, num, overlayer: Overlayer, local_start_page, align):
         # 페이지 레이아웃 설정
         x0_list = [[Ratio.mm_to_px(14), Ratio.mm_to_px(136)], [Ratio.mm_to_px(18), Ratio.mm_to_px(140)]]
         y0 = Ratio.mm_to_px(38)
@@ -139,10 +386,9 @@ class SWSolBuilder:
         paragraph.add_paragraph_list(paragraph_list=paragraph_list)
 
 
-    def add_child_to_paragraph_sub(self, paragraph: ParagraphOverlayObject, child: OverlayObject, num, overlayer: Overlayer, local_start_page, theme_number=1, align=3):
-        if child is None:
-            print("Warning: child is None")
-            return num
+    def add_child_to_paragraph_sub(self, paragraph: ParagraphOverlayObject, child: OverlayObject, num, overlayer: Overlayer,
+                                   local_start_page, theme_code, theme_number=1, align=3):
+
         # 기존 리스트에 추가 가능하면 추가하고 num 그대로 반환
         if paragraph.add_child(child):
             return num
@@ -150,7 +396,7 @@ class SWSolBuilder:
         # 첫 번째 리스트인 경우 (num=0)
         if num == 0:
             # 첫 번째 리스트 생성 (우단)
-            self.append_new_list_to_paragraph(paragraph, num, overlayer, local_start_page, align)
+            self.append_new_list_to_paragraph_sub(paragraph, num, overlayer, local_start_page, align)
             paragraph.add_child(child)
             return num + 1
 
@@ -165,14 +411,14 @@ class SWSolBuilder:
             new_absolute_page = local_start_page + overlayer.doc.page_count - 1
             template_page_num = 20 + (new_absolute_page % 2)
 
-            self.add_page_with_index(overlayer, template_page_num, theme_number, local_start_page)
+            self.add_page_with_index(overlayer, template_page_num, local_start_page, theme_code, theme_number)
 
         # 새 리스트 추가
-        self.append_new_list_to_paragraph(paragraph, num, overlayer, local_start_page, align)
+        self.append_new_list_to_paragraph_sub(paragraph, num, overlayer, local_start_page, align)
         paragraph.add_child(child)
         return num + 1
 
-    def add_page_with_index(self, overlayer, resource_page_num, theme_number, local_start_page, theme_code):
+    def add_page_with_index(self, overlayer, resource_page_num, local_start_page, theme_code, theme_number):
         def arabic2roman(number):
             return chr(0x2160 + number - 1)
 
@@ -186,17 +432,17 @@ class SWSolBuilder:
             theme_name = self.get_theme_name(theme_code)
             box = AreaOverlayObject(0, Coord(0, 0, 0), Ratio.mm_to_px(18))
 
-            to_number = TextOverlayObject(0, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(15), 0),
+            to_number = TextOverlayObject(0, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(7.7), 0),
                                           "GowunBatang-Bold.ttf", 26, f"{arabic2roman(theme_number)}" + ". ",
                                           (0, 0, 0, 1), fitz.TEXT_ALIGN_LEFT)
 
             x0 = to_number.get_width()
-            to_name = TextOverlayObject(0, Coord(x0, Ratio.mm_to_px(14), 0),
+            to_name = TextOverlayObject(0, Coord(x0, Ratio.mm_to_px(7), 0),
                                         "Pretendard-SemiBold.ttf", 24, theme_name, (0, 0, 0, 1), fitz.TEXT_ALIGN_LEFT)
             box.add_child(to_number)
             box.add_child(to_name)
             box.height = Ratio.mm_to_px(18)
-            box.overlay(overlayer, Coord(Ratio.mm_to_px(18), Ratio.mm_to_px(14), 0))
+            box.overlay(overlayer, Coord(Ratio.mm_to_px(18), Ratio.mm_to_px(18), 0))
 
         else:       # 우수
             theme_quotation = self.get_theme_quotation(theme_code)
@@ -206,14 +452,14 @@ class SWSolBuilder:
             box = AreaOverlayObject(0, Coord(0, 0, 0), Ratio.mm_to_px(18))
             box.add_child(ComponentOverlayObject(0, Coord(0, 0, 0), compo_lt))
             width = compo_lt.src_rect.width
-            to_quotation = TextOverlayObject(0, Coord(width, Ratio.mm_to_px(11.76), 0),
+            to_quotation = TextOverlayObject(0, Coord(width, Ratio.mm_to_px(9.76), 0),
                                              "강원교육모두 Bold.ttf", 24, theme_quotation, (0, 0, 0, 1), fitz.TEXT_ALIGN_LEFT)
             width += to_quotation.get_width()
             box.add_child(to_quotation)
             box.add_child(ComponentOverlayObject(0, Coord(width, 0, 0), compo_rt))
             width += compo_rt.src_rect.width
             x0 = Ratio.mm_to_px(262 - 18) - width
-            box.overlay(overlayer, Coord(x0, Ratio.mm_to_px(14), 0))
+            box.overlay(overlayer, Coord(x0, Ratio.mm_to_px(18), 0))
 
         index_object = self.get_component_on_resources(18 - (page_num % 2))
         x0 = Ratio.mm_to_px(0) if page_num % 2 == 1 else Ratio.mm_to_px(242)
@@ -288,7 +534,6 @@ class SWSolBuilder:
         box.height = Ratio.mm_to_px(13) + co_problem.get_height()
         return box
 
-
     def bake_solution_object(self, solution_info, TF, item_pdf):
         so = AreaOverlayObject(0, Coord(0, 0, 0), 0)
         so_compo = Component(item_pdf, 0, solution_info.rect)
@@ -347,18 +592,15 @@ class SWSolBuilder:
     def build_page_sub_sol(self, item_code, theme_code, theme_number):
         # 로컬 페이지 기준점 설정
         local_start_page = self.curr_page
-        doc_sd_sol = fitz.open()
-        overlayer = Overlayer(doc_sd_sol)
+        doc_sub_sol = fitz.open()
+        overlayer = Overlayer(doc_sub_sol)
         current_page_index = local_start_page + overlayer.doc.page_count - 1
         template_page_num = 21 + (current_page_index % 2)
 
-        self.add_page_with_index(overlayer, template_page_num, theme_number, local_start_page, theme_code)
+        self.add_page_with_index(overlayer, template_page_num, local_start_page, theme_code, theme_number)
 
         # 페이지 전체 컨테이너 생성 (문서 내 0번 페이지)
         page_container = AreaOverlayObject(0, Coord(0, 0, 0), Ratio.mm_to_px(371))
-
-        # 상단 컴포넌트 추가 (로컬 기준)
-        # 추가되어야함.
 
         # 문제 컴포넌트 추가 (로컬 기준)
         problem_cco = self.bake_item(item_code, theme_code)
@@ -382,14 +624,14 @@ class SWSolBuilder:
         solutions_info.reverse()
         for solution_info in solutions_info:
             so = self.bake_solution_object(solution_info, sTF[solution_info.hexcode], item_pdf)
-            paragraph_cnt = self.add_child_to_paragraph_sub(paragraph, so, paragraph_cnt, overlayer, local_start_page)
+            paragraph_cnt = self.add_child_to_paragraph_sub(paragraph, so, paragraph_cnt, overlayer, local_start_page, theme_code, theme_number)
 
         paragraph.overlay(overlayer, Coord(0, 0, 0))
 
         # 완료 후 전역 카운터 업데이트
-        self.curr_page += doc_sd_sol.page_count
+        self.curr_page += doc_sub_sol.page_count
 
-        return doc_sd_sol
+        return doc_sub_sol
 
 if __name__ == "__main__":
     items = [
@@ -399,7 +641,7 @@ if __name__ == "__main__":
                 "type": "대표",
                 "plus": "없음",
                 "theme": "aagc",
-                "fig": []
+                "fig": ["그림", "그림2"]
               },
               {
                 "item_code": "E1aagKC210920",
@@ -412,7 +654,7 @@ if __name__ == "__main__":
               {
                 "item_code": "E1aagKC240920",
                 "number": 3,
-                "type": "발전",
+                "type": "대표",
                 "plus": "없음",
                 "theme": "aagb",
                 "fig": []
@@ -436,7 +678,7 @@ if __name__ == "__main__":
               {
                 "item_code": "E1aagKC210920",
                 "number": 6,
-                "type": "기본",
+                "type": "대표",
                 "plus": "고난도",
                 "theme": "aaga",
                 "fig": []
@@ -452,7 +694,7 @@ if __name__ == "__main__":
               {
                 "item_code": "E1aagKC250617",
                 "number": 8,
-                "type": "대표",
+                "type": "발전",
                 "plus": "없음",
                 "theme": "aaga",
                 "fig": []
@@ -466,16 +708,32 @@ if __name__ == "__main__":
                 "fig": []
               }
             ]
-    builder = SWSolBuilder(items, 0)
-    sol_doc = fitz.open()
+    builder = SWSubBuilder(items, 1)
+    total_doc = fitz.open()
     theme_number = 1
     for theme_code in builder.items_by_theme.keys():
-        print(f"Processing theme: {theme_code}")
+        sol_doc = fitz.open()
+        print(f"Processing theme: {theme_code}, 시작 페이지: {builder.curr_page}")
         item_dict = builder.items_by_theme[theme_code]
         for item_code in item_dict.keys():
-            print(f"Processing item code: {item_code}, theme code: {theme_code}")
-            page_rep_sol = builder.build_page_sub_sol(item_code, theme_code, theme_number)
-            sol_doc.insert_pdf(page_rep_sol)
+            item_info = builder.get_item_info(item_code, theme_code)
+            item_type = item_info['type']
+            if item_type == '대표':
+                print(f"{builder.curr_page} 대표 문항: {item_code}, theme code: {theme_code}")
+                page_rep_sol_lt = builder.build_page_rep_sol_lt(item_code, theme_code, theme_number)
+                sol_doc.insert_pdf(page_rep_sol_lt)
+                page_rep_sol_rt = builder.build_page_rep_sol_rt(item_code, theme_code, theme_number)
+                sol_doc.insert_pdf(page_rep_sol_rt)
+            else:
+                print(f"{builder.curr_page} 기본 또는 발전 문항: {item_code}, theme code: {theme_code}")
+                page_sub_sol = builder.build_page_sub_sol(item_code, theme_code, theme_number)
+                sol_doc.insert_pdf(page_sub_sol)
+        print(f"Theme {theme_code} 완료, 현재 페이지: {builder.curr_page}")
+        if builder.curr_page % 2 == 0:  # 현재 페이지가 홀수면 빈 페이지 추가
+            print(f"홀수 페이지이므로 메모 페이지 추가: {theme_code}")
+            page_memo = builder.build_page_memo(theme_code, theme_number)
+            sol_doc.insert_pdf(page_memo)
+        total_doc.insert_pdf(sol_doc)
         theme_number += 1
     path = Path(OUTPUT_PATH) / 'sweep_sol.pdf'
-    sol_doc.save(path)
+    total_doc.save(path, deflate=True, garbage=4, clean=True)

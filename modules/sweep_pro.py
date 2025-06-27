@@ -119,6 +119,7 @@ class SWProBuilder:
 
         return box
     def bake_theme_bulb_object(self, theme_info, theme_code):
+        # onoff = "On" or "Off"
         so = AreaOverlayObject(0, Coord(0, 0, 0), 0)
         theme_pdf = os.path.join(THEME_PATH, f'{theme_code}.pdf')
         theme_compo = Component(theme_pdf, 0, theme_info.rect)
@@ -136,7 +137,7 @@ class SWProBuilder:
             # Handle the missing key case
             print(f"Warning: Commentary key {commentary_key} not found in solution type dictionary.")
             return None
-        if commentary_data[theme_info.hexcode] == "Off":
+        if commentary_key == "Off":
             bulb_compo = self.get_component_on_resources(4)
         else:   #On일 때
             bulb_compo = self.get_component_on_resources(5)
@@ -159,18 +160,10 @@ class SWProBuilder:
         curr_y += compo_bar1.src_rect.height
         print(themes_info)
         for theme_info in themes_info:
-            key = self.get_commentary_data()[theme_info.hexcode]
-            if key:
-                if key == "Off":
-                    theme_bulb_off_object = self.bake_theme_bulb_object(theme_info, theme_code)
-                    theme_bulb_off_object.coord.y = curr_y
-                    curr_y += theme_bulb_off_object.height
-                    box.add_child(theme_bulb_off_object)
-                if key == "On":
-                    theme_bulb_on_object = self.bake_theme_bulb_object(theme_info, theme_code)
-                    theme_bulb_on_object.coord.y = curr_y
-                    curr_y += theme_bulb_on_object.height
-                    box.add_child(theme_bulb_on_object)
+            theme_bulb_object = self.bake_theme_bulb_object(theme_info, theme_code)
+            theme_bulb_object.coord.y = curr_y
+            curr_y += theme_bulb_object.height
+            box.add_child(theme_bulb_object)
         compo_bar2 = self.get_component_on_resources(3)
         curr_y += compo_bar2.src_rect.height
         box.add_child(ComponentOverlayObject(0, Coord(0, curr_y, 0), compo_bar2))
@@ -278,6 +271,9 @@ class SWProBuilder:
 
     def add_child_to_paragraph(self, paragraph: ParagraphOverlayObject, child: OverlayObject, num,
                                overlayer: Overlayer, local_start_page):
+        if child is None:
+            self.append_new_list_to_paragraph(paragraph, num, overlayer, local_start_page)
+            return num + 1
 
         # 기존 리스트에 추가 가능하면 추가하고 num 그대로 반환
         if paragraph.add_child(child):
@@ -335,6 +331,11 @@ class SWProBuilder:
                 item_whole = self.bake_item(item_code, theme_code)
                 paragraph_cnt = self.add_child_to_paragraph(paragraph, item_whole, paragraph_cnt, self.overlayer,
                                                             local_start_page)
+
+            # 다음 단으로 강제 넘기기
+            blank = AreaOverlayObject(0, Coord(0, 0, 0), Ratio.mm_to_px(347 - 22))
+            paragraph_cnt = self.add_child_to_paragraph(paragraph, blank, paragraph_cnt, self.overlayer, local_start_page)
+
             theme_number += 1
         paragraph.overlay(self.overlayer, Coord(0, 0, 0))
 
