@@ -15,7 +15,7 @@ from theme_cropper import ThemeCropper
 # NC or 자작이면 문항은 pdf, 해설도 pdf에서 가져옴
 
 
-class SWSubBuilder:
+class SWSolBuilder:
     def __init__(self, items, curr_page):
         self.items = items
         self.items_dict = {item['item_code']: item for item in self.items}
