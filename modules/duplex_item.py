@@ -16,8 +16,9 @@ import json
 import os
 import json
 class DuplexItemBuilder:
-    def __init__(self, items, curr_page):
+    def __init__(self, items, curr_page, book_name):
         self.items = items
+        self.book_name = book_name
         self.curr_page = curr_page
         self.resources_pdf = RESOURCES_PATH + "/duplex_item_resources.pdf"
         self.resources_doc = fitz.open(self.resources_pdf)
@@ -46,7 +47,7 @@ class DuplexItemBuilder:
         return component
 
     def bake_title_sd_sol(self, sd_code):
-        if sd_code[5:7] == 'KC':
+        if sd_code[5:7] == 'KC' or sd_code[5:7] == 'NC':
             source = code2cite(sd_code)     #'{2026}학년도 {6월} {20}번 {지1}'
             text_number = source.split(" ")[2][:-1]
             text_cite = source
@@ -82,8 +83,8 @@ class DuplexItemBuilder:
 
         text_exam = ''.join(list_theory_piece_code[0].split(" ")[2])
         text_number = ', '.join([list_theory_piece_code[i].split(" ")[3] for i in range(len(list_theory_piece_code))])
-        if sd_code[5:7] == 'KC':
-            source = code2cite(sd_code)  # '{2026}학년도 {6월} {20}번 {지1}'
+        if sd_code[5:7] == 'KC' or sd_code[5:7] == 'NC':
+            source = code2cite(sd_code)  # '{2026}학년도 {6월} {20}번 {지1}' or '{2026}학년도
             text_cite = source + " 개념"
 
         else:
@@ -110,7 +111,7 @@ class DuplexItemBuilder:
         return box
 
     def bake_title_rel_sol(self, sd_code, rel_code):
-        if sd_code[5:7] == 'KC':
+        if sd_code[5:7] == 'KC' or sd_code[5:7] == 'NC':
             source = code2cite(sd_code)     #'{2026}학년도 {6월} {20}번 {지1}'
             text_number = source.split(" ")[2][:-1] + chr(64 + self.rel_number[rel_code])
             text_cite = source + " 연계"

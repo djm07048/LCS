@@ -6,6 +6,7 @@ from utils.coord import Coord
 from utils.overlay_object import *
 from utils.pdf_utils import PdfUtils
 from utils.ratio import Ratio
+from pathlib import Path
 
 new_doc = fitz.open()
 
@@ -42,7 +43,7 @@ class DXBuilder:
             log_callback(f"Building {output}")
 
         new_doc = fitz.open()
-
+        book_name = Path(output).name.split('.')[0]
         # Add the quick answer page
         DXAB = DXAnswerBuilder(self.items)
         ans_doc = DXAB.build_answer_page(output)
@@ -56,7 +57,7 @@ class DXBuilder:
 
         curr_page = new_doc.page_count + 2
 
-        DXPB = DuplexProBuilder(self.items, curr_page)
+        DXPB = DuplexProBuilder(self.items, curr_page, book_name)
         doc_pro = DXPB.build_page_pro()
         front_doc.insert_pdf(doc_pro)
         curr_page += doc_pro.page_count
@@ -75,7 +76,7 @@ class DXBuilder:
 
         curr_page += 2
 
-        DXIB = DuplexItemBuilder(self.items, curr_page)
+        DXIB = DuplexItemBuilder(self.items, curr_page, book_name)
         DXIB.rel_ref = DXPB.rel_ref
         DXIB.rel_number = DXPB.rel_number
 
@@ -86,9 +87,10 @@ class DXBuilder:
 
             item_number = self.items[sd_code]['number']
 
-            doc_sd_sol = DXIB.build_page_sd_sol(sd_code)
-            back_doc.insert_pdf(doc_sd_sol)
-            doc_sd_sol.close()
+            if book_name.split('_')[0] == 'DX':
+                doc_sd_sol = DXIB.build_page_sd_sol(sd_code)
+                back_doc.insert_pdf(doc_sd_sol)
+                doc_sd_sol.close()
 
             doc_theory = DXIB.build_page_theory(sd_code, self.items[sd_code]['list_theory_piece_code'])
             back_doc.insert_pdf(doc_theory)

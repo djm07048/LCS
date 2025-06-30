@@ -17,7 +17,8 @@ import os
 import json
 
 class DuplexProBuilder:
-    def __init__(self, items, curr_page):
+    def __init__(self, items, curr_page, book_name):
+        self.book_name = book_name
         self.items = items
         self.curr_page = curr_page
         self.resources_pdf = RESOURCES_PATH + "/duplex_item_resources.pdf"
@@ -247,8 +248,9 @@ class DuplexProBuilder:
         paragraph_cnt = 0
 
         for sd_code in self.items.keys():
-            problem_sd = self.bake_problem_sd(sd_code)
-            paragraph_cnt = self.add_child_to_paragraph(paragraph, problem_sd, paragraph_cnt, self.overlayer, local_start_page)
+            if self.book_name.split("_")[0] == "EX":
+                problem_sd = self.bake_problem_sd(sd_code)
+                paragraph_cnt = self.add_child_to_paragraph(paragraph, problem_sd, paragraph_cnt, self.overlayer, local_start_page)
 
             for rel_code in self.items[sd_code]['list_rel_item_code']:
                 problem_rel = self.bake_problem_rel(sd_code, rel_code)

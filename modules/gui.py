@@ -975,16 +975,7 @@ class DatabaseManager(QMainWindow):
 
     def open_item_hwp(self, item_code):
         # Base folder selection
-        if item_code[5:7] == 'KC':
-            base_path = KICE_DB_PATH
-        elif item_code[5:7] == 'NC':
-            base_path = NICE_DB_PATH
-        else:
-            base_path = ITEM_DB_PATH
-        topic = item_code[2:5]
-
-        # Construct and normalize path
-        hwp_path = os.path.normpath(os.path.join(base_path, topic, item_code, f"{item_code}.hwp"))
+        hwp_path = code2hwp(item_code)
 
         if os.path.exists(hwp_path):
             try:
@@ -994,16 +985,7 @@ class DatabaseManager(QMainWindow):
 
     def open_item_folder(self, item_code):
         # Base folder selection
-        if item_code[5:7] == 'KC':
-            base_path = KICE_DB_PATH
-        elif item_code[5:7] == 'NC':
-            base_path = NICE_DB_PATH
-        else:
-            base_path = ITEM_DB_PATH
-        topic = item_code[2:5]
-
-        # Construct and normalize path
-        folder_path = os.path.normpath(os.path.join(base_path, topic, item_code))
+        folder_path = code2folder(item_code)
 
         if os.path.exists(folder_path):
             if os.name == 'nt':
@@ -1021,24 +1003,14 @@ class DatabaseManager(QMainWindow):
 
             if ok and len(new_code) == 13:
                 # 원본 코드의 정보 파싱
-                if item_code[5:7] == 'KC':
-                    old_base_path = KICE_DB_PATH
-                elif item_code[5:7] == 'NC':
-                    old_base_path = NICE_DB_PATH
-                else:
-                    old_base_path = ITEM_DB_PATH
+                old_base_path = code2basefolder(item_code)
                 topic = item_code[2:5]
                 old_topic = item_code[2:5]
                 old_topic_path = os.path.join(old_base_path, old_topic)
                 old_item_path = os.path.join(old_topic_path, item_code)
 
                 # 새 코드의 정보 파싱
-                if item_code[5:7] == 'KC':
-                    new_base_path = KICE_DB_PATH
-                elif item_code[5:7] == 'NC':
-                    new_base_path = NICE_DB_PATH
-                else:
-                    new_base_path = ITEM_DB_PATH
+                new_base_path = code2basefolder(new_code)
                 new_topic = new_code[2:5]
                 new_topic_path = os.path.join(new_base_path, new_topic)
                 new_item_path = os.path.join(new_topic_path, new_code)

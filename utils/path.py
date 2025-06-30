@@ -4,6 +4,7 @@ from utils.path import *
 KICE_DB_PATH = r'T:\THedu\KiceDB'
 ITEM_DB_PATH = r'T:\THedu\ItemDB'
 NICE_DB_PATH = r'T:\THedu\NiceDB'
+SDIJ_DB_PATH = r'T:\THedu\SdijDB'
 
 RESOURCES_PATH = r'T:\Software\LCS\resources'
 TEMPORARY_PATH = r'T:\Software\LCS\temporary'
@@ -94,16 +95,26 @@ def cite2code(citation: str, topic: str) -> str:
     return f"{subject}{topic}{yy}{mo}{int(nn):02d}"
 
 @staticmethod
-def code2folder(item_code: str) -> str:
+def code2basefolder(item_code: str) -> str:
     parsed = parse_code(item_code)
     if parsed["section"] == "KC":
-        base_path= KICE_DB_PATH
+        base_path = KICE_DB_PATH
     elif parsed["section"] == "NC":
-        base_path= NICE_DB_PATH
+        base_path = NICE_DB_PATH
+    elif parsed["section"] == "SV":
+        base_path = SDIJ_DB_PATH
     else:
-        base_path= ITEM_DB_PATH
+        base_path = ITEM_DB_PATH
+
+    return base_path
+
+
+def code2folder(item_code: str) -> str:
+    parsed = parse_code(item_code)
+    base_path = code2basefolder(item_code)
 
     return rf"{base_path}\{parsed['topic']}\{item_code}"
+
 
 @staticmethod
 def code2pdf(code: str) -> str:

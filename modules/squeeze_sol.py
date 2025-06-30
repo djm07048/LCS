@@ -157,7 +157,7 @@ class SolutionBuilder:
 
             for item in topic_set[1]:
                 item_code = item["item_code"]
-                item_pdf = get_item_path(item_code) + f"/{item_code[2:5]}/{item_code}/{item_code}.pdf"
+                item_pdf = code2pdf(item_code)
                 problem_objects = self.bake_problem(commentary_data, item_pdf, item["item_num"])
 
                 #bind first two object

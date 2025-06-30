@@ -151,7 +151,7 @@ class ProblemBuilder:
             problem.add_child(problem_title)
             problem.height += problem_title.get_height()
             item_code = problem_code
-            item_pdf = get_item_path(item_code) + f"/{item_code[2:5]}/{item_code}/{item_code}.pdf"
+            item_pdf = code2pdf(item_code)
             with fitz.open(item_pdf) as file:
                 ic = ItemCropper()
                 prect = ic.get_problem_rect_from_file(file, 10)

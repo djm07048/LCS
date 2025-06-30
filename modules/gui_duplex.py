@@ -940,17 +940,7 @@ class DatabaseManager(QMainWindow):
                 self.open_item_hwp(item_code)
 
     def open_item_hwp(self, item_code):
-        # Base folder selection
-        if item_code[5:7] == 'KC':
-            base_path = KICE_DB_PATH
-        elif item_code[5:7] == 'NC':
-            base_path = NICE_DB_PATH
-        else:
-            base_path = ITEM_DB_PATH
-        topic = item_code[2:5]
-
-        # Construct and normalize path
-        hwp_path = os.path.normpath(os.path.join(base_path, topic, item_code, f"{item_code}.hwp"))
+        hwp_path = code2hwp(item_code)
 
         if os.path.exists(hwp_path):
             try:
@@ -959,17 +949,7 @@ class DatabaseManager(QMainWindow):
                 print(f"Error: {e}")
 
     def open_item_folder(self, item_code):
-        # Base folder selection
-        if item_code[5:7] == 'KC':
-            base_path = KICE_DB_PATH
-        elif item_code[5:7] == 'NC':
-            base_path = NICE_DB_PATH
-        else:
-            base_path = ITEM_DB_PATH
-        topic = item_code[2:5]
-
-        # Construct and normalize path
-        folder_path = os.path.normpath(os.path.join(base_path, topic, item_code))
+        folder_path = code2folder(item_code)
 
         if os.path.exists(folder_path):
             if os.name == 'nt':
@@ -1003,6 +983,8 @@ class DatabaseManager(QMainWindow):
                     new_base_path = KICE_DB_PATH
                 elif item_code[5:7] == 'NC':
                     new_base_path = NICE_DB_PATH
+                elif new_code[5:7] == 'SV':
+                    new_base_path = SDIJ_DB_PATH
                 else:
                     new_base_path = ITEM_DB_PATH
                 new_topic = new_code[2:5]

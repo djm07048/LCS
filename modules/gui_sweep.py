@@ -1295,12 +1295,7 @@ class DatabaseManagerSweep(QMainWindow):
         old_item_path = os.path.join(old_topic_path, item_code)
 
         # 새 코드의 정보 파싱
-        if item_code[5:7] == 'KC':
-            new_base_path = KICE_DB_PATH
-        elif item_code[5:7] == 'NC':
-            new_base_path = NICE_DB_PATH
-        else:
-            new_base_path = ITEM_DB_PATH
+        new_base_path = code2basefolder(item_code)
         new_topic = new_code[2:5]
         new_topic_path = os.path.join(new_base_path, new_topic)
         new_item_path = os.path.join(new_topic_path, new_code)

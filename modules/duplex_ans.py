@@ -27,8 +27,9 @@ class DXAnswerBuilder:
 
     print(f"coord_dict: {coord_dict}")
 
-    def __init__(self, items):
+    def __init__(self, items, ):
         self.items = {}
+
         ic = ItemCropper()
 
         for item_code, item_data in items.items():

@@ -87,7 +87,7 @@ class MainsolBuilderSqueezeMini(MainsolBuilder):
 
         left_page.add_child(ComponentOverlayObject(0, Coord(Ratio.mm_to_px(18), Ratio.mm_to_px(65.5), 0), component))
 
-        main_pdf = code2Main(item_code) if item_code[5:7] == 'KC' else code2pdf(item_code)
+        main_pdf = code2pdf(item_code)
         with fitz.open(main_pdf) as file:
             ic = ItemCropper()
             solutions_info = ic.get_solution_infos_from_file(file, 10)

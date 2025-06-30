@@ -1423,24 +1423,14 @@ class DatabaseManager(QMainWindow):
     def refractor_item_code(self, item_code, new_code):
         # TODO: 기존 json file의 item_code까지 변경
         # 원본 코드의 정보 파싱
-        if item_code[5:7] == 'KC':
-            old_base_path = KICE_DB_PATH
-        elif item_code[5:7] == 'NC':
-            old_base_path = NICE_DB_PATH
-        else:
-            old_base_path = ITEM_DB_PATH
+        old_base_path = code2basefolder(item_code)
         topic = item_code[2:5]
         old_topic = item_code[2:5]
         old_topic_path = os.path.join(old_base_path, old_topic)
         old_item_path = os.path.join(old_topic_path, item_code)
 
         # 새 코드의 정보 파싱
-        if item_code[5:7] == 'KC':
-            new_base_path = KICE_DB_PATH
-        elif item_code[5:7] == 'NC':
-            new_base_path = NICE_DB_PATH
-        else:
-            new_base_path = ITEM_DB_PATH
+        new_base_path = code2basefolder(new_code)
         new_topic = new_code[2:5]
         new_topic_path = os.path.join(new_base_path, new_topic)
         new_item_path = os.path.join(new_topic_path, new_code)
