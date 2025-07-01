@@ -45,7 +45,7 @@ class DXBuilder:
         new_doc = fitz.open()
         book_name = Path(output).name.split('.')[0]
         # Add the quick answer page
-        DXAB = DXAnswerBuilder(self.items)
+        DXAB = DXAnswerBuilder(self.items, book_name)
         ans_doc = DXAB.build_answer_page(output)
         new_doc.insert_pdf(ans_doc)
         ans_doc.close()

@@ -160,8 +160,8 @@ class SWSolBuilder:
         header_js_cco = ComponentOverlayObject(0, Coord(0, curr_y, 0), header_js)
         box.add_child(header_js_cco)
         curr_x = header_js.src_rect.width
-        text_js = TextOverlayObject(0, Coord(curr_x, curr_y + Ratio.mm_to_px(7.1),0),
-                                      "GowunBatang-Bold.ttf", 15, image,
+        text_js = TextOverlayObject(0, Coord(curr_x, curr_y + Ratio.mm_to_px(6.4),0),
+                                      "GmarketSansTTFMedium.ttf", 15, image,
                                       (0, 0, 0, 1), fitz.TEXT_ALIGN_LEFT)
         box.add_child(text_js)
         curr_y += header_js.src_rect.height + Ratio.mm_to_px(3)  # 3mm 여백 추가
@@ -567,13 +567,14 @@ class SWSolBuilder:
             so.height = so_compo.src_rect.height + Ratio.mm_to_px(3.5)
         elif self.get_commentary_data()[solution_info.hexcode] == "SA":  # 말풍선
             shade = ShapeOverlayObject(0, Coord(Ratio.mm_to_px(2), 0, -1), Rect(0, 0, Ratio.mm_to_px(105), so_compo.src_rect.height + Ratio.mm_to_px(5)),
-                                       (0.2, 0, 0, 0), Ratio.mm_to_px(2.5) / (so_compo.src_rect.height + Ratio.mm_to_px(5)))
-            handle = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(90 + 2), so_compo.src_rect.height + Ratio.mm_to_px(5), 2),
-                                            self.get_component_on_duplex_item_resources(27))
+                                       (0.2, 0, 0, 0))
+            bar = ShapeOverlayObject(0, Coord(Ratio.mm_to_px(1.9),0,  5),
+                                     Rect(0, 0, Ratio.mm_to_px(0.2), so_compo.src_rect.height + Ratio.mm_to_px(5)),
+                                     (1, 0, 0, 0))
             compo = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(2.5 + 2), Ratio.mm_to_px(2.5), 2),
                                            so_compo)
             so.add_child(shade)
-            so.add_child(handle)
+            so.add_child(bar)
             so.add_child(compo)
             so.height = so_compo.src_rect.height + Ratio.mm_to_px(5 + 5 + 2.5)
         else:       #정오 선지
@@ -713,30 +714,30 @@ if __name__ == "__main__":
                 "fig": []
               }
             ]
-    builder = SWSolBuilder(items, 1)
+    SWSB = SWSolBuilder(items, 1)
     total_doc = fitz.open()
     theme_number = 1
-    for theme_code in builder.items_by_theme.keys():
+    for theme_code in SWSB.items_by_theme.keys():
         sol_doc = fitz.open()
-        print(f"Processing theme: {theme_code}, 시작 페이지: {builder.curr_page}")
-        item_dict = builder.items_by_theme[theme_code]
+        print(f"Processing theme: {theme_code}, 시작 페이지: {SWSB.curr_page}")
+        item_dict = SWSB.items_by_theme[theme_code]
         for item_code in item_dict.keys():
-            item_info = builder.get_item_info(item_code, theme_code)
+            item_info = SWSB.get_item_info(item_code, theme_code)
             item_type = item_info['type']
             if item_type == '대표':
-                print(f"{builder.curr_page} 대표 문항: {item_code}, theme code: {theme_code}")
-                page_rep_sol_lt = builder.build_page_rep_sol_lt(item_code, theme_code, theme_number)
+                print(f"{SWSB.curr_page} 대표 문항: {item_code}, theme code: {theme_code}")
+                page_rep_sol_lt = SWSB.build_page_rep_sol_lt(item_code, theme_code, theme_number)
                 sol_doc.insert_pdf(page_rep_sol_lt)
-                page_rep_sol_rt = builder.build_page_rep_sol_rt(item_code, theme_code, theme_number)
+                page_rep_sol_rt = SWSB.build_page_rep_sol_rt(item_code, theme_code, theme_number)
                 sol_doc.insert_pdf(page_rep_sol_rt)
             else:
-                print(f"{builder.curr_page} 기본 또는 발전 문항: {item_code}, theme code: {theme_code}")
-                page_sub_sol = builder.build_page_sub_sol(item_code, theme_code, theme_number)
+                print(f"{SWSB.curr_page} 기본 또는 발전 문항: {item_code}, theme code: {theme_code}")
+                page_sub_sol = SWSB.build_page_sub_sol(item_code, theme_code, theme_number)
                 sol_doc.insert_pdf(page_sub_sol)
-        print(f"Theme {theme_code} 완료, 현재 페이지: {builder.curr_page}")
-        if builder.curr_page % 2 == 0:  # 현재 페이지가 홀수면 빈 페이지 추가
+        print(f"Theme {theme_code} 완료, 현재 페이지: {SWSB.curr_page}")
+        if SWSB.curr_page % 2 == 0:  # 현재 페이지가 홀수면 빈 페이지 추가
             print(f"홀수 페이지이므로 메모 페이지 추가: {theme_code}")
-            page_memo = builder.build_page_memo(theme_code, theme_number)
+            page_memo = SWSB.build_page_memo(theme_code, theme_number)
             sol_doc.insert_pdf(page_memo)
         total_doc.insert_pdf(sol_doc)
         theme_number += 1

@@ -160,21 +160,6 @@ class ShapeOverlayObject(OverlayObject):
     def get_height(self):
         return self.rect.height
 
-class LineOverlayObject(OverlayObject):
-    def __init__(self, page_num, coord, start, end, color, width):
-        self.start = start
-        self.end = end
-        self.color = color
-        self.width = width
-        super().__init__(page_num, coord)
-
-    def overlay(self, overlayer, absolute_coord):
-        overlayer.line_overlay(self.page_num, absolute_coord, self.start, self.end, self.color, self.width)
-        super().overlay(overlayer, absolute_coord)
-    pass
-
-    def get_height(self):
-        return None
 
 class TextOverlayObject(OverlayObject):
     def __init__(self, page_num, coord, font, size, text, color, text_align, weight=None):

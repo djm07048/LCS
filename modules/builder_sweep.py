@@ -1,7 +1,7 @@
 #from sweep_ans import SWAnsBuilder
 from sweep_pro import SWProBuilder
-#from sweep_sol import SWSolBuilder
-#from sweep_toc import SWTocBuilder
+from sweep_sol import SWSolBuilder
+from sweep_toc import SWTocBuilder
 from modules.overlayer import Overlayer
 from utils.coord import Coord
 from utils.overlay_object import *
@@ -42,27 +42,57 @@ class SWBuilder:
             log_callback("Sweep Paper Build Start")
             log_callback(f"Building {output}")
 
+
         new_doc = fitz.open()
+        curr_page_new = 0
+        theme_number = 1
 
+        SWTB = SWTocBuilder(self.items, curr_page_new)
+        blank_toc_page = SWTB.add_blank_toc_page()
+        new_doc.insert_pdf(blank_toc_page)
+
+        SWPB = SWProBuilder(self.items, curr_page_new)
+
+        theme_pages = [curr_page_new]
         # Add the quick answer page
-        SWAB = SWAnsBuilder(self.items)
-        ans_doc = SWAB.build_answer_page(output)
-        new_doc.insert_pdf(ans_doc)
-        ans_doc.close()
+        for theme_code in SWPB.items_by_theme.keys():
+            pro_doc = SWPB.build_page_pro(theme_code, theme_number)
+            new_doc.insert_pdf(pro_doc)
+            pro_doc.close()
 
-        front_doc = fitz.open()
-        fdo = Overlayer(front_doc)
-        fdo.add_page(DXAB.get_component_on_resources(11))        #front 도비라
-        fdo.add_page(DXAB.get_component_on_resources(8))        #empty
+        curr_page_new = SWPB.curr_page
 
-        curr_page = new_doc.page_count + 2
-
-        DXPB = DuplexProBuilder(self.items, curr_page)
-        doc_pro = DXPB.build_page_pro()
-        front_doc.insert_pdf(doc_pro)
-        curr_page += doc_pro.page_count
-        new_doc.insert_pdf(front_doc)
-        doc_pro.close()
+        SWSB = SWSolBuilder(self.items, curr_page_new)
+        total_doc = fitz.open()
+        theme_number = 1
+        for theme_code in SWSB.items_by_theme.keys():
+            theme_pages.append(SWPB.curr_page)
+            sol_doc = fitz.open()
+            print(f"Processing theme: {theme_code}, 시작 페이지: {SWSB.curr_page}")
+            item_dict = SWSB.items_by_theme[theme_code]
+            for item_code in item_dict.keys():
+                item_info = SWSB.get_item_info(item_code, theme_code)
+                item_type = item_info['type']
+                if item_type == '대표':
+                    print(f"{SWSB.curr_page} 대표 문항: {item_code}, theme code: {theme_code}")
+                    page_rep_sol_lt = SWSB.build_page_rep_sol_lt(item_code, theme_code, theme_number)
+                    sol_doc.insert_pdf(page_rep_sol_lt)
+                    page_rep_sol_rt = SWSB.build_page_rep_sol_rt(item_code, theme_code, theme_number)
+                    sol_doc.insert_pdf(page_rep_sol_rt)
+                else:
+                    print(f"{SWSB.curr_page} 기본 또는 발전 문항: {item_code}, theme code: {theme_code}")
+                    page_sub_sol = SWSB.build_page_sub_sol(item_code, theme_code, theme_number)
+                    sol_doc.insert_pdf(page_sub_sol)
+            print(f"Theme {theme_code} 완료, 현재 페이지: {SWSB.curr_page}")
+            if SWSB.curr_page % 2 == 0:  # 현재 페이지가 홀수면 빈 페이지 추가
+                print(f"홀수 페이지이므로 메모 페이지 추가: {theme_code}")
+                page_memo = SWSB.build_page_memo(theme_code, theme_number)
+                sol_doc.insert_pdf(page_memo)
+            total_doc.insert_pdf(sol_doc)
+            theme_number += 1
+        new_doc.insert_pdf(total_doc)
+        total_doc.close()
+        curr_page_new = SWSB.curr_page
 
 
         back_doc = fitz.open()

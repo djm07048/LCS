@@ -172,6 +172,32 @@ class MainsolBuilder:
 
         return solution_object
 
+    def add_child_to_paragraph(self, paragraph: ParagraphOverlayObject, child: OverlayObject, num, pbh, page_num):
+        if child is None:
+            print("Warning: child is None")
+            return num
+        # 기존 리스트에 추가 가능하면 추가하고 num 그대로 반환
+        if paragraph.add_child(child):
+            return num
+
+        # 새 리스트 추가
+        self.append_new_list_to_paragraph(paragraph, num, pbh, page_num)
+        paragraph.add_child(child)
+        return num + 1
+
+    def append_new_list_to_paragraph(self, paragraph: ParagraphOverlayObject, num, problem_height, page_num):
+
+        left_page_sol_list_lt = ListOverlayObject(page_num, Coord(Ratio.mm_to_px(18), problem_height + Ratio.mm_to_px(46), 0),
+                                                  Ratio.mm_to_px(347 - 46) - problem_height, 3)
+        left_page_sol_list_rt = ListOverlayObject(page_num, Coord(Ratio.mm_to_px(134), Ratio.mm_to_px(46), 0),
+                                                  Ratio.mm_to_px(347 - 46), 3)
+
+        if num == 0:
+            paragraph.add_paragraph_list(left_page_sol_list_rt)
+        elif num == 1:
+            paragraph.add_paragraph_list(left_page_sol_list_lt)
+
+
     def build_left(self, item_code, page_num):
         for item in self.get_item_list():
             if item['item_code'] == item_code:
@@ -196,17 +222,16 @@ class MainsolBuilder:
 
         left_page.add_child(ComponentOverlayObject(0, Coord(Ratio.mm_to_px(18), Ratio.mm_to_px(65.5), 0), component))
 
-        problem_height = component.src_rect.height + Ratio.mm_to_px(15)
+        return left_page
 
-        left_page_sol = AreaOverlayObject(page_num, Coord(0, 0, 0), Ratio.mm_to_px(371))
-        '''# solution part
-        left_page_sol = ParagraphOverlayObject()
-        left_page_sol_list_lt = ListOverlayObject(page_num, Coord(Ratio.mm_to_px(18), problem_height + Ratio.mm_to_px(59), 0),
-                                                  Ratio.mm_to_px(347 - 59) - problem_height, 3)
-        left_page_sol_list_rt = ListOverlayObject(page_num, Coord(Ratio.mm_to_px(134), Ratio.mm_to_px(15.59), 0),
-                                                  Ratio.mm_to_px(347 - 15.59), 3)
-        left_page_sol.add_paragraph_list(left_page_sol_list_lt)
-        left_page_sol.add_paragraph_list(left_page_sol_list_rt)'''
+    def build_left_page_solutions(self, item_code, overlayer: Overlayer, page_num):
+
+        component = self.get_problem_component(item_code)
+        pbh = component.src_rect.height + Ratio.mm_to_px(15)
+
+        # 솔루션 부분 (로컬 기준으로 처리)
+        paragraph = ParagraphOverlayObject()
+        paragraph_cnt = 0
 
         main_pdf = code2pdf(item_code)
         with fitz.open(main_pdf) as file:
@@ -214,47 +239,32 @@ class MainsolBuilder:
             solutions_info = ic.get_solution_infos_from_file(file, 10)
             sTF = ic.get_TF_of_solutions_from_file(file, 10)
 
-        linking = ListOverlayObject(0, Coord(Ratio.mm_to_px(134), Ratio.mm_to_px(46), 0), Ratio.mm_to_px(347), 0)
-        solving = ListOverlayObject(0, Coord(Ratio.mm_to_px(134), Ratio.mm_to_px(347), 0), Ratio.mm_to_px(347), 0)
-        for solution_info in solutions_info:
-            sol_commentary_data = self.get_commentary_data()
-            if solution_info.hexcode not in sol_commentary_data:
-                continue
-            so = self.bake_solution_object(solution_info, sTF[solution_info.hexcode], main_pdf)
-            if so is None:
-                continue
-            if sol_commentary_data[solution_info.hexcode][:1] != 'S':
-                solving.add_child(so)
+        sol_list = []
 
-        solving.coord.y -= solving.get_height()
-
+        sol_commentary_data = self.get_commentary_data()
         linking_bar_component = self.get_component_on_resources(46)
-        linking_bar = ComponentOverlayObject(0, Coord(linking.coord.x, linking.coord.y, 0), linking_bar_component)
-        linking.add_child(linking_bar)
-
+        linking_bar = ComponentOverlayObject(0, Coord(0, 0, 0), linking_bar_component)
+        sol_list.append(linking_bar)
         for solution_info in solutions_info:
-            sol_commentary_data = self.get_commentary_data()
-            if solution_info.hexcode not in sol_commentary_data:
-                continue
-            so = self.bake_solution_object(solution_info, sTF[solution_info.hexcode], main_pdf)
-            if so is None:
-                continue
-            if sol_commentary_data[solution_info.hexcode][:1] == 'S':
-                linking.add_child(so)
-
-        if solving.get_height() + linking.get_height() > Ratio.mm_to_px(347 - 46 - 20):
-            linking.coord.x = Ratio.mm_to_px(18)
-            linking.coord.y = Ratio.mm_to_px(343) - linking.get_height()
-
+            key = sol_commentary_data[solution_info.hexcode]
+            if key == 'SA':
+                so = self.bake_solution_object(solution_info, sTF[solution_info.hexcode], main_pdf)
+                sol_list.append(so)
         solving_bar_component = self.get_component_on_resources(38)
-        solving_bar = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(134), Ratio.mm_to_px(
-            347) - solving_bar_component.src_rect.height - solving.get_height(), 0), solving_bar_component)
-        left_page.add_child(solving)
-        left_page.add_child(solving_bar)
+        solving_bar = ComponentOverlayObject(0, Coord(0, 0, 0), solving_bar_component)
+        sol_list.append(solving_bar)
+        for solution_info in solutions_info:
+            key = sol_commentary_data[solution_info.hexcode]
+            if key != 'SA':
+                so = self.bake_solution_object(solution_info, sTF[solution_info.hexcode], main_pdf)
+                sol_list.append(so)
 
-        left_page.add_child(linking)
+        sol_list.reverse()
+        for so in sol_list:
+            paragraph_cnt = self.add_child_to_paragraph(paragraph, so, paragraph_cnt, pbh, page_num)
 
-        return left_page
+        paragraph.overlay(overlayer, Coord(Ratio.mm_to_px(0), Ratio.mm_to_px(0), 0))
+
 
     def get_unit_title(self, unit_code):
         with open(RESOURCES_PATH + "/topic.json", encoding='UTF8') as file:
@@ -285,6 +295,7 @@ class MainsolBuilder:
             self.overlayer.add_page(self.get_component_on_resources(45))
             left_page = self.build_left(item_list[i]['item_code'], i*2+1)
             left_page.overlay(self.overlayer, Coord(0,0,0))
+            self.build_left_page_solutions(item_list[i]['item_code'], self.overlayer, i*2+1)
 
         for page_num in range(self.overlayer.doc.page_count):
             self.add_unit_title(page_num, self.get_unit_title(self.topic))

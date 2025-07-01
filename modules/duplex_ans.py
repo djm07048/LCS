@@ -27,9 +27,9 @@ class DXAnswerBuilder:
 
     print(f"coord_dict: {coord_dict}")
 
-    def __init__(self, items, ):
+    def __init__(self, items, book_name):
         self.items = {}
-
+        self.book_name = book_name
         ic = ItemCropper()
 
         for item_code, item_data in items.items():
@@ -94,7 +94,13 @@ class DXAnswerBuilder:
 
         if filename.split('_')[0] == "EX":  #
             page_num = int(filename.split('_')[-2][:-1]) - 1
-            header_pdf = RESOURCES_PATH + "/duplex_header_resources.pdf"
+            header_pdf = RESOURCES_PATH + "/exam_header_resources.pdf"
+            header_doc = fitz.open(header_pdf)
+            component = Component(header_pdf, page_num, header_doc.load_page(page_num).rect)
+
+        elif filename.split('_')[0] == "SV":
+            page_num = int(filename.split('_')[-2][:-1]) - 1
+            header_pdf = RESOURCES_PATH + "/sweep_header_resources.pdf"
             header_doc = fitz.open(header_pdf)
             component = Component(header_pdf, page_num, header_doc.load_page(page_num).rect)
 
@@ -136,7 +142,8 @@ class DXAnswerBuilder:
             overlayer.pdf_overlay(2, score_coord, score_compo)
 
         header_component = self.get_component_on_header(output)
-        overlayer.pdf_overlay(2, Coord(Ratio.mm_to_px(262/2 - 150/2), Ratio.mm_to_px(47.5), 0), header_component)
+        header_width = header_component.src_rect.width
+        overlayer.pdf_overlay(2, Coord(Ratio.mm_to_px(262/2) - header_width/2, Ratio.mm_to_px(47.5), 0), header_component)
 
         # page4
         overlayer.add_page(self.get_component_on_resources(8))

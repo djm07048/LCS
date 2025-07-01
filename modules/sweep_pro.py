@@ -303,46 +303,36 @@ class SWProBuilder:
         return num + 1
 
 
-    def build_page_pro(self):
+    def build_page_pro(self, theme_code, theme_number):
         local_start_page = self.curr_page
 
-        pro_doc = fitz.open()
-        self.overlayer = Overlayer(pro_doc)
-
+        theme_pro_doc = fitz.open()
+        self.overlayer = Overlayer(theme_pro_doc)
 
         template_page_num = 20 if local_start_page % 2 == 1 else 19
         self.overlayer.add_page(self.get_component_on_resources(template_page_num))
 
         paragraph = ParagraphOverlayObject()
         paragraph_cnt = 0
-        theme_number = 1
 
-
-        for theme_code in self.items_by_theme.keys():
-            theme_whole = self.bake_theme_whole(theme_code, theme_number)
-            # 테마 제목 추가
-            paragraph_cnt = self.add_child_to_paragraph(paragraph, theme_whole, paragraph_cnt, self.overlayer,
+        theme_whole = self.bake_theme_whole(theme_code, theme_number)
+        # 테마 제목 추가
+        paragraph_cnt = self.add_child_to_paragraph(paragraph, theme_whole, paragraph_cnt, self.overlayer,
+                                                    local_start_page)
+        # 문항 추가
+        item_dict = self.items_by_theme[theme_code]
+        for item_code in item_dict.keys():
+            print(f"3: {item_dict.keys()}")
+            print(f"Processing item: {item_dict}")
+            item_whole = self.bake_item(item_code, theme_code)
+            paragraph_cnt = self.add_child_to_paragraph(paragraph, item_whole, paragraph_cnt, self.overlayer,
                                                         local_start_page)
-            # 문항 추가
-            item_dict = self.items_by_theme[theme_code]
-            for item_code in item_dict.keys():
-                print(f"3: {item_dict.keys()}")
-                print(f"Processing item: {item_dict}")
-                item_whole = self.bake_item(item_code, theme_code)
-                paragraph_cnt = self.add_child_to_paragraph(paragraph, item_whole, paragraph_cnt, self.overlayer,
-                                                            local_start_page)
-
-            # 다음 단으로 강제 넘기기
-            blank = AreaOverlayObject(0, Coord(0, 0, 0), Ratio.mm_to_px(347 - 22))
-            paragraph_cnt = self.add_child_to_paragraph(paragraph, blank, paragraph_cnt, self.overlayer, local_start_page)
-
-            theme_number += 1
         paragraph.overlay(self.overlayer, Coord(0, 0, 0))
 
         # 완료 후 전역 카운터 업데이트
-        self.curr_page += pro_doc.page_count
+        self.curr_page += theme_pro_doc.page_count
 
-        return pro_doc
+        return theme_pro_doc
 
 if __name__ == "__main__":
     items = [
@@ -419,7 +409,14 @@ if __name__ == "__main__":
                 "fig": []
               }
             ]
-    builder = SWProBuilder(items, 1)
+    SWPB = SWProBuilder(items, 1)
     path = os.path.join(OUTPUT_PATH, 'sweep_pro_output.pdf')
-    pro_doc = builder.build_page_pro()
-    pro_doc.save(path)
+
+    total_pro_doc = fitz.open()
+    SWPB.overlayer = Overlayer(total_pro_doc)
+    theme_number = 1
+    for theme_code in SWPB.items_by_theme.keys():
+        theme_pro_doc = SWPB.build_page_pro(theme_code, theme_number)
+        total_pro_doc.insert_pdf(theme_pro_doc)
+        theme_number += 1
+    total_pro_doc.save(path)

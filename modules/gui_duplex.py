@@ -941,7 +941,7 @@ class DatabaseManager(QMainWindow):
 
     def open_item_hwp(self, item_code):
         hwp_path = code2hwp(item_code)
-
+        print(hwp_path)
         if os.path.exists(hwp_path):
             try:
                 os.startfile(hwp_path)
