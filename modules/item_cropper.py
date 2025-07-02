@@ -125,3 +125,20 @@ class ItemCropper:
             print(file.name)
         text = page.get_text("text", clip=srect)
         return text[2:3]
+
+    def get_fig_type_of_solutions_from_file(self, file: fitz.Document, accuracy=1):
+        page = file.load_page(0)
+        try:
+            fig_types = dict()
+            for hexcode in self.solutions:
+                original_rect = self.solutions[hexcode].rect
+                # 원본이 수정되지 않기 위해 새로운 Rect 객체 생성
+                srect = fitz.Rect(original_rect.x0 - Ratio.mm_to_px(22), original_rect.y0,
+                                  original_rect.x1 - Ratio.mm_to_px(100), original_rect.y1)
+                text = page.get_text("text", clip=srect)
+                fig_types.update({hexcode: text})
+            self.fig_types = fig_types
+            print(self.fig_types)
+        except:
+            print(file.name)
+        return self.fig_types

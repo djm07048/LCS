@@ -198,6 +198,20 @@ class DuplexProBuilder:
         problem.height = curr_height + self.space_btw_problem                      #더해지는 값이 문항 - 문항 간 간격을 결정함
         return problem
 
+    def get_sol_type_dict(self):
+        sol_type_dict = {
+            "SB": 34,  # linking 2
+            "SC": 34,  # linking 3
+            "SD": 34,  # linking 4
+            "SE": 34  # linking 5
+        }
+        return sol_type_dict
+
+    def get_commentary_data(self):
+        with open(RESOURCES_PATH + "/commentary.json") as file:
+            commentary_data = json.load(file)
+        return commentary_data
+
     def append_new_list_to_paragraph(self, paragraph: ParagraphOverlayObject, num, overlayer: Overlayer,
                                            local_start_page):
         x0_list = [[Ratio.mm_to_px(22), Ratio.mm_to_px(133)],
@@ -251,7 +265,6 @@ class DuplexProBuilder:
             if self.book_name.split("_")[0] == "EX":
                 problem_sd = self.bake_problem_sd(sd_code)
                 paragraph_cnt = self.add_child_to_paragraph(paragraph, problem_sd, paragraph_cnt, self.overlayer, local_start_page)
-
             for rel_code in self.items[sd_code]['list_rel_item_code']:
                 problem_rel = self.bake_problem_rel(sd_code, rel_code)
                 paragraph_cnt = self.add_child_to_paragraph(paragraph, problem_rel, paragraph_cnt, self.overlayer, local_start_page)

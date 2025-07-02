@@ -109,6 +109,45 @@ class DuplexItemBuilder:
         box.rect = compo.src_rect
 
         return box
+    def bake_title_theory_sv(self, sd_code, list_theory_piece_code):
+        #piece_code = ["WIND UP 고체편 120p", "WIND UP 고체편 121p", "WIND UP 고체편 122p"]
+        compo = self.get_component_on_resources(35)
+        box = ComponentOverlayObject(0, Coord(0,0,0), compo)
+
+        text_exam = ''.join(list_theory_piece_code[0].split(" ")[2])
+        text_number = ', '.join([list_theory_piece_code[i].split(" ")[3] for i in range(len(list_theory_piece_code))])
+
+        if sd_code[5:7] == 'KC' or sd_code[5:7] == 'NC':
+            source = code2cite(sd_code)  # '{2026}학년도 {6월} {20}번 {지1}' or '{2026}학년도
+            text_sd_number = source.split(" ")[2][:-1]
+            text_cite = source + " 개념"
+
+        else:
+            sd_source = sdcode2cite(sd_code)
+            text_sd_number = sd_source.split(" ")[4][:-1]
+            text_cite = sd_source.split(" ")[1] + " " + sd_source.split(" ")[2] + " " + sd_source.split(" ")[3] + " " + \
+                        sd_source.split(" ")[4] + " " + "개념"
+
+        to_sd_number = TextOverlayObject(0, Coord(Ratio.mm_to_px(15.88), Ratio.mm_to_px(9.7), 0), "Montserrat-Bold.ttf", 22,
+                                    text_sd_number, (0, 0, 0, 0), fitz.TEXT_ALIGN_CENTER)
+
+        to_exam = TextOverlayObject(0, Coord(Ratio.mm_to_px(71), Ratio.mm_to_px(8.62), 0),
+                                    "Pretendard-ExtraBold.ttf", 13,
+                                    text_exam, (1, 0, 0, 0), fitz.TEXT_ALIGN_CENTER)
+        to_number = TextOverlayObject(0, Coord(Ratio.mm_to_px(92), Ratio.mm_to_px(9), 0),
+                                      "Pretendard-Bold.ttf", 16,
+                                      text_number, (0, 0, 0, 1), fitz.TEXT_ALIGN_LEFT)
+
+        to_cite = TextOverlayObject(0, Coord(Ratio.mm_to_px(215.3), Ratio.mm_to_px(5.6), 0), "Pretendard-Medium.ttf",10,
+                                      text_cite, (0, 0, 0, 0.8), fitz.TEXT_ALIGN_RIGHT)
+        box.add_child(to_sd_number)
+        box.add_child(to_exam)
+        box.add_child(to_number)
+        box.add_child(to_cite)
+
+        box.rect = compo.src_rect
+
+        return box
 
     def bake_title_rel_sol(self, sd_code, rel_code):
         if sd_code[5:7] == 'KC' or sd_code[5:7] == 'NC':
@@ -165,7 +204,7 @@ class DuplexItemBuilder:
             piece.height += Ratio.mm_to_px(10)
         return piece
 
-    def bake_solution_object(self, solution_info, TF, item_pdf):
+    def bake_solution_object(self, solution_info, TF, item_pdf, FigType="그림"):
         so = AreaOverlayObject(0, Coord(0, 0, 0), 0)
         so_compo = Component(item_pdf, 0, solution_info.rect)
 
@@ -191,6 +230,7 @@ class DuplexItemBuilder:
                                     str(answer), (0, 0, 0, 1), fitz.TEXT_ALIGN_LEFT)
             so.add_child(to)
             so.height = so_compo.src_rect.height + Ratio.mm_to_px(3.5)
+
         elif self.get_commentary_data()[solution_info.hexcode] == "SA":  # 말풍선
             shade = ShapeOverlayObject(0, Coord(Ratio.mm_to_px(2), 0, -1), Rect(0, 0, Ratio.mm_to_px(105), so_compo.src_rect.height + Ratio.mm_to_px(5)),
                                        (0.2, 0, 0, 0), Ratio.mm_to_px(2.5) / (so_compo.src_rect.height + Ratio.mm_to_px(5)))
@@ -202,6 +242,30 @@ class DuplexItemBuilder:
             so.add_child(handle)
             so.add_child(compo)
             so.height = so_compo.src_rect.height + Ratio.mm_to_px(5 + 5 + 2.5)
+
+        elif self.get_commentary_data()[solution_info.hexcode][:1] == "S" and self.get_commentary_data()[solution_info.hexcode] != "SA":  # 일반 해설
+            # 로고 추가
+            type_component = self.get_component_on_resources(34)
+            so.add_child(ComponentOverlayObject(0, Coord(Ratio.mm_to_px(0), 0, 0), type_component))
+
+            # 자료 이름 추가
+            if FigType:
+                to_fig_type = TextOverlayObject(0, Coord(Ratio.mm_to_px(26), Ratio.mm_to_px(5.15), 2),
+                                                "Pretendard-Medium.ttf", 12, FigType, (0, 0, 0, 1),
+                                                fitz.TEXT_ALIGN_LEFT)
+                so.add_child(to_fig_type)
+
+            # 내용 컴포넌트 추가
+            so_compo = Component(item_pdf, 0, solution_info.rect)
+            so_shade = ShapeOverlayObject(0, Coord(Ratio.mm_to_px(3), Ratio.mm_to_px(10), 2),
+                                          Rect(0, 0, Ratio.mm_to_px(102), so_compo.src_rect.height + Ratio.mm_to_px(2)),
+                                          (0.1, 0, 0, 0))
+            so_cco = ComponentOverlayObject(0, Coord(Ratio.mm_to_px(4), Ratio.mm_to_px(11), 2),
+                                            so_compo)
+            so.add_child(so_shade)
+            so.add_child(so_cco)
+            so.height = so_compo.src_rect.height + Ratio.mm_to_px(12 + 5)
+
         else:       #정오 선지
             res_page_num = self.get_sol_type_dict()[self.get_commentary_data()[solution_info.hexcode]]
             type_component = self.get_component_on_resources(res_page_num)
@@ -307,8 +371,8 @@ class DuplexItemBuilder:
         if paragraph.add_child(child):
             return num
 
-        # 첫 번째 리스트인 경우 (num=0)
-        if num == 0:
+        # 첫 번째 리스트인 경우 (==0)
+        if len(paragraph.child) == 0:
             # 첫 번째 리스트 생성 (좌단)
             self.append_new_list_to_paragraph_piece(paragraph, num, overlayer, local_start_page, align)
             paragraph.add_child(child)
@@ -331,8 +395,6 @@ class DuplexItemBuilder:
         paragraph.add_child(child)
 
         return num + 1
-
-        return num
 
     def build_page_sd_sol(self, sd_code):
         # 로컬 페이지 기준점 설정
@@ -402,8 +464,10 @@ class DuplexItemBuilder:
         page_container = AreaOverlayObject(0, Coord(0, 0, 0), Ratio.mm_to_px(371))
 
         # 제목 컴포넌트 추가 (로컬 기준)
-
-        title_theory = self.bake_title_theory(sd_code, list_theory_piece_code)
+        if self.book_name[0:2] == "SV":
+            title_theory = self.bake_title_theory_sv(sd_code, list_theory_piece_code)
+        else:
+            title_theory = self.bake_title_theory(sd_code, list_theory_piece_code)
         current_page_index = local_start_page + overlayer.doc.page_count - 1
         page_side = current_page_index % 2
         title_x = Ratio.mm_to_px(22 - page_side * 4)
@@ -415,7 +479,10 @@ class DuplexItemBuilder:
 
         # 이론 조각 부분 처리 (로컬 기준)
         paragraph = ParagraphOverlayObject()
-        paragraph_cnt = 0
+        paragraph_cnt = 1       #좌단이 비어있음.
+
+        pcsv = self.bake_problem_comment_sv(sd_code)
+        pcsv.overlay(overlayer, Coord(Ratio.mm_to_px(22 - (local_start_page % 2) * 4), Ratio.mm_to_px(47), 0))
         for piece_code in list_theory_piece_code:
             piece = self.bake_theory_piece(piece_code)
             paragraph_cnt = self.add_child_to_paragraph_piece(paragraph, piece, paragraph_cnt, overlayer,
@@ -501,6 +568,10 @@ class DuplexItemBuilder:
             "exc_mark": 25,     #느낌표
             "answer": 26,
             "SA": 27,       #linking 1
+            "SB": 34,  # linking 2
+            "SC": 34,  # linking 3
+            "SD": 34,  # linking 4
+            "SE": 34  # linking 5
         }
         return sol_type_dict
 
@@ -510,6 +581,30 @@ class DuplexItemBuilder:
             solutions_info = ic.get_solution_infos_from_file(file, 10)
             answer = ic.get_answer_from_file(file)
             return answer
+
+    def bake_problem_comment_sv(self, item_code):
+        # title 추가
+        curr_y = 0
+        problem = AreaOverlayObject(0, Coord(0, 0, 0), 0)
+        item_pdf = code2pdf(item_code)
+        with fitz.open(item_pdf) as file:
+            ic = ItemCropper()
+            solutions_info = ic.get_solution_infos_from_file(file, 10)
+            sFigType = ic.get_fig_type_of_solutions_from_file(file, 10)
+
+        for solution_info in solutions_info:
+            commentary_key = self.get_commentary_data()[solution_info.hexcode]
+            if commentary_key[:1] == "S" and commentary_key != "SA":
+                # so는 AreaOverlayObject
+                so = self.bake_solution_object(solution_info, None, item_pdf, sFigType[solution_info.hexcode])
+                so.coord.y = curr_y
+                problem.add_child(so)
+                solution_height = so.get_height() + Ratio.mm_to_px(2)
+                curr_y += solution_height  # curr_y는 개별 높이만 더하기
+
+        problem.height = curr_y
+        return problem
+
 
     def get_commentary_data(self):
         with open(RESOURCES_PATH + "/commentary.json") as file:
