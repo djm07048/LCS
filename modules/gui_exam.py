@@ -1383,25 +1383,6 @@ class DatabaseManager(QMainWindow):
 
         except Exception as e:
             self.log_message(f"Para change error: {str(e)}")
-
-    def safe_swap_item_number(self, row, new_number, sender):
-        """swap_item_number의 안전한 래퍼 함수"""
-        try:
-            if sender == self.pool_table:
-                # POOL 테이블에서의 스왑
-                self.swap_item_number(row, new_number, sender)
-            else:
-                self.swap_item_number(row, new_number, sender)
-        except Exception as e:
-            self.log_message(f"Error during swap: {str(e)}")
-
-    def safe_change_item_para(self, row, new_para):
-        """change_item_para의 안전한 래퍼 함수"""
-        try:
-            self.change_item_para(row, new_para)
-        except Exception as e:
-            self.log_message(f"Error during para change: {str(e)}")
-
     def open_item_hwp(self, item_code):
         # Construct and normalize path
         hwp_path = code2hwp(item_code)
@@ -1623,13 +1604,6 @@ class DatabaseManager(QMainWindow):
                 self.list_table.setItem(row, 1, QTableWidgetItem(str(dst_number)))
                 # dst_number를 갖고 있던 행의 number를 src_number로 변경
                 self.list_table.setItem(dst_row, 1, QTableWidgetItem(str(src_number)))
-
-                # 현재 행의 단을 dst의 단으로 변경
-                if self.list_table.item(dst_row, 3):
-                    self.list_table.setItem(row, 3, QTableWidgetItem(self.list_table.item(dst_row, 3).text()))
-                # dst_number를 갖고 있던 행의 단을 src의 단으로 변경
-                if self.list_table.item(row, 3):
-                    self.list_table.setItem(dst_row, 3, QTableWidgetItem(self.list_table.item(row, 3).text()))
                 self.log_message(f"Swapped numbers: {src_number} ↔ {dst_number}")
 
             # 2) src number가 20 이하 자연수 & dst number를 갖는 cell 없음
@@ -1654,68 +1628,6 @@ class DatabaseManager(QMainWindow):
 
         except Exception as e:
             self.log_message(f"Error in swap_item_number_in_list: {str(e)}")
-
-    def swap_item_number_in_list(self, row, dst_number):
-        """
-        항목 번호 변경 (고급 버전)
-        sender가 self.list_table인 경우:
-        1) src number가 20 이하 자연수이면서 dst number를 갖는 cell이 있는 경우:
-           현재 행의 number를 dst_number로 바꾸고, dst_number를 갖고 있던 행의 number를 src_number로 바꿈
-        2) src number가 20 이하 자연수이면서 dst number를 갖는 cell이 없는 경우:
-           현재 행의 number를 dst_number로 바꿈
-        3) src number가 20 이하 자연수가 아니면서 dst number를 갖는 cell이 있는 경우:
-           현재 행의 number를 dst_number로 바꾸고, dst_number를 갖고 있던 행의 number를 null로 바꿈
-        4) src number가 20 이하 자연수가 아니면서 dst number를 갖는 cell이 없는 경우:
-           현재 행의 number를 dst_number로 바꿈
-        """
-        # 현재 행의 번호(src_number) 가져오기
-        src_number = None
-        if self.list_table.item(row, 1) and self.list_table.item(row, 1).text():
-            try:
-                src_number = int(self.list_table.item(row, 1).text())
-            except ValueError:
-                src_number = None
-
-        # dst_number를 가진 행 찾기
-        dst_row = -1
-        for r in range(self.list_table.rowCount()):
-            if (self.list_table.item(r, 1) and
-                    self.list_table.item(r, 1).text() and
-                    self.list_table.item(r, 1).text() == str(dst_number)):
-                dst_row = r
-                break
-
-        # src_number가 1-20 사이 자연수인지 확인
-        is_valid_src = (src_number is not None and 1 <= src_number <= 20)
-
-        # 조건에 따른 처리
-        # 1) src number가 20 이하 자연수 & dst number를 갖는 cell 존재
-        if is_valid_src and dst_row >= 0:
-            # 현재 행의 number를 dst_number로 변경
-            self.list_table.setItem(row, 1, QTableWidgetItem(str(dst_number)))
-            # dst_number를 갖고 있던 행의 number를 src_number로 변경
-            self.list_table.setItem(dst_row, 1, QTableWidgetItem(str(src_number)))
-            self.log_message(f"Swapped numbers: {src_number} ↔ {dst_number}")
-
-        # 2) src number가 20 이하 자연수 & dst number를 갖는 cell 없음
-        elif is_valid_src and dst_row < 0:
-            # 현재 행의 number를 dst_number로 변경
-            self.list_table.setItem(row, 1, QTableWidgetItem(str(dst_number)))
-            self.log_message(f"Changed number from {src_number} to {dst_number}")
-
-        # 3) src number가 20 이하 자연수 아님 & dst number를 갖는 cell 존재
-        elif not is_valid_src and dst_row >= 0:
-            # 현재 행의 number를 dst_number로 변경
-            self.list_table.setItem(row, 1, QTableWidgetItem(str(dst_number)))
-            # dst_number를 갖고 있던 행의 number를 null로 변경
-            self.list_table.setItem(dst_row, 1, QTableWidgetItem(""))
-            self.log_message(f"Changed number to {dst_number} and cleared previous {dst_number}")
-
-        # 4) src number가 20 이하 자연수 아님 & dst number를 갖는 cell 없음
-        else:
-            # 현재 행의 number를 dst_number로 변경
-            self.list_table.setItem(row, 1, QTableWidgetItem(str(dst_number)))
-            self.log_message(f"Changed number to {dst_number}")
 
     # TAG
     def show_tag_context_menu(self, pos):
