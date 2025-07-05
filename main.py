@@ -56,7 +56,8 @@ def build_exam_test(input, output, log_callback=None):
         log_callback(f"Building {input} to {output}")
     with open(input, encoding='UTF8') as file:
         items = json.load(file)
-    bd = ExamTestBuilder(items)
+    book_name = Path(output).name
+    bd = ExamTestBuilder(items, book_name)
     bd.build_test(output)
 
 def build_sweep(input, output, log_callback=None):

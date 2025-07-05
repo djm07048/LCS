@@ -21,7 +21,7 @@ import json
 
 
 class ExamTestBuilder():
-    def __init__(self, items):
+    def __init__(self, items, book_name):
         self.items = {
         item['item_code']: {
         'number': item['number'],
@@ -34,6 +34,7 @@ class ExamTestBuilder():
 }
         # {item_code1: {'number': 1, 'score': 2, 'para': '1L'},
         #  item_code2: {'number': 2, 'score': 2, 'para': '1R'}, ...}
+        self.book_name = book_name
 
     def get_para_dict(self):
         # 297 * 420
@@ -218,7 +219,7 @@ class ExamTestBuilder():
         PdfUtils.save_to_pdf(test_doc, output, garbage=4)
         test_doc.close()
 
-        DXA = DXAnswerBuilder(self.items)
+        DXA = DXAnswerBuilder(self.items, self.book_name)
         DXA.build_answer_page(output)
 
 
